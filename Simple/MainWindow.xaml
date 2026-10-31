@@ -24,7 +24,7 @@
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBlock Text="搜索" VerticalAlignment="Center" />
                         <TextBox x:Name="SearchBox" Width="180" Margin="6,0,0,0"
-                                 VerticalContentAlignment="Center" TextChanged="Filter_Changed" />
+                                 VerticalContentAlignment="Center" TextChanged="Search_Changed" />
                         <TextBlock Text="分类" VerticalAlignment="Center" Margin="14,0,0,0" />
                         <ComboBox x:Name="CategoryCombo" Width="150" Margin="6,0,0,0"
                                   VerticalContentAlignment="Center" SelectionChanged="Filter_Changed" />
@@ -32,12 +32,30 @@
                         <TextBlock x:Name="CountHint" Margin="14,0,0,0" VerticalAlignment="Center" Foreground="#666" />
                     </StackPanel>
 
+                    <!--
+                        两列铺开，一屏 24 项（原来竖着一列只放得下 11 项）。
+                        名字最长 27 个字（「关闭 SysMain 服务（原 Superfetch）」），
+                        单格 420 宽够放；超了用省略号 + ToolTip 兜底。
+                    -->
                     <ListBox x:Name="SettingList" BorderThickness="1"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                             VirtualizingPanel.ScrollUnit="Pixel">
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Width" Value="420" />
+                                <Setter Property="Margin" Value="2" />
+                                <Setter Property="Padding" Value="6,4" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Grid Margin="0,5">
+                                <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
@@ -45,12 +63,14 @@
                                     </Grid.ColumnDefinitions>
                                     <CheckBox Grid.Column="0" VerticalAlignment="Center"
                                               IsChecked="{Binding IsOn, Mode=TwoWay}" Click="Row_Click" />
-                                    <StackPanel Grid.Column="1" Margin="10,0,10,0">
-                                        <TextBlock Text="{Binding Name}" />
+                                    <StackPanel Grid.Column="1" Margin="8,0,8,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"
+                                                   ToolTip="{Binding Name}" />
                                         <TextBlock Text="{Binding Desc}" Foreground="#666" FontSize="11"
-                                                   TextWrapping="Wrap" Margin="0,2,0,0" />
+                                                   TextTrimming="CharacterEllipsis" Margin="0,1,0,0"
+                                                   ToolTip="{Binding Desc}" />
                                     </StackPanel>
-                                    <TextBlock Grid.Column="2" Text="{Binding StateText}" MinWidth="62"
+                                    <TextBlock Grid.Column="2" Text="{Binding StateText}" MinWidth="54"
                                                TextAlignment="Right" VerticalAlignment="Center"
                                                Foreground="{Binding StateBrush}" />
                                 </Grid>

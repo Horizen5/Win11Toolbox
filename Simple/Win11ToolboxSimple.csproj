@@ -15,10 +15,12 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>Win11Toolbox-Simple</AssemblyName>
     <RootNamespace>Win11ToolboxSimple</RootNamespace>
-    <Version>1.1.5</Version>
+    <Version>1.1.6</Version>
     <AssemblyTitle>Win11 工具箱 · 简洁版</AssemblyTitle>
     <Product>Win11 工具箱 · 简洁版</Product>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- 和完整版用同一个图标文件，省得两处各维护一份、改了一边忘另一边 -->
+    <ApplicationIcon>..\Assets\app.ico</ApplicationIcon>
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

@@ -79,6 +79,12 @@ public partial class MainWindow : Window
     private readonly SemaphoreSlim _applyLock = new(1, 1);
     private readonly List<(SettingRow Row, bool Want)> _pending = new();
 
+    /// <summary>搜索框防抖：停手 180ms 才筛一次，见 <see cref="Search_Changed"/>。</summary>
+    private readonly System.Windows.Threading.DispatcherTimer _searchTimer = new()
+    {
+        Interval = TimeSpan.FromMilliseconds(180),
+    };
+
     public MainWindow()
     {
         StartupTrace.Mark("MainWindow ctor 进入");
@@ -91,6 +97,12 @@ public partial class MainWindow : Window
 
         SettingList.ItemsSource = _view;
         Loaded += OnLoaded;
+
+        _searchTimer.Tick += (_, _) =>
+        {
+            _searchTimer.Stop();
+            RefreshList();
+        };
 
         // --tab <0|1|2>：直接停在指定页签。
         // WPF 不接收合成鼠标消息（PostMessage WM_LBUTTONDOWN 试过，没用），
@@ -226,6 +238,21 @@ public partial class MainWindow : Window
     // ------------------------------------------------------------------ 筛选
     private void Filter_Changed(object sender, RoutedEventArgs e) => RefreshList();
     private void Filter_Changed(object sender, SelectionChangedEventArgs e) => RefreshList();
+
+    /// <summary>
+    /// 搜索框防抖。
+    ///
+    /// <para>
+    /// 列表改成两列之后用的是 <c>WrapPanel</c>，它不虚拟化 —— 每次筛选都要把
+    /// 65 个容器整个重建一遍，实测约 100 毫秒。不防抖的话每敲一个字卡一下，
+    /// 打字像在敲木鱼。停手 180 毫秒再筛一次就够了。
+    /// </para>
+    /// </summary>
+    private void Search_Changed(object sender, TextChangedEventArgs e)
+    {
+        _searchTimer.Stop();
+        _searchTimer.Start();
+    }
 
     private void RefreshList()
     {

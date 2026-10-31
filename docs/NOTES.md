@@ -335,6 +335,13 @@ Win11ToolboxCS/
   一屏只放得下 11 个，47 个工具要翻四屏。改成控制面板那种图标视图：`ItemsPanel` 换
   `WrapPanel`，`ListBoxItem` 定宽 208，一屏四列十行能看到 40 个，基本一屏装完。
   `WrapPanel` 不虚拟化，47 项无所谓；再多就得换 `VirtualizingWrapPanel` 了。
+- **「设置」页同理，但它不能定宽。** 设置项名字最长 27 个字
+  （「关闭 SysMain 服务（原 Superfetch）」），按工具页那样一格 208 宽会全被截断。
+  改成两列、每格 420 宽，名字一行说明一行（`TextTrimming` + `ToolTip` 兜底），
+  一屏 22 项，原来只有 11 项。
+- **图标**：`Simple` 工程的 `<ApplicationIcon>` 直接指向 `..\Assets\app.ico`，
+  和完整版共用同一份，不另存一份（改了一边忘另一边）。加完 exe 从 251 KB 到 433 KB，
+  装机拷 U 盘完全无所谓。
 
 > 排查这个 exe 的时候又栽在同一个坑里：**进程名跟着文件名走**。
 > `Get-Process -Name Win11Toolbox-Simple` 查不到，是因为 exe 叫 `Win11工具箱-简洁版.exe`，
