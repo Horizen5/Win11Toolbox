@@ -1,0 +1,233 @@
+<Page
+    Style="{StaticResource DefaultPageStyle}"
+    x:Class="Win11Toolbox.Pages.RightMenuPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="右键菜单">
+
+    <Page.Resources>
+        <!-- 一行：悬停变底色，和系统「设置」里的列表行一致 -->
+        <Style x:Key="RowBorder" TargetType="Border">
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <DataTemplate x:Key="RowTemplate">
+            <Border Style="{StaticResource RowBorder}" ToolTip="{Binding Tip}" Tag="{Binding}">
+                <Border.ContextMenu>
+                    <ContextMenu Opened="RowMenu_Opened">
+                        <MenuItem Header="打开文件所在位置" FontWeight="SemiBold" Click="OpenFile_Click" />
+                        <MenuItem Header="打开归属软件的目录" Click="OpenDir_Click" />
+                        <Separator />
+                        <MenuItem Header="在注册表编辑器中定位" Click="OpenRegedit_Click" />
+                        <MenuItem Header="复制注册表路径" Click="CopyRegPath_Click" />
+                        <MenuItem Header="复制菜单名称" Click="CopyName_Click" />
+                        <MenuItem Header="复制详细信息" Click="CopyDetail_Click" />
+                        <Separator />
+                        <MenuItem Header="只看这个软件" Click="OnlyThisApp_Click" />
+                        <MenuItem Header="全选这个软件的所有项" Click="SelectSameApp_Click" />
+                        <Separator />
+                        <MenuItem Header="恢复这一项（按备份还原）" Click="RestoreOne_Click" />
+                        <MenuItem Header="单独备份这一项为 .reg…" Click="ExportOne_Click" />
+                        <MenuItem Header="查看完整信息…" Click="ShowInfo_Click" />
+                    </ContextMenu>
+                </Border.ContextMenu>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="34" />
+                        <ColumnDefinition Width="30" />
+                        <ColumnDefinition Width="2*" MinWidth="150" />
+                        <ColumnDefinition Width="106" />
+                        <ColumnDefinition Width="78" />
+                        <ColumnDefinition Width="118" />
+                        <ColumnDefinition Width="3*" MinWidth="150" />
+                    </Grid.ColumnDefinitions>
+
+                    <ToggleButton Grid.Column="0" Style="{StaticResource RowCheckBox}"
+                                  IsChecked="{Binding Checked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  Click="RowCheck_Click" />
+
+                    <Image Grid.Column="1" Source="{Binding AppIcon}" Width="18" Height="18"
+                           VerticalAlignment="Center" RenderOptions.BitmapScalingMode="LowQuality" />
+
+                    <TextBlock Grid.Column="2" Text="{Binding Title}" VerticalAlignment="Center"
+                               Margin="0,0,12,0"
+                               TextTrimming="CharacterEllipsis" />
+
+                    <TextBlock Grid.Column="3" Text="{Binding Category}" VerticalAlignment="Center"
+                               Margin="0,0,12,0"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               TextTrimming="CharacterEllipsis" />
+
+                    <TextBlock Grid.Column="4" Text="{Binding Status}" VerticalAlignment="Center"
+                               Foreground="{Binding StatusBrush}" />
+
+                    <TextBlock Grid.Column="5" Text="{Binding AppName}" VerticalAlignment="Center"
+                               Margin="0,0,12,0"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               TextTrimming="CharacterEllipsis" />
+
+                    <TextBlock Grid.Column="6" Text="{Binding Detail}" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                               TextTrimming="CharacterEllipsis" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Border Margin="24,18,24,16" Padding="0">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 标题 -->
+        <Grid Grid.Row="0">
+            <StackPanel>
+                <ui:TextBlock FontTypography="Title" Text="右键菜单管理" />
+                <ui:TextBlock FontTypography="Body" Margin="0,4,0,0"
+                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                              Text="勾选不想再看到的项 → 备份并禁用 → 重启资源管理器，随时可还原" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <ui:Button Content="重新扫描" Appearance="Secondary" Icon="{ui:SymbolIcon ArrowSync24}"
+                           Margin="0,0,8,0" Click="Rescan_Click" />
+                <ui:Button Content="备份目录" Appearance="Secondary" Icon="{ui:SymbolIcon FolderOpen24}"
+                           Margin="0,0,8,0" Click="OpenBackupFolder_Click" />
+                <ui:Button Content="日志" Appearance="Secondary" Click="ShowLog_Click" />
+            </StackPanel>
+        </Grid>
+
+        <!-- 工具栏 -->
+        <ui:Card Grid.Row="1" Padding="14,12" Margin="0,12,0,10">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="300" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <ui:TextBox x:Name="SearchBox" PlaceholderText="搜索菜单名 / 软件 / 注册表路径"
+                                TextChanged="Filter_Changed" />
+
+                    <ComboBox x:Name="AppCombo" Grid.Column="1" Width="216" Margin="10,0,0,0"
+                              SelectionChanged="Filter_Changed" />
+
+                    <ui:TextBlock x:Name="CountHint" Grid.Column="2" FontTypography="Caption"
+                                  VerticalAlignment="Center" HorizontalAlignment="Right"
+                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="" />
+                </Grid>
+
+                <Grid Margin="0,10,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <CheckBox x:Name="ThirdOnly" Content="只看第三方项" IsChecked="True" Margin="0,0,20,0"
+                                  VerticalAlignment="Center" Click="Filter_Changed" />
+                        <CheckBox x:Name="ShowBlocked" Content="显示已屏蔽" IsChecked="True" Margin="0,0,20,0"
+                                  VerticalAlignment="Center" Click="Filter_Changed" />
+                        <CheckBox x:Name="ShowHistory" Content="显示已禁用记录" IsChecked="True" Margin="0,0,20,0"
+                                  VerticalAlignment="Center" Click="Filter_Changed" />
+                        <CheckBox x:Name="ShowIcons" Content="显示图标" IsChecked="True"
+                                  VerticalAlignment="Center" Click="Filter_Changed" />
+                    </StackPanel>
+                    <ui:TextBlock x:Name="StatusLine" FontTypography="Caption" MaxWidth="330"
+                                  TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                  HorizontalAlignment="Right"
+                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="就绪" />
+                </Grid>
+
+                <Grid x:Name="AdminBarHost" Margin="0,10,0,0" Visibility="Collapsed">
+                    <ui:InfoBar x:Name="AdminBar" Severity="Warning" IsOpen="True" Margin="0,0,150,0"
+                                Title="当前不是管理员权限"
+                                Message="位于 HKLM 的项目无法修改，可以点右侧按钮提权重启。" />
+                    <ui:Button Content="以管理员身份重启" HorizontalAlignment="Right" VerticalAlignment="Center"
+                               Click="Elevate_Click" />
+                </Grid>
+            </StackPanel>
+        </ui:Card>
+
+        <!-- 列表 -->
+        <!--
+            必须显式写 VerticalAlignment/VerticalContentAlignment=Stretch：
+            ui:Card 的模板默认把内容垂直居中，列表项少的时候整张卡片会缩成一条、
+            浮在这一行的正中间（上面下面各一大片空白）。
+        -->
+        <ui:Card Grid.Row="2" Padding="0" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch">
+            <Grid VerticalAlignment="Stretch">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- 表头 -->
+                <Border Grid.Row="0" Padding="10,8,10,6" BorderThickness="0,0,0,1"
+                        BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="34" />
+                            <ColumnDefinition Width="30" />
+                            <ColumnDefinition Width="2*" MinWidth="150" />
+                            <ColumnDefinition Width="106" />
+                            <ColumnDefinition Width="78" />
+                            <ColumnDefinition Width="118" />
+                            <ColumnDefinition Width="3*" MinWidth="150" />
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBlock Grid.Column="2" FontTypography="Caption" Text="菜单名称"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <ui:TextBlock Grid.Column="3" FontTypography="Caption" Text="出现位置"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <ui:TextBlock Grid.Column="4" FontTypography="Caption" Text="状态"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <ui:TextBlock Grid.Column="5" FontTypography="Caption" Text="归属软件"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <ui:TextBlock Grid.Column="6" FontTypography="Caption" Text="详细信息"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+                </Border>
+
+                <ListBox x:Name="Rows" Grid.Row="1" Style="{StaticResource VirtualList}" ItemTemplate="{StaticResource RowTemplate}" />
+
+                <ui:TextBlock x:Name="EmptyHint" Grid.Row="1" FontTypography="Body" Margin="20"
+                              VerticalAlignment="Top" Visibility="Collapsed"
+                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                              Text="没有匹配的项目。换个关键词，或取消「只看第三方项」试试。" />
+            </Grid>
+        </ui:Card>
+
+        <!-- 底部操作 -->
+        <Grid Grid.Row="3" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <ui:Button Content="备份并禁用选中项" Appearance="Primary" Icon="{ui:SymbolIcon ShieldCheckmark24}"
+                           Margin="0,0,8,0" Click="Apply_Click" />
+                <ui:Button Content="恢复选中项" Icon="{ui:SymbolIcon ArrowUndo24}" Margin="0,0,8,0"
+                           Click="Restore_Click" />
+                <ui:Button Content="从备份恢复…" Appearance="Secondary" Margin="0,0,8,0"
+                           Click="RestoreFile_Click" />
+                <ui:Button Content="全选第三方" Appearance="Secondary" Margin="0,0,8,0"
+                           Click="SelectAllThird_Click" />
+                <ui:Button Content="清除勾选" Appearance="Secondary" Margin="0,0,8,0"
+                           Click="ClearChecked_Click" />
+                <ui:Button Content="重启资源管理器" Appearance="Secondary" Click="RestartExplorer_Click" />
+            </StackPanel>
+
+        </Grid>
+    </Grid>
+    </Border>
+</Page>

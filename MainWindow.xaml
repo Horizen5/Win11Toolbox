@@ -1,0 +1,74 @@
+<ui:FluentWindow
+    x:Class="Win11Toolbox.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:pages="clr-namespace:Win11Toolbox.Pages"
+    Title="Win11 工具箱"
+    Width="1240"
+    Height="820"
+    MinWidth="1060"
+    MinHeight="700"
+    ExtendsContentIntoTitleBar="True"
+    WindowBackdropType="Mica"
+    WindowCornerPreference="Round"
+    WindowStartupLocation="CenterScreen">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Title="Win11 工具箱" ShowMaximize="True" ShowMinimize="True" />
+
+        <ui:NavigationView
+            x:Name="Nav"
+            Grid.Row="1"
+            IsBackButtonVisible="Collapsed"
+            IsPaneToggleVisible="True"
+            PaneDisplayMode="Left"
+            OpenPaneLength="270">
+
+            <ui:NavigationView.MenuItems>
+                <ui:NavigationViewItem NavigationCacheMode="Required" Content="主页" TargetPageType="{x:Type pages:HomePage}">
+                    <ui:NavigationViewItem.Icon><ui:SymbolIcon Symbol="Home24" /></ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem NavigationCacheMode="Required" Content="硬件信息" TargetPageType="{x:Type pages:HardwarePage}">
+                    <ui:NavigationViewItem.Icon><ui:SymbolIcon Symbol="DeveloperBoard24" /></ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem NavigationCacheMode="Required" Content="风扇控制" TargetPageType="{x:Type pages:FanPage}">
+                    <ui:NavigationViewItem.Icon><ui:SymbolIcon Symbol="Gauge24" /></ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem NavigationCacheMode="Required" Content="系统工具" TargetPageType="{x:Type pages:ToolsPage}">
+                    <ui:NavigationViewItem.Icon><ui:SymbolIcon Symbol="AppsList24" /></ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem NavigationCacheMode="Required" Content="实用工具" TargetPageType="{x:Type pages:UtilitiesPage}">
+                    <ui:NavigationViewItem.Icon><ui:SymbolIcon Symbol="Wrench24" /></ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem NavigationCacheMode="Required" Content="系统优化" TargetPageType="{x:Type pages:OptimizePage}">
+                    <ui:NavigationViewItem.Icon><ui:SymbolIcon Symbol="Broom24" /></ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem NavigationCacheMode="Required" Content="右键菜单" TargetPageType="{x:Type pages:RightMenuPage}">
+                    <ui:NavigationViewItem.Icon><ui:SymbolIcon Symbol="CursorClick24" /></ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem NavigationCacheMode="Required" Content="托盘图标" TargetPageType="{x:Type pages:TrayIconsPage}">
+                    <ui:NavigationViewItem.Icon><ui:SymbolIcon Symbol="Pin24" /></ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem NavigationCacheMode="Required" Content="轻松设置" TargetPageType="{x:Type pages:EasySettingsPage}">
+                    <ui:NavigationViewItem.Icon><ui:SymbolIcon Symbol="Options24" /></ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+            </ui:NavigationView.MenuItems>
+
+            <ui:NavigationView.FooterMenuItems>
+                <ui:NavigationViewItem NavigationCacheMode="Required" Content="设置" TargetPageType="{x:Type pages:SettingsPage}">
+                    <ui:NavigationViewItem.Icon><ui:SymbolIcon Symbol="Settings24" /></ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem NavigationCacheMode="Required" Content="关于" TargetPageType="{x:Type pages:AboutPage}">
+                    <ui:NavigationViewItem.Icon><ui:SymbolIcon Symbol="Info24" /></ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+            </ui:NavigationView.FooterMenuItems>
+
+        </ui:NavigationView>
+    </Grid>
+</ui:FluentWindow>

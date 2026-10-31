@@ -1,0 +1,83 @@
+<Page
+    Style="{StaticResource DefaultPageStyle}"
+    x:Class="Win11Toolbox.Pages.OptimizePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:controls="clr-namespace:Win11Toolbox.Controls"
+    Title="系统优化">
+
+    <ScrollViewer Padding="24,18,24,36" VerticalScrollBarVisibility="Auto">
+        <controls:SpacingStackPanel Spacing="14">
+
+            <StackPanel>
+                <ui:TextBlock FontTypography="Title" Text="系统优化" />
+                <ui:TextBlock FontTypography="Body" Margin="0,4,0,0"
+                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                              Text="清理垃圾文件、执行系统维护命令、管理启动项" />
+            </StackPanel>
+
+            <ui:TextBlock FontTypography="BodyStrong" Text="磁盘清理" Margin="2,6,0,0" />
+            <ui:Card Padding="16">
+                <StackPanel>
+                    <Grid>
+                        <ui:TextBlock FontTypography="BodyStrong" Text="临时文件与回收站" />
+                        <ui:Button Content="重新扫描" Appearance="Secondary" HorizontalAlignment="Right"
+                                   Icon="{ui:SymbolIcon ArrowSync24}" Click="Scan_Click" />
+                    </Grid>
+                    <ui:TextBlock x:Name="TempInfo" FontTypography="Body" Margin="0,8,0,0"
+                                  TextWrapping="Wrap" Text="正在扫描…" />
+                    <ui:TextBlock x:Name="RecycleInfo" FontTypography="Body" Margin="0,4,0,0"
+                                  TextWrapping="Wrap" Text="" />
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <ui:Button Content="清理临时文件" Appearance="Primary" Icon="{ui:SymbolIcon Broom24}"
+                                   Margin="0,0,8,0" Click="Clean_Click" />
+                        <ui:Button Content="清空回收站" Icon="{ui:SymbolIcon Delete24}" Click="EmptyRecycle_Click" />
+                    </StackPanel>
+                    <ui:TextBlock FontTypography="Caption" Margin="0,10,0,0" TextWrapping="Wrap"
+                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                  Text="只会删除临时目录（%TEMP%）中的文件，占用中的文件自动跳过，不会触碰个人文档。" />
+                </StackPanel>
+            </ui:Card>
+
+            <ui:TextBlock FontTypography="BodyStrong" Text="系统维护" Margin="2,6,0,0" />
+            <ui:Card Padding="16">
+                <StackPanel>
+                    <WrapPanel>
+                        <ui:Button Content="刷新 DNS 缓存" Margin="0,0,8,8" Click="FlushDns_Click" />
+                        <ui:Button Content="重建图标缓存" Margin="0,0,8,8" Click="IconCache_Click" />
+                        <ui:Button Content="重启资源管理器" Margin="0,0,8,8" Click="RestartExplorer_Click" />
+                        <ui:Button Content="系统文件检查（管理员）" Margin="0,0,8,8" Click="Sfc_Click" />
+                        <ui:Button Content="打开磁盘清理" Margin="0,0,8,8" Click="CleanMgr_Click" />
+                    </WrapPanel>
+                    <ui:TextBlock x:Name="MaintainInfo" FontTypography="Caption" Margin="0,4,0,0"
+                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="" />
+                </StackPanel>
+            </ui:Card>
+
+            <ui:TextBlock FontTypography="BodyStrong" Text="开机启动项" Margin="2,6,0,0" />
+            <ui:Card Padding="16">
+                <StackPanel>
+                    <Grid Margin="0,0,0,8">
+                        <ui:TextBlock x:Name="StartupCount" FontTypography="BodyStrong" Text="启动项" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <ui:Button Content="刷新" Appearance="Secondary" Margin="0,0,8,0" Click="RefreshStartup_Click" />
+                            <ui:Button Content="任务管理器管理" Click="OpenTaskManager_Click" />
+                        </StackPanel>
+                    </Grid>
+                    <StackPanel x:Name="StartupList" />
+                </StackPanel>
+            </ui:Card>
+
+            <ui:TextBlock FontTypography="BodyStrong" Text="电源计划" Margin="2,6,0,0" />
+            <ui:Card Padding="16">
+                <StackPanel Orientation="Horizontal">
+                    <ui:TextBlock FontTypography="Body" Text="当前电源模式" VerticalAlignment="Center" />
+                    <ComboBox x:Name="PowerCombo" Width="220" Margin="12,0,0,0" />
+                    <ui:Button Content="应用" Margin="8,0,0,0" Click="ApplyPower_Click" />
+                </StackPanel>
+            </ui:Card>
+
+        </controls:SpacingStackPanel>
+    </ScrollViewer>
+</Page>

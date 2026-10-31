@@ -1,0 +1,9 @@
+# 纯 Windows 项目，文本统一 CRLF
+* text=auto eol=crlf
+
+# 二进制文件，禁止任何文本转换
+*.exe   binary
+*.png   binary
+*.ico   binary
+*.bmp   binary
+*.jpg   binary

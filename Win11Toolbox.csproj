@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Win11Toolbox</AssemblyName>
+    <RootNamespace>Win11Toolbox</RootNamespace>
+    <Version>1.1.0</Version>
+    <AssemblyTitle>Win11 工具箱</AssemblyTitle>
+    <Product>Win11 工具箱</Product>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+
+  <!-- 单文件发布：所有依赖（含 .NET 运行时和原生库）都打进一个 exe -->
+  <PropertyGroup>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <SatelliteResourceLanguages>zh-Hans;en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+    <PackageReference Include="System.Management" Version="10.0.2" />
+    <!--
+      电源计划名 / ipconfig 输出的是 OEM 代码页（简中 936/GBK），不是 UTF-8。
+      .NET Core 之后默认不自带这些代码页，必须装这个包并注册 Provider，
+      否则 Encoding.GetEncoding(936) 直接抛 NotSupportedException，
+      powercfg 的中文计划名就全变 0u♦♦♦♦♦ 乱码。
+    -->
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
+  </ItemGroup>
+
+  <!--
+    把 PawnIO 安装包嵌进 exe：装主板风扇驱动时释放到临时目录再静默执行。
+    这样做是为了让单文件版依旧是「就一个 exe」——不用在旁边放 tools 文件夹。
+    Fan Control 也是把驱动安装包随程序分发的。
+  -->
+  <ItemGroup Condition="Exists('tools\PawnIO_setup.exe')">
+    <EmbeddedResource Include="tools\PawnIO_setup.exe" LogicalName="PawnIO_setup.exe" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,130 @@
+<Page
+    Style="{StaticResource DefaultPageStyle}"
+    x:Class="Win11Toolbox.Pages.FanPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:controls="clr-namespace:Win11Toolbox.Controls"
+    Title="风扇控制">
+
+    <ScrollViewer Padding="24,18,24,36" VerticalScrollBarVisibility="Auto">
+        <controls:SpacingStackPanel Spacing="14">
+
+            <Grid>
+                <StackPanel>
+                    <ui:TextBlock FontTypography="Title" Text="风扇控制" />
+                    <ui:TextBlock FontTypography="Body" Margin="0,4,0,0"
+                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                  Text="实时查看转速与温度，手动调节或交回自动控制" />
+                </StackPanel>
+                <ui:Button x:Name="RefreshButton" Content="刷新" Appearance="Secondary"
+                           HorizontalAlignment="Right" VerticalAlignment="Top" Click="Refresh_Click" />
+            </Grid>
+
+            <Grid>
+                <ui:InfoBar x:Name="StatusBar" IsOpen="True" IsClosable="False"
+                            Severity="Informational" Title="正在读取风扇…" />
+                <!-- 叠在 InfoBar 右侧；SetStatus 里会按按钮宽度给 InfoBar 留出右边距，
+                     否则长句子会绕到按钮底下被压住 -->
+                <ui:Button x:Name="StatusAction" HorizontalAlignment="Right" VerticalAlignment="Center"
+                           Visibility="Collapsed" Margin="0,0,10,0" Click="StatusAction_Click" />
+            </Grid>
+
+            <ui:Card Padding="16">
+                <StackPanel Orientation="Horizontal">
+                    <ui:SymbolIcon Symbol="Gauge24" FontSize="20" Margin="0,0,10,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                    <ui:TextBlock FontTypography="BodyStrong" Text="快捷预设" VerticalAlignment="Center" />
+                    <ui:Button Content="静音" Appearance="Secondary" Margin="18,0,8,0" Click="PresetQuiet_Click" />
+                    <ui:Button Content="均衡" Appearance="Secondary" Margin="0,0,8,0" Click="PresetBalanced_Click" />
+                    <ui:Button Content="全速" Margin="0,0,8,0" Click="PresetMax_Click" />
+                    <ui:Button Content="全部自动" Appearance="Secondary" Click="PresetAuto_Click" />
+                </StackPanel>
+            </ui:Card>
+
+            <ui:Card Padding="18">
+                <StackPanel>
+                    <Grid>
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Gauge24" FontSize="20" Margin="0,0,10,0"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                            <ui:TextBlock FontTypography="BodyStrong" Text="风扇曲线" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <ui:ToggleSwitch x:Name="CurveToggle" Content="启用" HorizontalAlignment="Right"
+                                         VerticalAlignment="Center"
+                                         Checked="CurveToggle_Changed" Unchecked="CurveToggle_Changed" />
+                    </Grid>
+
+                    <ui:TextBlock x:Name="CurveSummary" FontTypography="Caption" Margin="30,4,0,0"
+                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                  Text="按最高温度自动调节转速：低温静音，高温全速。" />
+
+                    <Border Margin="0,12,0,0" Height="164" CornerRadius="8"
+                            Background="{DynamicResource ControlFillColorDefaultBrush}"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                        <Canvas x:Name="CurveCanvas" ClipToBounds="True" SizeChanged="CurveCanvas_SizeChanged" />
+                    </Border>
+
+                    <Grid Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="22" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="22" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
+                            <ui:TextBlock x:Name="StartLabel" FontTypography="Caption"
+                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                          Text="起转温度 45 °C" />
+                            <Slider x:Name="StartSlider" Minimum="30" Maximum="70" TickFrequency="1"
+                                    IsSnapToTickEnabled="True" Value="45" Margin="0,2,0,0"
+                                    ValueChanged="CurveValue_Changed" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2">
+                            <ui:TextBlock x:Name="FullLabel" FontTypography="Caption"
+                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                          Text="满载温度 80 °C" />
+                            <Slider x:Name="FullSlider" Minimum="55" Maximum="95" TickFrequency="1"
+                                    IsSnapToTickEnabled="True" Value="80" Margin="0,2,0,0"
+                                    ValueChanged="CurveValue_Changed" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="4">
+                            <ui:TextBlock x:Name="MinLabel" FontTypography="Caption"
+                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                          Text="最低转速 30 %" />
+                            <Slider x:Name="MinSlider" Minimum="0" Maximum="70" TickFrequency="5"
+                                    IsSnapToTickEnabled="True" Value="30" Margin="0,2,0,0"
+                                    ValueChanged="CurveValue_Changed" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </ui:Card>
+
+            <ui:TextBlock FontTypography="BodyStrong" Text="风扇" Margin="2,6,0,0" />
+            <controls:SpacingStackPanel x:Name="FanPanel" Spacing="10" />
+
+            <ui:Card x:Name="EmptyCard" Padding="16" Visibility="Collapsed">
+                <ui:TextBlock x:Name="EmptyText" FontTypography="Body" TextWrapping="Wrap"
+                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                              Text="没有检测到风扇。" />
+            </ui:Card>
+
+            <ui:TextBlock FontTypography="BodyStrong" Text="温度" Margin="2,6,0,0" />
+            <ui:Card Padding="14">
+                <WrapPanel x:Name="TempPanel" />
+            </ui:Card>
+
+            <ui:TextBlock FontTypography="Caption" Margin="2,4,0,0" TextWrapping="Wrap"
+                          Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                          Text="转速与调速依赖主板 SuperIO 芯片，需要管理员权限 + PawnIO 驱动。调速属于软件控制，退出程序或重启后由 BIOS 重新接管。" />
+
+        </controls:SpacingStackPanel>
+    </ScrollViewer>
+</Page>

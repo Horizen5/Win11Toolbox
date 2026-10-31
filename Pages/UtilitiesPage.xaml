@@ -1,0 +1,229 @@
+<Page
+    Style="{StaticResource DefaultPageStyle}"
+    x:Class="Win11Toolbox.Pages.UtilitiesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:ctrl="clr-namespace:Win11Toolbox.Controls"
+    Title="实用工具">
+
+    <Grid Margin="24,18,24,12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+            <ui:TextBlock FontTypography="Title" Text="实用工具" />
+            <ui:TextBlock FontTypography="Body" Margin="0,4,0,0"
+                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                          Text="校验、编码、密码与网络诊断" />
+        </StackPanel>
+
+        <TabControl Grid.Row="1" x:Name="Tabs" Style="{StaticResource Win11TabControl}">
+            <TabItem Header="文件哈希">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,10,0,16">
+                        <ui:Card Padding="16">
+                            <StackPanel>
+                                <ui:TextBlock FontTypography="BodyStrong" Text="文件哈希校验" />
+                                <ui:TextBlock FontTypography="Caption" Margin="0,2,0,0"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              Text="支持 MD5 / SHA-1 / SHA-256 / SHA-512" />
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ui:TextBox x:Name="HashPath" IsReadOnly="True" PlaceholderText="选择文件…" />
+                                    <ui:Button Grid.Column="1" Content="选择" Margin="8,0,0,0"
+                                               Icon="{ui:SymbolIcon Folder24}" Click="PickFile_Click" />
+                                    <ui:Button Grid.Column="2" Content="计算" Margin="8,0,0,0"
+                                               Appearance="Primary" Icon="{ui:SymbolIcon Play24}" Click="Hash_Click" />
+                                </Grid>
+
+                                <ComboBox x:Name="HashAlgorithm" Margin="0,10,0,0" Width="160"
+                                          HorizontalAlignment="Left">
+                                    <ComboBoxItem Content="SHA-256" IsSelected="True" />
+                                    <ComboBoxItem Content="MD5" />
+                                    <ComboBoxItem Content="SHA-1" />
+                                    <ComboBoxItem Content="SHA-512" />
+                                </ComboBox>
+
+                                <ui:TextBox x:Name="HashResult" Margin="0,10,0,0" Height="72" IsReadOnly="True"
+                                            AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" />
+                            </StackPanel>
+                        </ui:Card>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="编码转换">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,10,0,16">
+                        <ui:Card Padding="16">
+                            <StackPanel>
+                                <ui:TextBlock FontTypography="BodyStrong" Text="文本编解码" />
+                                <ui:TextBox x:Name="CodecInput" Margin="0,10,0,0" Height="90" AcceptsReturn="True"
+                                            TextWrapping="Wrap" PlaceholderText="在此输入原始文本…" />
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <ui:Button Content="Base64 编码" Margin="0,0,8,0" Click="Base64Encode_Click" />
+                                    <ui:Button Content="Base64 解码" Margin="0,0,8,0" Click="Base64Decode_Click" />
+                                    <ui:Button Content="URL 编码" Margin="0,0,8,0" Click="UrlEncode_Click" />
+                                    <ui:Button Content="URL 解码" Click="UrlDecode_Click" />
+                                </StackPanel>
+                                <ui:TextBox x:Name="CodecOutput" Margin="0,10,0,0" Height="90" IsReadOnly="True"
+                                            AcceptsReturn="True" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </ui:Card>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="密码生成">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,10,0,16">
+                        <ui:Card Padding="16">
+                            <StackPanel>
+                                <ui:TextBlock FontTypography="BodyStrong" Text="随机密码生成" />
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <ui:TextBlock FontTypography="Body" Text="长度" VerticalAlignment="Center" />
+                                    <ui:NumberBox x:Name="PasswordLength" Value="16" Minimum="6" Maximum="64"
+                                                  Width="120" Margin="8,0,0,0" />
+                                    <ui:Button Content="生成密码" Appearance="Primary" Margin="12,0,0,0"
+                                               Icon="{ui:SymbolIcon ArrowSync24}" Click="Generate_Click" />
+                                </StackPanel>
+                                <ui:TextBox x:Name="PasswordResult" Margin="0,10,0,0" IsReadOnly="True"
+                                            FontFamily="Consolas" />
+                                <ui:TextBlock x:Name="PasswordStrength" FontTypography="Caption" Margin="0,6,0,0"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="" />
+                            </StackPanel>
+                        </ui:Card>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="2FA 验证码">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,10,0,16">
+                        <ui:Card Padding="16">
+                            <StackPanel>
+                                <ui:TextBlock FontTypography="BodyStrong" Text="添加 2FA 账户" />
+                                <ui:TextBlock FontTypography="Caption" Margin="0,3,0,0" TextWrapping="Wrap"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              Text="密钥只放在内存里：退出程序即清空，不写配置文件、不写日志、不联网。复制出的验证码 45 秒后会自动从剪贴板抹掉。" />
+
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="170" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ui:TextBox x:Name="TotpLabel" PlaceholderText="备注（可选）" />
+                                    <ui:TextBox Grid.Column="1" x:Name="TotpSecret" Margin="8,0,0,0"
+                                                PlaceholderText="粘贴 Base32 密钥，或 otpauth:// 链接"
+                                                FontFamily="Consolas" KeyDown="TotpSecret_KeyDown" />
+                                    <ui:Button Grid.Column="2" Content="添加" Margin="8,0,0,0"
+                                               Appearance="Primary" Click="AddTotp_Click" />
+                                </Grid>
+
+                                <ui:TextBlock x:Name="TotpHint" FontTypography="Caption" Margin="0,8,0,0"
+                                              TextWrapping="Wrap" Visibility="Collapsed"
+                                              Foreground="{DynamicResource SystemFillColorCriticalBrush}" Text="" />
+                            </StackPanel>
+                        </ui:Card>
+
+                        <ui:TextBlock x:Name="TotpEmpty" FontTypography="Body" Margin="4,18,0,0"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      Text="还没有账户。把网站给的密钥粘到上面，点「添加」。" />
+
+                        <ItemsControl x:Name="TotpList" Margin="0,12,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,8" Padding="16,14,16,14" CornerRadius="8"
+                                            BorderThickness="1"
+                                            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel VerticalAlignment="Center">
+                                                <ui:TextBlock FontTypography="BodyStrong" Text="{Binding Label}"
+                                                              TextTrimming="CharacterEllipsis" />
+                                                <ui:TextBlock FontFamily="Consolas" FontSize="30" FontWeight="SemiBold"
+                                                              Margin="0,-2,0,0" Text="{Binding Code}" />
+                                                <ui:TextBlock FontTypography="Caption" Margin="0,2,0,0"
+                                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                              Text="{Binding Meta}" />
+                                            </StackPanel>
+
+                                            <ctrl:CountdownRing Grid.Column="1" Width="58" Height="58"
+                                                                Margin="18,0,0,0" VerticalAlignment="Center"
+                                                                Progress="{Binding Progress}"
+                                                                Seconds="{Binding Remaining}"
+                                                                TrackBrush="{DynamicResource TextFillColorTertiaryBrush}" />
+
+                                            <StackPanel Grid.Column="2" Margin="18,0,0,0" VerticalAlignment="Center">
+                                                <ui:Button Content="复制" MinWidth="76" Appearance="Primary"
+                                                           Click="CopyTotp_Click" />
+                                                <ui:Button Content="删除" MinWidth="76" Margin="0,6,0,0"
+                                                           FontSize="12" Click="RemoveTotp_Click" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <ui:Button x:Name="TotpClearAll" Content="清空全部" HorizontalAlignment="Right"
+                                   Margin="0,4,0,0" FontSize="12" Visibility="Collapsed"
+                                   Click="ClearTotp_Click" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="网络诊断">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,10,0,16">
+                        <ui:Card Padding="16">
+                            <StackPanel>
+                                <ui:TextBlock FontTypography="BodyStrong" Text="本机网络" />
+                                <ui:TextBlock x:Name="LocalIpText" FontTypography="Body" Margin="0,4,0,0" Text="—" />
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ui:TextBox x:Name="PortHost" Text="127.0.0.1" />
+                                    <ui:NumberBox Grid.Column="1" x:Name="PortNumber" Value="443" Minimum="1"
+                                                  Maximum="65535" Width="110" Margin="8,0,0,0" />
+                                    <ui:Button Grid.Column="2" Content="检测端口" Margin="8,0,0,0" Click="CheckPort_Click" />
+                                </Grid>
+                                <ui:TextBlock x:Name="PortResult" FontTypography="Body" Margin="0,8,0,0"
+                                              TextWrapping="Wrap" Text="" />
+                            </StackPanel>
+                        </ui:Card>
+
+                        <ui:Card Padding="16" Margin="0,12,0,0">
+                            <StackPanel>
+                                <ui:TextBlock FontTypography="BodyStrong" Text="Ping 测试" />
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <ui:TextBox x:Name="PingHost" Width="240" Text="www.baidu.com" />
+                                    <ui:Button Content="开始 Ping" Margin="8,0,0,0" Click="Ping_Click" />
+                                </StackPanel>
+                                <ui:TextBox x:Name="PingOutput" Margin="0,10,0,0" Height="120" IsReadOnly="True"
+                                            AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" />
+                            </StackPanel>
+                        </ui:Card>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Page>

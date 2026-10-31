@@ -1,0 +1,160 @@
+<Page
+    Style="{StaticResource DefaultPageStyle}"
+    x:Class="Win11Toolbox.Pages.TrayIconsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="托盘图标">
+
+    <Page.Resources>
+        <Style x:Key="RowBorder" TargetType="Border">
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="Transparent" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <DataTemplate x:Key="RowTemplate">
+            <Border Style="{StaticResource RowBorder}" ToolTip="{Binding Tip}" Tag="{Binding}">
+                <Border.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="始终显示（固定到任务栏）" Click="RowShow_Click" />
+                        <MenuItem Header="收进溢出区（小箭头里）" Click="RowHide_Click" />
+                        <Separator />
+                        <MenuItem Header="打开程序所在目录" Click="RowOpenDir_Click" />
+                    </ContextMenu>
+                </Border.ContextMenu>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30" />
+                        <ColumnDefinition Width="30" />
+                        <ColumnDefinition Width="2*" MinWidth="150" />
+                        <ColumnDefinition Width="92" />
+                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="3*" MinWidth="160" />
+                    </Grid.ColumnDefinitions>
+
+                    <ToggleButton Grid.Column="0" Style="{StaticResource RowCheckBox}" IsChecked="{Binding Checked, Mode=TwoWay}" />
+
+                    <Image Grid.Column="1" Source="{Binding Icon}" Width="18" Height="18"
+                           VerticalAlignment="Center" RenderOptions.BitmapScalingMode="LowQuality" />
+
+                    <TextBlock Grid.Column="2" Text="{Binding AppName}" VerticalAlignment="Center"
+                               Margin="0,0,14,0" TextTrimming="CharacterEllipsis" />
+
+                    <TextBlock Grid.Column="3" Text="{Binding SettingsState}" VerticalAlignment="Center"
+                               Foreground="{Binding StateBrush}" />
+
+                    <TextBlock Grid.Column="4" Text="{Binding Where}" VerticalAlignment="Center"
+                               Margin="0,0,12,0"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               TextTrimming="CharacterEllipsis" />
+
+                    <TextBlock Grid.Column="5" Text="{Binding ExePath}" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                               TextTrimming="CharacterEllipsis" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Margin="24,18,24,16">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <StackPanel>
+                <ui:TextBlock FontTypography="Title" Text="托盘图标管理" />
+                <ui:TextBlock FontTypography="Body" Margin="0,4,0,0"
+                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                              Text="管理任务栏右下角小箭头里的图标：固定到任务栏，或收进溢出区" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <CheckBox x:Name="RunningOnly" Content="只看正在运行的" VerticalAlignment="Center"
+                          Margin="0,0,14,0" Click="Filter_Click" />
+                <ui:Button x:Name="RefreshButton" Content="读取托盘清单" Appearance="Secondary"
+                           Icon="{ui:SymbolIcon ArrowSync24}" Click="Refresh_Click" />
+            </StackPanel>
+        </Grid>
+
+        <ui:InfoBar Grid.Row="1" Margin="0,12,0,10" Severity="Informational" IsOpen="True"
+                    Title="读的是 Windows 自己那份清单"
+                    Message="直接读写 HKCU\Control Panel\NotifyIconSettings，和系统设置页用的是同一份数据。改完立刻生效、重启后保持，不会打开设置页，也不会重启资源管理器。" />
+
+        <ui:Card Grid.Row="2" Padding="0" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch">
+            <Grid VerticalAlignment="Stretch">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Padding="10,8,10,6" BorderThickness="0,0,0,1"
+                        BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="30" />
+                            <ColumnDefinition Width="30" />
+                            <ColumnDefinition Width="2*" MinWidth="150" />
+                            <ColumnDefinition Width="92" />
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="3*" MinWidth="160" />
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBlock Grid.Column="2" FontTypography="Caption" Text="应用"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <ui:TextBlock Grid.Column="3" FontTypography="Caption" Text="任务栏显示"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <ui:TextBlock Grid.Column="4" FontTypography="Caption" Text="运行状态"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <ui:TextBlock Grid.Column="5" FontTypography="Caption" Text="程序路径"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+                </Border>
+
+                <ListBox x:Name="Rows" Grid.Row="1" Style="{StaticResource VirtualList}" ItemTemplate="{StaticResource RowTemplate}" />
+
+                <StackPanel x:Name="EmptyHint" Grid.Row="1" Margin="20" VerticalAlignment="Top"
+                            Visibility="Collapsed">
+                    <ui:TextBlock FontTypography="BodyStrong" Text="还没有读取托盘清单" />
+                    <ui:TextBlock FontTypography="Caption" Margin="0,4,0,0"
+                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                  Text="点右上角「读取托盘清单」。直接读注册表，瞬间完成，不会打开任何窗口。" />
+                </StackPanel>
+            </Grid>
+        </ui:Card>
+
+        <Grid Grid.Row="3" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- 用 WrapPanel：窗口拉到最小宽度时按钮自动换行，不会把右边的状态文字挤出去 -->
+            <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <ui:Button Content="勾选项固定到任务栏" Appearance="Primary" Icon="{ui:SymbolIcon Pin24}"
+                           Margin="0,0,8,4" Click="ShowChecked_Click" />
+                <ui:Button Content="勾选项收进溢出区" Icon="{ui:SymbolIcon ChevronDown24}"
+                           Margin="0,0,8,4" Click="HideChecked_Click" />
+                <ui:Button Content="恢复本次修改" Appearance="Secondary" Icon="{ui:SymbolIcon ArrowUndo24}"
+                           Margin="0,0,0,4" Click="Undo_Click" />
+            </WrapPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right"
+                        VerticalAlignment="Center" Margin="12,0,0,0">
+                <ui:TextBlock x:Name="StatusLine" FontTypography="Caption" MaxWidth="230"
+                              TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                              Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="就绪" />
+                <ui:Button Content="日志" Appearance="Secondary" Margin="10,0,0,0" Click="ShowLog_Click" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

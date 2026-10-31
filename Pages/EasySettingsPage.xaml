@@ -1,0 +1,174 @@
+<Page
+    Style="{StaticResource DefaultPageStyle}"
+    x:Class="Win11Toolbox.Pages.EasySettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="轻松设置">
+
+    <Page.Resources>
+        <Style x:Key="RowBorder" TargetType="Border">
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="Transparent" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <DataTemplate x:Key="RowTemplate">
+            <Border Style="{StaticResource RowBorder}" ToolTip="{Binding Tip}" Tag="{Binding}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="92" />
+                    </Grid.ColumnDefinitions>
+
+                    <ToggleButton Grid.Column="0" Style="{StaticResource RowCheckBox}"
+                                  IsChecked="{Binding IsOn, Mode=TwoWay}" Click="RowCheck_Click" />
+
+                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Desc}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border x:Name="RiskBadge" Background="{DynamicResource SystemFillColorCriticalBackgroundBrush}"
+                                CornerRadius="3" Padding="6,2" Margin="0,0,6,0" Visibility="Collapsed">
+                            <TextBlock Text="谨慎" FontSize="11"
+                                       Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
+                        </Border>
+                        <Border x:Name="AdminBadge" Background="{DynamicResource SystemFillColorCautionBackgroundBrush}"
+                                CornerRadius="3" Padding="6,2" Margin="0,0,6,0" Visibility="Collapsed">
+                            <TextBlock Text="需管理员" FontSize="11"
+                                       Foreground="{DynamicResource SystemFillColorCautionBrush}" />
+                        </Border>
+                        <Border x:Name="RestartBadge" Background="{DynamicResource SystemFillColorAttentionBackgroundBrush}"
+                                CornerRadius="3" Padding="6,2" Visibility="Collapsed">
+                            <TextBlock Text="需重启资源管理器" FontSize="11"
+                                       Foreground="{DynamicResource SystemFillColorAttentionBrush}" />
+                        </Border>
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="3" Text="{Binding StateText}" VerticalAlignment="Center"
+                               HorizontalAlignment="Right" FontSize="12"
+                               Foreground="{Binding StateBrush}" />
+                </Grid>
+            </Border>
+
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Danger}" Value="True">
+                    <Setter TargetName="RiskBadge" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding NeedAdmin}" Value="True">
+                    <Setter TargetName="AdminBadge" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding NeedExplorerRestart}" Value="True">
+                    <Setter TargetName="RestartBadge" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Margin="24,18,24,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <StackPanel>
+                <ui:TextBlock FontTypography="Title" Text="轻松设置" />
+                <ui:TextBlock FontTypography="Body" Margin="0,4,0,0"
+                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                              Text="只收录安全、可逆的系统开关：勾选即生效，取消勾选恢复系统默认" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <ui:Button Content="刷新状态" Appearance="Secondary" Icon="{ui:SymbolIcon ArrowSync24}"
+                           Margin="0,0,8,0" Click="Refresh_Click" />
+                <ui:Button Content="重启资源管理器" Appearance="Secondary" Click="RestartExplorer_Click" />
+            </StackPanel>
+        </Grid>
+
+        <ui:Card Grid.Row="1" Padding="14,12" Margin="0,12,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="200" />
+                    <ColumnDefinition Width="300" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <ComboBox x:Name="CategoryCombo" SelectionChanged="Filter_Changed" />
+                <ui:TextBox x:Name="SearchBox" Grid.Column="1" Margin="10,0,0,0"
+                            PlaceholderText="搜索设置项" TextChanged="Filter_Changed" />
+
+                <ui:TextBlock x:Name="CountHint" Grid.Column="2" FontTypography="Caption"
+                              VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,12,0"
+                              Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="" />
+
+                <ui:Button Grid.Column="3" Content="全部恢复默认" Appearance="Secondary"
+                           Click="ResetAll_Click" />
+            </Grid>
+        </ui:Card>
+
+        <ui:InfoBar x:Name="Toast" Grid.Row="2" Margin="0,0,0,10" IsOpen="False" IsClosable="True" />
+
+        <ui:Card Grid.Row="3" Padding="0" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch">
+            <ListBox x:Name="Rows" Style="{StaticResource VirtualList}" ItemTemplate="{StaticResource RowTemplate}"
+                     VerticalAlignment="Stretch" />
+        </ui:Card>
+
+        <ui:Card Grid.Row="4" Padding="14,12" Margin="0,10,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <ui:TextBlock FontTypography="BodyStrong" Text="电源计划" />
+                    <ui:TextBlock FontTypography="Caption" Margin="0,2,0,0" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="控制面板「电源选项」那一套：高性能、平衡、节能。切换立即生效，重启后仍保留。" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <ComboBox x:Name="PowerCombo" Width="220" />
+                    <ui:Button Content="应用" Margin="8,0,0,0" Click="ApplyPower_Click" />
+                </StackPanel>
+            </Grid>
+        </ui:Card>
+
+        <Grid Grid.Row="5" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Grid x:Name="AdminBarHost" Grid.Column="0" Visibility="Collapsed">
+                <ui:InfoBar x:Name="AdminBar" Severity="Warning" IsOpen="True" Margin="0,0,150,0"
+                            Title="当前不是管理员权限"
+                            Message="标记为「需管理员」的设置项可能写入失败。" />
+                <ui:Button Content="以管理员身份重启" HorizontalAlignment="Right" VerticalAlignment="Center"
+                           Click="Elevate_Click" />
+            </Grid>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                <ui:TextBlock x:Name="StatusLine" FontTypography="Caption" MaxWidth="360"
+                              TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                              Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="就绪" />
+                <ui:Button Content="日志" Appearance="Secondary" Margin="10,0,0,0" Click="ShowLog_Click" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>
