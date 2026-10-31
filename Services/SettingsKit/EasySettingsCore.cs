@@ -328,7 +328,7 @@ namespace Win11Toolbox.SettingsKit
                 catch (Exception ex) { error = ex.GetType().Name + "：" + ex.Message; }
 
                 int? direct = ReadDword("HKCU", SEARCH_KEY, "SearchboxTaskbarMode");
-                if (direct.HasValue && direct.Value == mode) { NotifyShell(); return true; }
+                if (direct.HasValue && direct.Value == mode) return true;
                 error = "";
             }
 
@@ -353,7 +353,6 @@ namespace Win11Toolbox.SettingsKit
             // 整键还原把外壳挂在这个键上的监听弄断了：先造一次注册表变更通知让它重读
             // （这才能把搜索框重新建出来），再补一次广播。不用重启资源管理器。
             KickShell("HKCU", SEARCH_KEY);
-            NotifyShell();
             return true;
         }
 
@@ -1013,7 +1012,10 @@ namespace Win11Toolbox.SettingsKit
                 },
                 delegate(bool on)
                 {
-                    SetTaskbarSearchMode(on ? 0 : 2, out _);
+                    // 失败要真的报出来：整键还原可能在中途某一步失败（比如还原后补权限失败），
+                    // 静默吞掉的话界面上只会显示「未生效」，排查时一点线索都没有
+                    if (!SetTaskbarSearchMode(on ? 0 : 2, out string se))
+                        throw new InvalidOperationException(se);
                 }, false, false,
                 "HKCU\\...\\CurrentVersion\\Search → SearchboxTaskbarMode = 0（0=隐藏 1=仅图标 2=搜索框）");
 
@@ -1506,14 +1508,6 @@ namespace Win11Toolbox.SettingsKit
             catch { }
         }
 
-        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint msg, IntPtr wParam, string lParam,
-            uint flags, uint timeout, out IntPtr result);
-
-        static readonly IntPtr HWND_BROADCAST = (IntPtr)0xffff;
-        const uint WM_SETTINGCHANGE = 0x001A;
-        const uint SMTO_ABORTIFHUNG = 0x0002;
-
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         static extern int RegDeleteKeyW(IntPtr hKey, string subKey);
 
@@ -1521,14 +1515,15 @@ namespace Win11Toolbox.SettingsKit
         /// 踢一下这个键，让资源管理器重新读一遍。
         ///
         /// <para>
-        /// 光广播 <c>WM_SETTINGCHANGE</c> 不够：实测那样只能让任务栏**把搜索框删掉**，
-        /// 想让它**重新建出来**就必须让它收到注册表变更通知。而我们唯一还能做的写操作
-        /// 就是建子键（写值被拦、删子键又没权限），所以：建一个临时子键（建的时候给它
-        /// 一个「当前用户完全控制」的描述符，这样才删得掉）→ 通知发出 → 立刻删掉。
+        /// 整键还原把外壳挂在这个键上的 <c>RegNotifyChangeKeyValue</c> 弄断了，改完它不知道。
+        /// 广播 <c>WM_SETTINGCHANGE</c> 试过，**只能让任务栏把搜索框删掉、建不回来**，
+        /// 而且两次广播实测要花掉 4 秒多。真正管用的是注册表变更通知 ——
+        /// 而我们唯一还能做的写操作就是建子键，所以：建一个临时子键 → 通知发出 → 立刻删掉。
         /// </para>
         /// <para>
-        /// 万一删不掉也不影响功能，下次调用 <see cref="MutateProtectedKey"/> 时
-        /// 会把这些 <c>__</c> 开头的临时子键一并清掉。
+        /// 子键建的时候给一个「当前用户完全控制」的描述符，但**这个键照样删不掉**
+        /// （写保护和 DACL 无关），所以它会在下次调用 <see cref="MutateProtectedKey"/> 时
+        /// 被 <see cref="SweepTempSubKeys"/> 随整键还原一起清掉。任何时刻最多留一个空子键。
         /// </para>
         /// </summary>
         static void KickShell(string root, string path)
@@ -1554,27 +1549,6 @@ namespace Win11Toolbox.SettingsKit
                     ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER;
                 RegDeleteKeyW(hRoot, path + "\\" + name);
             }
-            catch { }
-        }
-
-
-        /// <summary>
-        /// 再补一次广播，让外壳把任务栏配置整个重读一遍。
-        ///
-        /// <para>
-        /// 单靠广播只能让任务栏把搜索框删掉、建不回来（实测），所以真正起作用的是
-        /// <see cref="KickShell"/> 制造的注册表变更通知；这里一起发，覆盖那些
-        /// 监听 WM_SETTINGCHANGE 的组件。
-        /// </para>
-        /// </summary>
-        internal static void NotifyShell()
-        {
-            IntPtr r;
-            try { SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, "TraySettings", SMTO_ABORTIFHUNG, 2000, out r); }
-            catch { }
-            try { SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, "ImmersiveColorSet", SMTO_ABORTIFHUNG, 2000, out r); }
-            catch { }
-            try { SHChangeNotify(0x08000000, 0x0000, IntPtr.Zero, IntPtr.Zero); }
             catch { }
         }
 

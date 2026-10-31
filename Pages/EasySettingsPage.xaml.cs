@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -117,6 +118,15 @@ public partial class EasySettingsPage : Page, IRefreshablePage
     private bool _plansLoaded;
 
     private bool _busy;
+
+    /// <summary>
+    /// 写操作串行化。搜索框那一项走「整键还原」，一次要一两秒，
+    /// 用户很容易在这期间点第二次 —— 以前直接 return 把点击丢掉，
+    /// 结果勾选框变了、注册表没动，看起来就是「勾上了但没生效」。
+    /// 现在改成排队 + 合并：同一项连续点只保留最后一次想要的状态。
+    /// </summary>
+    private readonly SemaphoreSlim _applyLock = new SemaphoreSlim(1, 1);
+    private readonly List<(SettingRow Row, bool Want)> _pending = new List<(SettingRow, bool)>();
     private System.Windows.Threading.DispatcherTimer? _toastTimer;
 
     public EasySettingsPage()
@@ -319,8 +329,22 @@ public partial class EasySettingsPage : Page, IRefreshablePage
     // ------------------------------------------------------------------ 应用单项
     private async void OnRowChanged(SettingRow row, bool want)
     {
-        if (_busy) return;
-        await ApplyOneAsync(row, want);
+        // 同一项只保留最后一次点击想要的状态；已经在排队的不重复加
+        int i = _pending.FindIndex(p => ReferenceEquals(p.Row, row));
+        if (i >= 0) _pending[i] = (row, want);
+        else _pending.Add((row, want));
+
+        if (!await _applyLock.WaitAsync(0)) return;   // 已经有人在跑，它会把这个队列处理完
+        try
+        {
+            while (_pending.Count > 0)
+            {
+                var (r, w) = _pending[0];
+                _pending.RemoveAt(0);
+                await ApplyOneAsync(r, w);
+            }
+        }
+        finally { _applyLock.Release(); }
     }
 
     private async void RowCheck_Click(object sender, RoutedEventArgs e)
