@@ -825,13 +825,16 @@ namespace Win11Toolbox.RightMenu
         {
             if (string.Equals(root, "HKCU", StringComparison.OrdinalIgnoreCase)) return Registry.CurrentUser;
             if (string.Equals(root, "HKLM", StringComparison.OrdinalIgnoreCase)) return Registry.LocalMachine;
+            // HKU 只在「RegLoadKey 加载出来的临时键」上用得到（RegLoadKey 不接受 HKCU）
+            if (string.Equals(root, "HKU", StringComparison.OrdinalIgnoreCase)) return Registry.Users;
             return null;
         }
 
         public static string RootName(string root)
         {
-            return string.Equals(root, "HKCU", StringComparison.OrdinalIgnoreCase)
-                ? "HKEY_CURRENT_USER" : "HKEY_LOCAL_MACHINE";
+            if (string.Equals(root, "HKCU", StringComparison.OrdinalIgnoreCase)) return "HKEY_CURRENT_USER";
+            if (string.Equals(root, "HKU", StringComparison.OrdinalIgnoreCase)) return "HKEY_USERS";
+            return "HKEY_LOCAL_MACHINE";
         }
 
         public static string NormRoot(string longName)

@@ -169,19 +169,19 @@ public partial class App : Application
             return;
         }
 
-        // --searchfix <txt>：验证「取得所有权 → 写入 → 恢复权限」能否绕过被锁的搜索键
-        var searchFixIndex = Array.IndexOf(Environment.GetCommandLineArgs(), "--searchfix");
-        if (searchFixIndex >= 0)
+        // --setsb <0|1|2> <log>：设置任务栏搜索框模式（0=隐藏 1=仅图标 2=搜索框），用于实测是否免重启生效
+        var setSbIndex = Array.IndexOf(Environment.GetCommandLineArgs(), "--setsb");
+        if (setSbIndex >= 0)
         {
             var a = Environment.GetCommandLineArgs();
-            string log = searchFixIndex + 1 < a.Length && !a[searchFixIndex + 1].StartsWith("--", StringComparison.Ordinal)
-                ? a[searchFixIndex + 1]
-                : Path.Combine(AppContext.BaseDirectory, "searchfix.log");
-            try
-            {
-                File.WriteAllText(log, SettingsKit.EasySettingsData.DiagnoseSearchKey());
-            }
-            catch { }
+            int mode = 0;
+            int.TryParse(setSbIndex + 1 < a.Length ? a[setSbIndex + 1] : "0", out mode);
+            string log = setSbIndex + 2 < a.Length && !a[setSbIndex + 2].StartsWith("--", StringComparison.Ordinal)
+                ? a[setSbIndex + 2]
+                : Path.Combine(AppContext.BaseDirectory, "setsb.log");
+            string res = SettingsKit.EasySettingsData.SetTaskbarSearchMode(mode, out string serr)
+                ? "OK" : "FAIL " + serr;
+            try { File.WriteAllText(log, res, Encoding.UTF8); } catch { }
             Environment.Exit(0);
         }
 

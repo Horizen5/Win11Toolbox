@@ -245,6 +245,7 @@ namespace Win11Toolbox.SettingsKit
         static extern int RegCloseKey(IntPtr hKey);
 
         static readonly IntPtr HKEY_CURRENT_USER = (IntPtr)unchecked((int)0x80000001);
+        static readonly IntPtr HKEY_USERS = (IntPtr)unchecked((int)0x80000003);
         const int KEY_QUERY_VALUE = 0x0001;
         const int KEY_SET_VALUE = 0x0002;
         const uint REG_DWORD = 4;
@@ -279,53 +280,257 @@ namespace Win11Toolbox.SettingsKit
             return new NTAccount(Environment.UserDomainName, Environment.UserName);
         }
 
-        [DllImport("advapi32.dll", SetLastError = true)]
-        static extern bool GetTokenInformation(IntPtr token, int infoClass, IntPtr info, int len, out int retLen);
+        // ---- 整键还原用到的 API ----
+        //
+        // 搜索键的「写值」被系统挡死：RegSetValueEx 一律 ERROR_ACCESS_DENIED，
+        // 管理员跑、SYSTEM 跑、FullControl 句柄、RegCopyTree 全都被拒，
+        // 可同一个句柄上 CreateSubKey / DeleteValue 却都放行。
+        // 只有存盘 → 挂载 → 改副本 → 卸载 → RegRestoreKey 这条路走得通。
 
-        [DllImport("advapi32.dll")]
-        static extern IntPtr GetSidSubAuthorityCount(IntPtr sid);
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        static extern int RegSaveKeyW(IntPtr hKey, string file, IntPtr sa);
 
-        [DllImport("advapi32.dll")]
-        static extern IntPtr GetSidSubAuthority(IntPtr sid, uint index);
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        static extern int RegRestoreKeyW(IntPtr hKey, string file, uint flags);
 
-        const int TokenIntegrityLevel = 25;
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        static extern int RegLoadKeyW(IntPtr hKey, string subKey, string file);
+
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        static extern int RegUnLoadKeyW(IntPtr hKey, string subKey);
+
+        const int KEY_ALL_ACCESS = 0x000F003F;
+
+        const int REG_FORCE_RESTORE = 0x00000008;
+        static readonly IntPtr HKEY_LOCAL_MACHINE = (IntPtr)unchecked((int)0x80000002);
 
         /// <summary>
-        /// 当前进程的完整性级别（Medium / High / System）。
+        /// 设置任务栏搜索框模式：0 = 隐藏，1 = 只显示图标，2 = 显示搜索框。
+        ///
         /// <para>
-        /// 这一项很关键：写 <c>CurrentVersion\Search</c> 时，Medium（普通双击启动）和
-        /// High（以管理员身份运行）的行为不一样，不把这个打出来就没法判断失败到底是
-        /// 权限不够还是 DACL 真的不给。
+        /// 走 <see cref="MutateProtectedKey"/> 这条整键还原通道 —— 直接写值会被系统拦掉。
+        /// 顺便把之前调试留下的 <c>__stage_marker__</c> 一起清掉。
         /// </para>
         /// </summary>
-        internal static string IntegrityLevel()
+        internal static bool SetTaskbarSearchMode(int mode, out string error)
         {
-            IntPtr token;
-            if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, out token)) return "读不到";
-            try
+            error = "";
+
+            // 能直接写的系统（大多数）就走直写：快，也不会碰整键还原那套副作用
+            if (SearchKeyWritable())
             {
-                int len;
-                GetTokenInformation(token, TokenIntegrityLevel, IntPtr.Zero, 0, out len);
-                if (len <= 0) return "读不到";
-                IntPtr buf = Marshal.AllocHGlobal(len);
                 try
                 {
-                    if (!GetTokenInformation(token, TokenIntegrityLevel, buf, len, out len)) return "读不到";
-                    IntPtr sid = Marshal.ReadIntPtr(buf);          // TOKEN_MANDATORY_LABEL.Label.Sid
-                    int count = Marshal.ReadByte(GetSidSubAuthorityCount(sid));
-                    int rid = Marshal.ReadInt32(GetSidSubAuthority(sid, (uint)(count - 1)));
-                    string name = rid >= 0x4000 ? "System"
-                                : rid >= 0x3000 ? "High"
-                                : rid >= 0x2000 ? "Medium"
-                                : rid >= 0x1000 ? "Low"
-                                : "Untrusted";
-                    return name + "（0x" + rid.ToString("X") + "）";
+                    WriteDword("HKCU", SEARCH_KEY, "SearchboxTaskbarMode", mode);
+                    if (mode == 0) WriteDword("HKCU", SEARCH_KEY, "SearchboxTaskbarModeCache", 1);
+                    else DeleteValue("HKCU", SEARCH_KEY, "SearchboxTaskbarModeCache");
                 }
-                finally { Marshal.FreeHGlobal(buf); }
+                catch (Exception ex) { error = ex.GetType().Name + "：" + ex.Message; }
+
+                int? direct = ReadDword("HKCU", SEARCH_KEY, "SearchboxTaskbarMode");
+                if (direct.HasValue && direct.Value == mode) { NotifyShell(); return true; }
+                error = "";
             }
-            catch { return "读不到"; }
-            finally { CloseHandle(token); }
+
+            // 写值被系统拦掉的版本（实测 Windows 11 26H2）：只能整键还原
+            int m = mode;
+            bool ok = MutateProtectedKey("HKCU", SEARCH_KEY, k =>
+            {
+                k.SetValue("SearchboxTaskbarMode", m, RegistryValueKind.DWord);
+                // Cache 只是给外壳的提示值，隐藏时补上、显示时清掉，跟系统设置的行为一致
+                if (m == 0) k.SetValue("SearchboxTaskbarModeCache", 1, RegistryValueKind.DWord);
+                else k.DeleteValue("SearchboxTaskbarModeCache", false);
+                k.DeleteValue("__stage_marker__", false);
+            }, out error);
+
+            if (!ok) return false;
+            int? back = ReadDword("HKCU", SEARCH_KEY, "SearchboxTaskbarMode");
+            if (!back.HasValue || back.Value != m)
+            {
+                error = "写入后读回来是 " + Show(back) + "，不是 " + m;
+                return false;
+            }
+            // 整键还原把外壳挂在这个键上的监听弄断了：先造一次注册表变更通知让它重读
+            // （这才能把搜索框重新建出来），再补一次广播。不用重启资源管理器。
+            KickShell("HKCU", SEARCH_KEY);
+            NotifyShell();
+            return true;
         }
+
+        /// <summary>
+        /// 往「值写入被系统拦掉」的键里写东西。目前只有 <c>CurrentVersion\Search</c> 系列是这种。
+        ///
+        /// <para>
+        /// 为什么不能直接写：<c>RegSetValueEx</c> 一律返回 ERROR_ACCESS_DENIED —— 管理员跑、
+        /// SYSTEM 跑、用 FullControl 句柄打开、换 <c>RegCopyTree</c>，全部一样被拒；可同一个句柄上
+        /// <c>CreateSubKey</c> 和 <c>DeleteValue</c> 偏偏都成功。也就是说拦的不是 DACL、不是
+        /// 完整性级别（这键连 SACL 都没有），而是「往这个键写值」这个动作本身。
+        /// </para>
+        /// <para>
+        /// 走得通的是整键还原：存盘 → 挂成 <c>HKU\&lt;临时名&gt;</c> → 在副本上随便改（副本不受保护）
+        /// → 卸载 → <c>RegRestoreKey</c> 换回去。还原必须带 <c>REG_FORCE_RESTORE</c>，
+        /// 否则因为键正被搜索服务占着，一样返回拒绝访问。
+        /// </para>
+        /// <para>
+        /// 不破坏原有权限：存盘文件里带着原键完整的描述符，还原后 DACL 跟原来一模一样，
+        /// 不会在用户注册表里留下被放宽过权限的键。临时键、临时文件在 finally 里清掉。
+        /// </para>
+        /// </summary>
+        internal static bool MutateProtectedKey(string root, string path, Action<RegistryKey> mutate, out string error)
+        {
+            error = "";
+            IntPtr hTarget = IntPtr.Zero;
+            string origSddl = null;
+            string tempName = "WbTmp" + Guid.NewGuid().ToString("N").Substring(0, 8);
+            string dir = Path.Combine(Path.GetTempPath(), "Win11Toolbox", "hive");
+            string hiv = Path.Combine(dir, tempName + ".hiv");
+            bool loaded = false;
+            try
+            {
+                EnablePrivilege("SeBackupPrivilege");
+                EnablePrivilege("SeRestorePrivilege");
+                Directory.CreateDirectory(dir);
+
+                IntPtr hRoot = string.Equals(root, "HKLM", StringComparison.OrdinalIgnoreCase)
+                    ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER;
+                int rc = RegOpenKeyExW(hRoot, path, 0, KEY_ALL_ACCESS, out hTarget);
+                if (rc != 0) { error = "打不开键（" + Win32Msg(rc) + "）"; return false; }
+
+                // RegSaveKey 不保存安全描述符 —— 还原之后这个键的 DACL 会变成默认值，
+                // 原来那条给搜索能力的 ACE 就没了。所以先抄一份，还原完立刻补回去。
+                origSddl = ReadSddl(root, path);
+
+                rc = RegSaveKeyW(hTarget, hiv, IntPtr.Zero);
+                if (rc != 0) { error = "备份键失败（" + Win32Msg(rc) + "）"; return false; }
+
+                rc = RegLoadKeyW(HKEY_USERS, tempName, hiv);
+                if (rc != 0) { error = "加载临时键失败（" + Win32Msg(rc) + "）"; return false; }
+                loaded = true;
+
+                if (!ApplyToTempKey(tempName, mutate, out error)) return false;
+                SweepTempSubKeys(tempName);
+                // 先卸载把改动写回 hiv，再整键还原
+                rc = RegUnLoadKeyW(HKEY_USERS, tempName);
+                loaded = false;
+                if (rc != 0) { error = "卸载临时键失败（" + Win32Msg(rc) + "）"; return false; }
+
+                rc = RegRestoreKeyW(hTarget, hiv, REG_FORCE_RESTORE);
+                if (rc != 0) { error = "还原键失败（" + Win32Msg(rc) + "）"; return false; }
+
+                if (!string.IsNullOrEmpty(origSddl) && !RestoreAcl(root, path, origSddl, out string aclErr))
+                {
+                    // 值已经写进去了，但权限没补回来 —— 这比写失败更严重，得让调用方知道
+                    error = "值已写入，但恢复键权限失败：" + aclErr;
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex.GetType().Name + "：" + ex.Message;
+                return false;
+            }
+            finally
+            {
+                if (loaded) RegUnLoadKeyW(HKEY_USERS, tempName);
+                if (hTarget != IntPtr.Zero) RegCloseKey(hTarget);
+                try { if (File.Exists(hiv)) File.Delete(hiv); } catch { }
+                try { Registry.Users.DeleteSubKeyTree(tempName, false); } catch { }
+            }
+        }
+
+        /// <summary>
+        /// 清掉「踢一下」留下的临时子键（<c>__</c> 开头）。
+        /// 在加载出来的副本上删，随 <c>RegRestoreKey</c> 一起生效 ——
+        /// 直接删真键上的子键没有权限（建得出来、删不掉）。
+        /// </summary>
+        static void SweepTempSubKeys(string tempName)
+        {
+            try
+            {
+                using (RegistryKey k = Registry.Users.OpenSubKey(tempName, true))
+                {
+                    if (k == null) return;
+                    foreach (string n in k.GetSubKeyNames())
+                    {
+                        if (!n.StartsWith("__", StringComparison.Ordinal)) continue;
+                        try { k.DeleteSubKeyTree(n, false); } catch { }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        /// <summary>读一个键完整的安全描述符（SDDL 字符串），读不到返回 null。</summary>
+        static string ReadSddl(string root, string path)
+        {
+            try
+            {
+                using (RegistryKey k = Reg.Hive(root).OpenSubKey(path, false))
+                {
+                    if (k == null) return null;
+                    return k.GetAccessControl(AccessControlSections.All)
+                            .GetSecurityDescriptorSddlForm(AccessControlSections.All);
+                }
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// 把键的权限恢复成指定 SDDL。
+        /// 整键还原之后这个键的 DACL 已经是默认值，我们没有 WRITE_DAC 了，
+        /// 所以得先接管所有权（管理员靠 SeTakeOwnershipPrivilege 可以无视 DACL 拿走），
+        /// 再写回原 SDDL —— 写回去的同时所有者也会变回原来的 SYSTEM。
+        /// </summary>
+        static bool RestoreAcl(string root, string path, string sddl, out string error)
+        {
+            error = "";
+            if (GrantWriteAccess(root, path, out error) == null) return false;
+            return RestoreKeySecurity(root, path, sddl, out error);
+        }
+
+        /// <summary>在加载出来的副本上执行改动。副本的 DACL 是从原键带过来的，必要时临时接管。</summary>
+        static bool ApplyToTempKey(string tempName, Action<RegistryKey> mutate, out string error)
+        {
+            error = "";
+            try
+            {
+                using (RegistryKey k = Registry.Users.OpenSubKey(tempName, true))
+                {
+                    if (k == null) { error = "打不开临时键"; return false; }
+                    mutate(k);
+                }
+                return true;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // 副本跟着原键一起被锁的情况：接管权限 → 改 → 立刻还原，免得被 RegRestoreKey 写回真键
+                string sddl = GrantWriteAccess("HKU", tempName, out string e2);
+                if (sddl == null) { error = "临时键不可写：" + e2; return false; }
+                try
+                {
+                    using (RegistryKey k = Registry.Users.OpenSubKey(tempName, true))
+                    {
+                        if (k == null) { error = "打不开临时键"; return false; }
+                        mutate(k);
+                    }
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    error = ex.GetType().Name + "：" + ex.Message;
+                    return false;
+                }
+                finally { RestoreKeySecurity("HKU", tempName, sddl, out _); }
+            }
+            catch (Exception ex)
+            {
+                error = ex.GetType().Name + "：" + ex.Message;
+                return false;
+            }
+        }
+
+        static string Show(int? v) => v.HasValue ? v.Value.ToString() : "(不存在)";
 
         /// <summary>
         /// 拿到键的所有权并给当前用户完全控制。
@@ -428,177 +633,8 @@ namespace Win11Toolbox.SettingsKit
             return "0x" + code.ToString("X") + " " + new System.ComponentModel.Win32Exception(code).Message;
         }
 
-        /// <summary>
-        /// 把 DACL 逐条拆开打印。
-        /// <para>
-        /// 光看一整串 SDDL 很难判断「到底有没有一条 ACE 给当前用户 KEY_SET_VALUE」——
-        /// 而 <c>OICIID</c> 这种继承标志（I = inherit-only）恰恰是坑：带 I 的 ACE
-        /// 只对子键生效，对键本身完全不管用。上一版诊断就是被这一串 KA 骗了。
-        /// </para>
-        /// </summary>
-        internal static void DumpDacl(StringBuilder sb, string root, string path)
-        {
-            try
-            {
-                using (RegistryKey k = Reg.Open(root, path, false))
-                {
-                    if (k == null) { sb.AppendLine("  打不开键"); return; }
-                    RegistrySecurity sec = k.GetAccessControl(AccessControlSections.Access);
-                    AuthorizationRuleCollection rules = sec.GetAccessRules(true, false, typeof(NTAccount));
-                    if (rules.Count == 0) sb.AppendLine("  （没有任何 ACE —— 这就是写不进去的原因）");
-                    foreach (RegistryAccessRule r in rules)
-                    {
-                        string who;
-                        try { who = r.IdentityReference.Value; }
-                        catch { who = r.IdentityReference.ToString(); }
-                        sb.AppendLine("  - " + (r.AccessControlType == AccessControlType.Allow ? "允许" : "拒绝")
-                            + " | " + who
-                            + " | " + r.RegistryRights
-                            + " | 继承:" + r.InheritanceFlags
-                            + " | 传播:" + r.PropagationFlags
-                            + (r.IsInherited ? " | 继承来的" : " | 直接写在键上"));
-                    }
-                }
-            }
-            catch (Exception ex) { sb.AppendLine("  读 DACL 失败：" + ex.Message); }
-        }
-
         /// <summary>只测一次：进页面、跑诊断都会调 Build()，没必要每次都写一遍临时值。</summary>
         static bool? _searchWritable;
-
-        /// <summary>
-        /// <c>--searchfix</c> 的实现：验证「取得所有权 → 写入 → 恢复原权限」这条路能不能走通。
-        ///
-        /// <para>
-        /// 只写一个临时值 <c>__fix_test__</c>，不碰用户真正的搜索框设置。
-        /// 跑完会验证 SDDL 是否恢复原样，并且再测一次可写性 —— 如果恢复后重新变成「不可写」，
-        /// 说明权限确实还原了，没有留下后遗症。
-        /// </para>
-        /// </summary>
-        internal static string DiagnoseSearchKey()
-        {
-            StringBuilder sb = new StringBuilder();
-            string err;
-
-            sb.AppendLine("== 修复前 ==");
-            sb.AppendLine("  可写：" + CanWriteKey("HKCU", SEARCH_KEY));
-            string owner0 = "";
-            try
-            {
-                using (RegistryKey k = Reg.Open("HKCU", SEARCH_KEY, false))
-                {
-                    if (k != null)
-                    {
-                        RegistrySecurity s = k.GetAccessControl(AccessControlSections.Owner);
-                        owner0 = s.GetOwner(typeof(NTAccount)).ToString();
-                    }
-                }
-            }
-            catch (Exception ex) { owner0 = "(读不到：" + ex.Message + ")"; }
-            sb.AppendLine("  所有者：" + owner0);
-            sb.AppendLine("  当前进程是否管理员：" + RightMenuActions.IsAdmin());
-            sb.AppendLine("  当前进程完整性级别：" + IntegrityLevel());
-            sb.AppendLine("  进程位数：" + (Environment.Is64BitProcess ? "64 位" : "32 位（注册表会走 WOW64 重定向）"));
-            sb.AppendLine();
-            sb.AppendLine("== 修复前的 DACL（逐条）==");
-            DumpDacl(sb, "HKCU", SEARCH_KEY);
-
-            sb.AppendLine();
-            sb.AppendLine("== 取得所有权 + 补 ACE ==");
-            string backup = GrantWriteAccess("HKCU", SEARCH_KEY, out err);
-            if (backup == null)
-            {
-                sb.AppendLine("  失败：" + err);
-                sb.AppendLine();
-                sb.AppendLine("结论：这条路走不通，需要别的方案。");
-                return sb.ToString();
-            }
-            sb.AppendLine("  成功");
-            sb.AppendLine("  原 SDDL：" + backup);
-
-            // ★ 关键验证：ACE 到底有没有真的加上？
-            // 上一版诊断漏了这一步，于是「改成功了」和「改失败了」看起来一模一样。
-            sb.AppendLine();
-            sb.AppendLine("== 改完之后实际的 SDDL ==");
-            string afterGrant = "";
-            try
-            {
-                using (RegistryKey k = Reg.Open("HKCU", SEARCH_KEY, false))
-                {
-                    if (k != null)
-                    {
-                        RegistrySecurity s = k.GetAccessControl(AccessControlSections.All);
-                        afterGrant = s.GetSecurityDescriptorSddlForm(AccessControlSections.All);
-                        sb.AppendLine("  所有者：" + s.GetOwner(typeof(NTAccount)));
-                    }
-                }
-            }
-            catch (Exception ex) { sb.AppendLine("  读不到：" + ex.Message); }
-            sb.AppendLine("  " + afterGrant);
-            sb.AppendLine("  与原来不同：" + (afterGrant != backup));
-
-            // ★ 直接用 Win32 API 测，拿确切错误码
-            sb.AppendLine();
-            sb.AppendLine("== Win32 直测 ==");
-            IntPtr hKey;
-            int rcOpen = RegOpenKeyExW(HKEY_CURRENT_USER, SEARCH_KEY, 0, KEY_SET_VALUE, out hKey);
-            sb.AppendLine($"  RegOpenKeyEx(KEY_SET_VALUE) = {rcOpen}" + (rcOpen == 0 ? "（成功）" : "（" + Win32Msg(rcOpen) + "）"));
-            if (rcOpen == 0)
-            {
-                byte[] data = BitConverter.GetBytes(4242);
-                int rcSet = RegSetValueExW(hKey, "__fix_test__", 0, REG_DWORD, data, data.Length);
-                sb.AppendLine($"  RegSetValueEx = {rcSet}" + (rcSet == 0 ? "（成功）" : "（" + Win32Msg(rcSet) + "）"));
-                if (rcSet == 0) DeleteValue("HKCU", SEARCH_KEY, "__fix_test__");
-                RegCloseKey(hKey);
-            }
-
-            sb.AppendLine();
-            sb.AppendLine("== 写入测试（.NET 路径）==");
-            bool wrote = false;
-            try
-            {
-                WriteDword("HKCU", SEARCH_KEY, "__fix_test__", 12345);
-                int? back = ReadDword("HKCU", SEARCH_KEY, "__fix_test__");
-                wrote = back.HasValue && back.Value == 12345;
-                sb.AppendLine("  写 12345 读回：" + (back.HasValue ? back.Value.ToString() : "null"));
-                DeleteValue("HKCU", SEARCH_KEY, "__fix_test__");
-            }
-            catch (Exception ex)
-            {
-                sb.AppendLine("  失败：" + ex.GetType().Name + "：" + ex.Message);
-            }
-
-            sb.AppendLine();
-            sb.AppendLine("== 恢复原权限 ==");
-            bool restored = RestoreKeySecurity("HKCU", SEARCH_KEY, backup, out err);
-            sb.AppendLine("  " + (restored ? "成功" : "失败：" + err));
-
-            sb.AppendLine();
-            sb.AppendLine("== 恢复后 ==");
-            string owner1 = "";
-            try
-            {
-                using (RegistryKey k = Reg.Open("HKCU", SEARCH_KEY, false))
-                {
-                    if (k != null)
-                    {
-                        RegistrySecurity s = k.GetAccessControl(AccessControlSections.Owner);
-                        owner1 = s.GetOwner(typeof(NTAccount)).ToString();
-                        string now = s.GetSecurityDescriptorSddlForm(AccessControlSections.All);
-                        sb.AppendLine("  SDDL 与原来一致：" + (now == backup));
-                    }
-                }
-            }
-            catch (Exception ex) { owner1 = "(读不到：" + ex.Message + ")"; }
-            sb.AppendLine("  所有者：" + owner1);
-            sb.AppendLine("  可写：" + CanWriteKey("HKCU", SEARCH_KEY));
-
-            sb.AppendLine();
-            sb.AppendLine(wrote
-                ? "结论：取得所有权后能写，方案可行。"
-                : "结论：取得所有权后仍然写不进去，需要别的方案。");
-            return sb.ToString();
-        }
 
         static bool SearchKeyWritable()
         {
@@ -966,6 +1002,8 @@ namespace Win11Toolbox.SettingsKit
             // 2) 不能用 Multi：Multi 是「两个值都满足才算已开启」，但用户在系统设置里
             //    手动关掉搜索框时，系统只写 SearchboxTaskbarMode，不写 ...Cache，
             //    那样工具箱会一直显示「默认状态」。所以探测只认主值。
+            // 3) 写不进去也不能把用户推去系统设置 —— 改用整键还原通道（见 MutateProtectedKey），
+            //    这条路实测能把值真正写进去。
             SettingItem hideSearch = Cmd("任务栏", "隐藏任务栏搜索框",
                 "任务栏上不再显示搜索框；搜索本身还在，按 Win 键或 Win+S 照样能搜。",
                 delegate
@@ -975,25 +1013,14 @@ namespace Win11Toolbox.SettingsKit
                 },
                 delegate(bool on)
                 {
-                    if (on)
-                    {
-                        WriteDword("HKCU", SEARCH, "SearchboxTaskbarMode", 0);
-                        WriteDword("HKCU", SEARCH, "SearchboxTaskbarModeCache", 1);
-                    }
-                    else
-                    {
-                        DeleteValue("HKCU", SEARCH, "SearchboxTaskbarMode");
-                        DeleteValue("HKCU", SEARCH, "SearchboxTaskbarModeCache");
-                    }
-                }, false, true,
+                    SetTaskbarSearchMode(on ? 0 : 2, out _);
+                }, false, false,
                 "HKCU\\...\\CurrentVersion\\Search → SearchboxTaskbarMode = 0（0=隐藏 1=仅图标 2=搜索框）");
 
             if (!SearchKeyWritable())
-            {
-                hideSearch.Desc = "任务栏上不再显示搜索框。这个 Windows 版本把搜索设置的注册表键锁住了，"
-                                + "程序改不了（管理员也不行），勾选后会带你去系统设置里手动关一次。";
-                hideSearch.GuideUrl = "ms-settings:taskbar";
-            }
+                hideSearch.Desc = "任务栏上不再显示搜索框；搜索本身还在，按 Win 键或 Win+S 照样能搜。"
+                                + "这个 Windows 版本锁住了搜索键的值写入，走「整键还原」通道改，慢一两秒，改完即时生效。";
+
             L.Add(hideSearch);
             L.Add(Dword("任务栏", "隐藏任务栏「聊天」按钮", "去掉任务栏上的 Teams 聊天入口。",
                 "HKCU", ADV, "TaskbarMn", 0, -1, false, true));
@@ -1388,6 +1415,71 @@ namespace Win11Toolbox.SettingsKit
             report(ReadString("HKCU", path, "sz") == null, "String 删除后读到 null");
         }
 
+        /// <summary>
+        /// 整键还原通道自检：在一个临时键上跑一遍
+        /// 存盘 → 挂载 → 改副本 → 卸载 → RegRestoreKey，确认值真能写进去、
+        /// 而且跑完键的权限跟原来一模一样（RegSaveKey 不存安全描述符，这步最容易漏）。
+        /// </summary>
+        internal static void SelfTestMutate(string path, Action<bool, string> report)
+        {
+            if (!RightMenuActions.IsAdmin())
+            {
+                report(true, "整键还原通道（跳过：需要管理员，RegSaveKey 要 SeBackupPrivilege）");
+                return;
+            }
+
+            WriteDword("HKCU", path, "probe", 1);
+            string aclBefore = AclSignature("HKCU", path);
+
+            bool ok = MutateProtectedKey("HKCU", path,
+                k => k.SetValue("probe", 9, RegistryValueKind.DWord), out string err);
+            report(ok, "整键还原能写进去" + (ok ? "" : "：" + err));
+            if (!ok) return;
+
+            int? v = ReadDword("HKCU", path, "probe");
+            report(v.HasValue && v.Value == 9, "整键还原后读回 9（实际 " + Show(v) + "）");
+
+            // 不能直接比 SDDL 字符串：还原之后系统会把继承 ACE 重新铺一遍，
+            // 多出一个 AI 标记和几条 inherit-only 的条目 —— 那是系统自己的动作，
+            // 有效权限没变。所以只比「真正生效的那几条 ACE」。
+            string aclAfter = AclSignature("HKCU", path);
+            report(aclAfter == aclBefore, "整键还原后键权限没被改掉"
+                + (aclAfter == aclBefore ? "" : "（前 " + aclBefore + " / 后 " + aclAfter + "）"));
+        }
+
+        /// <summary>
+        /// 键的「有效权限签名」：只取直接写在键上、且真正生效的 ACE，
+        /// 排序后拼成字符串。用来比对权限有没有被动过，避开继承条目和 AI 标记的干扰。
+        /// </summary>
+        internal static string AclSignature(string root, string path)
+        {
+            try
+            {
+                using (RegistryKey k = Reg.Hive(root).OpenSubKey(path, false))
+                {
+                    if (k == null) return null;
+                    RegistrySecurity sec = k.GetAccessControl(AccessControlSections.Access);
+                    // 用集合：还原之后同一个 ACE 会同时以「显式」和「继承」两份出现，
+                    // 权限本身没变，只是来源变了，不该算作改动。
+                    HashSet<string> parts = new HashSet<string>(StringComparer.Ordinal);
+                    // 显式的和继承来的都要算 —— 两者对「能不能访问」效果一样，
+                    // 只有 inherit-only 的条目（OICIID 那种）对键本身不起作用，排除掉。
+                    foreach (AuthorizationRule r in sec.GetAccessRules(true, true, typeof(SecurityIdentifier)))
+                    {
+                        RegistryAccessRule rr = r as RegistryAccessRule;
+                        if (rr == null) continue;
+                        if (rr.PropagationFlags.HasFlag(PropagationFlags.InheritOnly)) continue;
+                        parts.Add((rr.AccessControlType == AccessControlType.Allow ? "A" : "D")
+                            + "|" + rr.IdentityReference.Value + "|" + rr.RegistryRights);
+                    }
+                    List<string> sorted = new List<string>(parts);
+                    sorted.Sort(StringComparer.Ordinal);
+                    return string.Join("；", sorted);
+                }
+            }
+            catch { return null; }
+        }
+
         public static void EmptyRecycleBin()
         {
             try { SHEmptyRecycleBin(IntPtr.Zero, null, 0x7); }
@@ -1410,6 +1502,78 @@ namespace Win11Toolbox.SettingsKit
 
         public static void RefreshIcons()
         {
+            try { SHChangeNotify(0x08000000, 0x0000, IntPtr.Zero, IntPtr.Zero); }
+            catch { }
+        }
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint msg, IntPtr wParam, string lParam,
+            uint flags, uint timeout, out IntPtr result);
+
+        static readonly IntPtr HWND_BROADCAST = (IntPtr)0xffff;
+        const uint WM_SETTINGCHANGE = 0x001A;
+        const uint SMTO_ABORTIFHUNG = 0x0002;
+
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        static extern int RegDeleteKeyW(IntPtr hKey, string subKey);
+
+        /// <summary>
+        /// 踢一下这个键，让资源管理器重新读一遍。
+        ///
+        /// <para>
+        /// 光广播 <c>WM_SETTINGCHANGE</c> 不够：实测那样只能让任务栏**把搜索框删掉**，
+        /// 想让它**重新建出来**就必须让它收到注册表变更通知。而我们唯一还能做的写操作
+        /// 就是建子键（写值被拦、删子键又没权限），所以：建一个临时子键（建的时候给它
+        /// 一个「当前用户完全控制」的描述符，这样才删得掉）→ 通知发出 → 立刻删掉。
+        /// </para>
+        /// <para>
+        /// 万一删不掉也不影响功能，下次调用 <see cref="MutateProtectedKey"/> 时
+        /// 会把这些 <c>__</c> 开头的临时子键一并清掉。
+        /// </para>
+        /// </summary>
+        static void KickShell(string root, string path)
+        {
+            string name = "__wbrefresh__";
+            try
+            {
+                RegistrySecurity sec = new RegistrySecurity();
+                sec.AddAccessRule(new RegistryAccessRule(CurrentUser(), RegistryRights.FullControl,
+                    InheritanceFlags.None, PropagationFlags.None, AccessControlType.Allow));
+
+                using (RegistryKey k = Reg.Hive(root).CreateSubKey(path + "\\" + name,
+                    RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryOptions.None, sec))
+                {
+                    if (k != null) k.SetValue("kick", 1, RegistryValueKind.DWord);
+                }
+            }
+            catch { }
+
+            try
+            {
+                IntPtr hRoot = string.Equals(root, "HKLM", StringComparison.OrdinalIgnoreCase)
+                    ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER;
+                RegDeleteKeyW(hRoot, path + "\\" + name);
+            }
+            catch { }
+        }
+
+
+        /// <summary>
+        /// 再补一次广播，让外壳把任务栏配置整个重读一遍。
+        ///
+        /// <para>
+        /// 单靠广播只能让任务栏把搜索框删掉、建不回来（实测），所以真正起作用的是
+        /// <see cref="KickShell"/> 制造的注册表变更通知；这里一起发，覆盖那些
+        /// 监听 WM_SETTINGCHANGE 的组件。
+        /// </para>
+        /// </summary>
+        internal static void NotifyShell()
+        {
+            IntPtr r;
+            try { SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, "TraySettings", SMTO_ABORTIFHUNG, 2000, out r); }
+            catch { }
+            try { SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, "ImmersiveColorSet", SMTO_ABORTIFHUNG, 2000, out r); }
+            catch { }
             try { SHChangeNotify(0x08000000, 0x0000, IntPtr.Zero, IntPtr.Zero); }
             catch { }
         }

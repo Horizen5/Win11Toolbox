@@ -357,41 +357,70 @@ HKCU\Control Panel\NotifyIconSettings\<哈希子键>
 + `ToastEnabled` 两条一起写），用 `Multi(...)` 工厂统一处理：全部满足才算已开启，
 勾选全写、取消全删，避免出现「只关了一半」的状态。
 
-### 搜索框那一项：为什么只能「带你去设置」
+### 搜索框那一项：值写入被拦，靠「整键还原」绕过去
 
-「隐藏任务栏搜索框」本来写 `HKCU\Software\Microsoft\Windows\CurrentVersion\Search\SearchboxTaskbarMode`，
-在这台机器上写入直接报 `Attempted to perform an unauthorized operation.`（`0x80070005` 拒绝访问）。
-查下来是 Windows 把搜索相关的键整片锁了，**不是代码写错**，也不是缺管理员权限：
+「隐藏任务栏搜索框」写 `HKCU\Software\Microsoft\Windows\CurrentVersion\Search\SearchboxTaskbarMode`，
+在这台机器上直接写报 `Attempted to perform an unauthorized operation.`（`0x80070005`）。
+
+**先确认键和值是对的**：反编译的「Windows 11 轻松设置」用的就是同一个键 ——
+`Form2.cs:186` 读、`Form2.cs:558` 写，写的时候走 `RegControl.SetKeyValueofInt`，
+也就是一行 `Registry.SetValue`。所以不是键写错了。
+
+再确认**拦的不是权限**：
 
 | 试过的手段 | 结果 |
 | --- | --- |
-| `OpenSubKey(path, writable: true)` | 成功 |
-| `SetValue` / `CreateSubKey` | 都返回 `0x80070005` |
-| 以管理员运行（High 完整性级别，`whoami /groups` 确认） | 一样拒绝 |
-| 换成 `HKEY_USERS\<SID>\Software\...` 直连同一个物理键 | 一样拒绝 |
-| 看 DACL | `Administrators = KEY_ALL_ACCESS`，看着完全能写 |
+| `OpenSubKey(path, writable: true)` / `RegOpenKeyEx(KEY_SET_VALUE)` | 成功 |
+| 同一个句柄上 `CreateSubKey` | **成功** |
+| 同一个句柄上 `DeleteValue` | **成功** |
+| 同一个句柄上 `SetValue` | 拒绝 |
+| 以管理员跑（High IL）、以 **SYSTEM** 跑 | 都拒绝 |
+| 用 `FullControl` 打开（`RegistryRights.FullControl`） | 打开成功，`SetValue` 照样拒绝 |
+| 临时接管所有权 + 补 `KEY_ALL_ACCESS` 的 ACE，再写 | 拒绝（`RegOpenKeyEx` 已通过说明 DACL 不是瓶颈） |
 | 看 SACL / 完整性标签 | 没有 `S:` 段，不存在标签差异 |
+| 换 `RegCopyTree` 从暂存键拷进去 | 拒绝 |
 
-DACL 明明允许、实际却拒绝，是因为那个键上挂着一条只给 Windows 搜索
-AppContainer（`S-1-15-3-1024-...`）的 ACE，实际写入由系统挡着。
-`CurrentVersion\SearchSettings` 及其 `Appearance` / `Dynamic` / `WebSearchProviders`
-子键同样全部拒绝写入。
+删值要 `KEY_SET_VALUE`、写值也要 `KEY_SET_VALUE`，前者成功后者失败 —— 同一个句柄、
+同一个权限位，所以**不可能是访问检查**，是「往这个键写值」这个动作本身被拦。
+`CurrentVersion\SearchSettings` 同样如此。
 
-**还试过换个键**：往可写的 `Explorer\Advanced\SearchboxTaskbarMode` 写 0，
-再重启资源管理器 —— **搜索框照旧显示**，说明系统只认 `Search` 那个键，换位置不生效。
+**走得通的是整键还原**（`MutateProtectedKey`）：
 
-所以这一项在锁死的系统上**程序无解**。处理方式是 `SettingItem.GuideUrl`：
-构建时用 `CanWriteKey()` 实测一次键能不能写（写个临时值再删，只测一次并缓存），
-不能写就把说明改成「系统锁了，勾选会带你去设置」，并挂上 `ms-settings:taskbar`。
-用户勾选时不再硬写，而是弹一句说明 + 「打开设置」按钮，跳到
-「设置 → 个性化 → 任务栏 → 搜索」手动选「隐藏」。
+```
+RegSaveKey 存盘 → RegLoadKey 挂成 HKU\<临时名> → 在副本上随便改（副本不受保护）
+→ RegUnLoadKey → RegRestoreKey(REG_FORCE_RESTORE) 把整键换回去
+```
 
-这样两边都不吃亏：能写的系统照常一键搞定；锁死的系统至少告诉用户为什么、
-以及下一步该点哪里，而不是甩一句「写入失败」。用户手动改完，注册表里会出现
-`SearchboxTaskbarMode = 0`（系统自己能写），回来点「刷新状态」就能对上。
+三个必须踩过的坑：
 
-> 顺带记一条排查经验：**判断一个键能不能写，别看 DACL，要实测**。
-> `CanWriteKey()` 就是干这个的。DACL 允许但写入被拒的情况是真实存在的。
+1. **`RegLoadKey` 不接受 `HKCU`**，只能挂到 `HKLM` / `HKU`，所以目标是 `HKU\<临时名>`。
+2. **`RegRestoreKey` 不带 `REG_FORCE_RESTORE` 会失败**：键正被搜索服务占着，返回拒绝访问。
+3. **`RegSaveKey` 不保存安全描述符**。还原之后这个键的 DACL 会变成默认值，
+   原来那条只给搜索能力的 ACE（`S-1-15-3-1024-...`）就没了。
+   所以还原前先抄一份 SDDL，还原后**接管所有权再把原 SDDL 写回去**。
+   `--easytest` 里钉了一条断言专门看这个（比对「有效 ACE 集合」，不比对整串 SDDL ——
+   系统会把继承 ACE 重新铺一遍，多出 `AI` 标记和 inherit-only 条目，那是它自己的动作）。
+
+**还有一个坑：不重启资源管理器就不生效。**
+
+整键还原把外壳挂在这个键上的 `RegNotifyChangeKeyValue` 弄断了。实测：
+
+| 做法 | 隐藏（0） | 显示（2） |
+| --- | --- | --- |
+| 只广播 `WM_SETTINGCHANGE("TraySettings")` | 生效 | **不生效**（删得掉、建不回来） |
+| 在键上建一个临时子键（触发注册表变更通知） | 生效 | **生效** |
+
+所以 `KickShell()` 会建一个 `__wbrefresh__` 子键把通知发出去。这个子键**删不掉**
+（同样是写保护，建得出来、删不掉），但它会在下次切换时被 `SweepTempSubKeys`
+连同整键还原一起清掉 —— 任何时刻最多留一个空子键，不影响系统。
+
+顺带一个副作用：`Search\Launch` 是**易失键**，`RegSaveKey` 存不下来，
+还原之后它会消失，搜索用的时候由系统自己重建。
+
+> 排查经验两条：
+> 1. **判断一个键能不能写，别看 DACL，要实测**（`CanWriteKey()`）。DACL 允许但写入被拒是真实存在的。
+> 2. **改完不生效，先分清是「值没写进去」还是「写进去了没人读」**。
+>    这次两个都占了，而且「删得掉建不回来」这种不对称现象就是区分二者的线索。
 
 ### `--easytest` 曾经是个假阳性
 

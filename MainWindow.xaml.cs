@@ -410,6 +410,33 @@ public partial class MainWindow : FluentWindow
                 catch { }
             }
 
+            // ---------------- 整键还原通道 ----------------
+            // 搜索键的值写入被系统拦掉，只能走「存盘 → 挂载 → 改副本 → 卸载 → RegRestoreKey」。
+            // 在临时键上跑一遍：值要能写进去，跑完权限还得跟原来一样。
+            lines.Add("");
+            lines.Add("== 整键还原通道 ==");
+            const string mutePath = "Software\\Win11Toolbox\\mutetest";
+            try
+            {
+                using (var mk = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(mutePath))
+                    mk.SetValue("probe", 1, Microsoft.Win32.RegistryValueKind.DWord);
+                Win11Toolbox.SettingsKit.EasySettingsData.SelfTestMutate(mutePath,
+                    (ok, desc) => Check(ok, desc));
+            }
+            catch (Exception ex)
+            {
+                Check(false, "整键还原自检抛异常：" + ex.GetType().Name + " " + ex.Message);
+            }
+            finally
+            {
+                try
+                {
+                    Microsoft.Win32.Registry.CurrentUser
+                        .DeleteSubKeyTree("Software\\Win11Toolbox", false);
+                }
+                catch { }
+            }
+
             // ---------------- 逐项探测 ----------------
             lines.Add("");
             lines.Add("== 逐项探测 ==");
