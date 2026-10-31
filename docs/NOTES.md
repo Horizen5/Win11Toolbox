@@ -9,6 +9,100 @@
 界面直接使用 Win11 的 Fluent 设计令牌与系统 Mica 云母背景，字体走 `Segoe UI Variable`，
 不再有 Qt 自绘控件带来的"差一点"。
 
+## 加新功能之前：按这个顺序找答案
+
+1. **先看「Windows 11 轻松设置」是怎么做的。** 它已经反编译好，放在工作区
+   `C:\Users\Administrator\WorkBuddy\2026-10-15-18-38-44\_re\src111`，
+   原包是同目录的 `qssz111.zip`（V1.11，450 KB）。要加系统开关、应用装卸载、
+   卸载 Edge、禁用 WD 这类功能，先去那里翻它写哪个键、用什么命令、按什么顺序。
+2. **它没有覆盖到的，上网搜。** 优先级：MS Learn / 微软官方文档 → 系统行为的一手
+   观察（注册表实测、进程监视）→ GitHub 上的同类开源实现
+   （Win11Debloat、Optimizer、Sophia Script）。
+3. **网上也查不到，自己做实验。** 在本机注册表上读写验证、重启资源管理器看效果，
+   结论写回本文档对应章节。**不要再靠记忆写键值** —— 之前把
+   `SearchboxTaskbarMode` 记到 `Explorer\Advanced` 下就是这类错误。
+
+> **边界**：只看它**怎么实现**，不搬它的代码。它是闭源免费软件（作者「快乐无极」），
+> 著作权归作者；本项目是 MIT 公开仓库，把反编译产物抄进来就是侵权。
+> 注册表键值、系统命令、调用顺序属于事实，可以据此独立实现；
+> 而且本项目每一项都要有 `Probe`（读回真实状态），它的实现根本没有这一层，
+> 抄了反而是退步。
+
+## 「Windows 11 轻松设置」V1.11 的实现要点
+
+反编译环境：`ilspycmd` 11.2（`~/.dotnet/tools/ilspycmd.cmd`，不在 PATH 里）、
+`dnSpyEx 6.6`（GUI 调试用）。程序集是 **.NET Framework 4.8.1 / WinForms / x64**，
+无混淆无壳，ILSpy 一次过：16 个类 8083 行。
+
+| 文件 | 行数 | 职责 |
+| --- | --- | --- |
+| `Form1.cs` | 3561 | 主窗口：软件目录、商店 App、资源管理器设置、禁用 WD |
+| `Form4.cs` | 1390 | 其它设置：远程协助、UCPD、DEP、内存完整性 |
+| `Form2.cs` | 1243 | 资源管理器 / 任务栏增强设置 |
+| `Form3.cs` | 829 | 卸载 Edge |
+| `Form5.cs` | 620 | 隐私设置 |
+| `RegControl.cs` | 86 | 注册表读写中枢 |
+
+### 提权：整程序 runas，不做按需提权
+
+`Program.cs:24` 检测到不是管理员就 `Process.Start(Verb="runas")` 拿自己重启再退出。
+所以它全程 High IL，写 `HKLM` 从不二次弹 UAC。代价是一打开就弹一次。
+本项目相反：默认 Medium，只有真需要时才单独提权。
+
+### 注册表：一层薄封装，且不回读
+
+`RegControl.SetKeyValue` 就一行 `Registry.SetValue(key, subkey, value)`，失败弹框返回 -1。
+**没有 Probe**：界面初始化时读一次值反推 checkbox，之后勾选直接按反向标志写死，
+例如 `Form2.cs:361` 的 `SetKeyValueofInt(text, "HideFileExt", (!flag) ? 1 : 0)`。
+系统自己改过设置后它就会显示错状态 —— 这是本项目必须保留 `Probe` 的理由。
+
+### 禁用 Defender：三级递进，靠 TrustedInstaller 身份
+
+`Form1.cs:1089-1140`。先检查篡改防护（`Features\TamperProtection == 5`）和实时保护，
+没关就弹窗让用户手动关；然后逐级升级：
+
+1. `MinSudo.exe --TrustedInstaller --Privileged DisableWD.bat` —— 随包分发的 MinSudo
+   把批处理提到 **TrustedInstaller** 身份执行
+2. 同身份 `rename MsMpEng.exe MsMpEng1.exe`（引擎文件改名，服务起不来）
+3. `MpCmdRun.exe -DisableService` + `Set-MpPreference -DisableRealtimeMonitoring 1`，
+   再轮询 `ServiceController.Status == Stopped` 确认
+
+**可借鉴的点**：TrustedInstaller 令牌比 Administrator 高一层，是「系统锁死的键」
+（如 `HKCU\...\CurrentVersion\Search`）唯一可能绕过去的路。代价是要分发第三方提权
+exe，杀软必报。本项目暂不采用，但记在这里。
+
+### 应用管理：三套接口并用
+
+- 装：`winget install <pkg> -e --accept-source-agreements --accept-package-agreements`，
+  失败回退 `start ms-windows-store://pdp?productid=<id>`（`Form1.cs:1312` / `1323`）
+- 卸当前用户：`winget uninstall` + `Get-AppxPackage X | Remove-AppxPackage`（1346-1348）
+- 卸预装：`DISM /Online /Remove-ProvisionedAppxPackage /PackageName:<全名>`（1336）——
+  「预装」和「当前用户已装」是两件事，很多工具搞混
+- 软件目录**表驱动**：`Software` 类只有 `SoftID / SoftName / RegKey / RegKey2 /
+  SilentInstall / Description` 几个字段，加一款软件就是加一行数据
+
+### 卸载 Edge：暴力删，不走卸载器
+
+`Form3.cs:158-215`：`taskkill msedge` → `rd /S /Q` 三个目录 → 删
+`StartMenuInternet`、`Uninstall`、`Classes\MSEdgeHTM / MSEdgePDF`、`App Paths`、
+`Run` 自启项、`ApplicationAssociationToasts`。
+
+**不建议照做**：系统更新会把 Edge 装回来，删注册表树还会留下半残状态。
+
+### 刷新桌面/图标
+
+`RefreshDesktop.cs`：`SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, 0, 0)`，
+与本项目的 `RefreshIcons` 是同一个 API。
+
+### 结论：真正值得抄的是这三条
+
+1. **DISM 卸预装应用** —— 「应用管理」页最该先做的一块，纯系统命令，零第三方依赖
+2. **winget 集成 + 商店协议回退** —— 装软件不用自己维护下载地址
+3. **TrustedInstaller 提权** —— 解决被锁注册表键的备选方案（有分发风险，先记着）
+
+它的注册表开关本身覆盖度并不比本项目高，57 项里本项目已覆盖 49 项左右；
+差距集中在**应用管理**这个模块上，不是开关数量。
+
 ## 为什么不是 WinUI 3
 
 一开始按 WinUI 3（Windows App SDK）搭过工程，`dotnet build` 会在两个地方失败：
