@@ -177,6 +177,16 @@ Win11Toolbox.exe --uistall 16 a.txt --withtaskmgr --killtaskmgr # 对照组：�
 `--shot` 还支持 `--pump N`：只等 N 毫秒就渲染，用来量「首屏空不空」。
 默认是等 12 秒（右键菜单要扫注册表，得给足时间）。
 
+启动耗时不用加命令行开关：设环境变量 `W11TB_TRACE=1` 再双击，就会往
+`%TEMP%\w11tb-startup.log` 写一条毫秒级时间线（含 8ms UI 线程探针，
+凡是占用超过 100ms 都会单独记一行）。不设这个变量时它只有一次静态布尔判断，
+零开销。
+
+```bash
+set W11TB_TRACE=1 && Win11Toolbox.exe
+type %TEMP%\w11tb-startup.log
+```
+
 `--selftest` 会依次打开 11 个页面（含风扇控制）、再回到主页与硬件页确认缓存页面正常，并在最后等 3 秒验证
 「离开主页→回来」后监控计时器确实重新工作。改动后跑一遍就知道有没有把导航改坏。
 
@@ -1045,6 +1055,84 @@ var (items, states) = await Task.Run(() => { 全部项逐个 Probe() });   // �
 
 验证办法：`--shot easy out.png --pump 300` —— 只等 300ms 就渲染，
 能看到行名字已经在位（改之前这里是全白的）。
+
+## 刚打开卡两三秒：窗口出来了，界面点不动
+
+现象：双击 exe，窗口边框和标题栏在 0.7 秒左右就出来了，位置大小都对，
+但整块内容是灰的、不响应点击、拖不动滚动条，要等三秒多才「活过来」。
+第一眼看上去像是「加载慢」，其实不是——窗口已经画完了，是 UI 线程被人占了。
+
+### 先量，别猜
+
+光看代码猜不出来：这段时间里没有异常、没有日志、也没有进度条。
+往 `App.OnStartup` 和各处 Loaded 里插时间戳（`Services/StartupTrace.cs`，
+设了 `W11TB_TRACE=1` 才写 `%TEMP%\w11tb-startup.log`），时间线一下就出来了：
+
+```
++  149 ms  MainWindow ctor 结束
++  173 ms  首帧渲染完成
++  288 ms  MainWindow.Loaded
++  383 ms  Navigate(首页) 用时 94 ms
++  563 ms  LoadInfoAsync 进入
++  578 ms  读到硬件缓存：有
++  591 ms  ApplyReport(缓存) 用时 12 ms
++  592 ms  硬件信息后台刷新返回：有
++  592 ms  ApplyReport(新数据) 用时 0 ms
+```
+
+改之前同一段是这样的：
+
+```
++  565 ms  检查项：启动项完成
++ 2435 ms  检查项：回收站完成     ← 单项 1870 ms
++ 2441 ms  ApplyReport(缓存) 用时 1884 ms
++ 2442 ms  硬件信息后台刷新返回：有
++ 4174 ms  检查项：回收站完成     ← 又一遍 1731 ms
++ 4179 ms  ApplyReport(新数据) 用时 1737 ms
++ 4191 ms  ⚠ UI 线程被占用 3703 ms
+```
+
+### 真凶：`SHQueryRecycleBin(null)`，还跑了两遍
+
+`HomePage.CollectChecks()` 里那行 `ShellTools.RecycleBin()`，内部是
+`SHQueryRecycleBin(null, …)`。传 `null` 表示**所有驱动器**，shell 会逐个盘
+去枚举 `$Recycle.Bin` 的元数据。本机 4 块固定盘，实测 **1.87 秒**。
+
+更要命的是它被调了**两次**：`LoadInfoAsync` 先拿缓存 `ApplyReport(cached)`，
+`await RefreshAsync` 回来又 `ApplyReport(fresh)`，两次都触发 `RunChecks()`。
+缓存新鲜时 `RefreshAsync` 直接返回同一个对象——同样的体检原封不动又算一遍。
+
+两个问题叠起来就是 3.6 秒，全在 UI 线程上，正好对上外部探针量到的
+「窗口可见 790 ms，随后 3013 ms 无响应」。
+
+### 改法：快的同步画，慢的扔后台
+
+体检拆成两段，和「首屏不能白等」是同一个思路：
+
+- `CollectChecks(report)` 只留**便宜**的项：内存、系统盘、磁盘健康、启动项，
+  合计约 5 毫秒，同步算完立刻 `RenderChecks()`，一进页面就有四行内容；
+- 回收站那一项单独 `await Task.Run(ShellTools.RecycleBin)`，算完再把结果
+  **追加**到列表尾部重画一次。用户看到的是「先有四行，一两秒后第五行补上」，
+  全程可交互。
+
+另外加了两道闸：
+
+- `_checksFor` 记住上次体检用的是哪份报告，`ReferenceEquals` 相同就跳过——
+  一次启动不再算两遍。用户手点「重新检测」时传 `force: true` 绕开这条。
+- `_checking` / `_checkPending`：正在算的时候又被叫，记一笔等这轮结束再补，
+  不丢请求也不并发跑两份。
+
+### 验证
+
+外部探针 `C:\WbProbe\probe_resp.py`：每 40 ms 往窗口发一次 `WM_NULL`，
+`SendMessageTimeout` 返回的耗时就是 UI 线程被占的时长。
+
+```
+v1.1.1  窗口可见 737~869 ms   最长无响应 3013 ms（3/3 次都能复现）
+v1.1.2  窗口可见 725~952 ms   最长无响应    0 ms（全程没有一次超过 80 ms）
+```
+
+`--selftest` 15 项全过。截图确认五条体检项都在（汇总显示「3/5 项正常」）。
 
 ## 切主题时闪一下：真凶是 UI 线程被卡了 4.3 秒
 

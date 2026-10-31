@@ -27,7 +27,9 @@ public partial class HomePage : Page
 
     public HomePage()
     {
+        StartupTrace.Mark("HomePage ctor 进入");
         InitializeComponent();
+        StartupTrace.Mark("HomePage.InitializeComponent 完成");
 
         // CPU 用自适应量程（负载忽高忽低，固定 0–100 时低负载就是一条贴底的线）；
         // 内存 / 磁盘是"绝对占比"，必须固定 0–100，否则 43% 会被放大成满格；
@@ -44,9 +46,13 @@ public partial class HomePage : Page
             Grid.SetColumn(cards[i], i * 2);
             MetricsGrid.Children.Add(cards[i]);
         }
+        StartupTrace.Mark("HomePage 指标卡建好");
 
-        BuildQuickEntries();
-        LoadHeroShot();
+        using (StartupTrace.Scope("HomePage.BuildQuickEntries"))
+            BuildQuickEntries();
+
+        using (StartupTrace.Scope("HomePage.LoadHeroShot"))
+            LoadHeroShot();
 
         _monitor.Snapshot += OnSnapshot;
 
@@ -64,11 +70,13 @@ public partial class HomePage : Page
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        StartupTrace.Mark("HomePage.Loaded");
         // 每次进入页面都重新启动计时器：离开时会 Stop，回到主页不启动就会"冻住"
         _monitor.Start();
 
         if (_report is null)
             await LoadInfoAsync();
+        StartupTrace.Mark("HomePage.OnLoaded 结束");
     }
 
     private void OnSnapshot(MonitorSnapshot snapshot)
@@ -89,16 +97,27 @@ public partial class HomePage : Page
     // ------------------------------------------------------------------ 概览
     private async Task LoadInfoAsync()
     {
+        StartupTrace.Mark("LoadInfoAsync 进入");
+
         // 缓存优先：有缓存就立刻显示，再去后台刷新
         var cached = AppCache.Hardware;
+        StartupTrace.Mark("读到硬件缓存：" + (cached is null ? "无" : "有"));
         if (cached is not null)
-            ApplyReport(cached);
+        {
+            using (StartupTrace.Scope("ApplyReport(缓存)"))
+                ApplyReport(cached);
+        }
         else
             HeroName.Text = "正在读取设备信息…";
 
         var fresh = await AppCache.RefreshAsync(TimeSpan.FromMinutes(10));
+        StartupTrace.Mark("硬件信息后台刷新返回：" + (fresh is null ? "无" : "有"));
         if (fresh is not null)
-            ApplyReport(fresh);
+        {
+            using (StartupTrace.Scope("ApplyReport(新数据)"))
+                ApplyReport(fresh);
+        }
+        StartupTrace.Mark("LoadInfoAsync 结束");
     }
 
     private void ApplyReport(HardwareReport report)
@@ -110,7 +129,9 @@ public partial class HomePage : Page
         HeroCpu.Text = report.Overview[5].Value;
         HeroMem.Text = MemorySummary(report);
         HeroGpu.Text = report.Overview[7].Value;
-        RunChecks();
+
+        // 不 await：体检是纯补充信息，谁也别挡着窗口先画出来
+        _ = RunChecksAsync();
     }
 
     /// <summary>设备缩略图用系统自带的那张 bloom 壁纸，和设置页里的设备图一致；取不到就留渐变底。</summary>
@@ -200,20 +221,72 @@ public partial class HomePage : Page
     /// <summary>上一次体检的结果。切主题时只拿它重画，不重新算 —— 见 <see cref="RenderChecks"/>。</summary>
     private List<(string Level, string Title, string Detail)> _checks = new();
 
+    /// <summary>上一次体检用的那份硬件报告，用来判断"同一份数据不必再算一遍"。</summary>
+    private HardwareReport? _checksFor;
+
+    private bool _checking;
+    private bool _checkPending;
+
     /// <summary>
-    /// 重新体检一遍（读内存、磁盘、启动项、回收站 —— 这几项都不便宜）。
-    /// 只在进页面、以及用户点"重新检测"时调用。
+    /// 重新体检一遍。只在进页面、以及用户点"重新检测"时调用。
+    ///
+    /// <para>
+    /// 分成两段跑，原因见 <see cref="CollectChecks"/>：内存 / 系统盘 / 启动项 / 磁盘健康
+    /// 加起来只要 5 毫秒，同步算完立刻画，用户一进页面就有内容；
+    /// 回收站那一项要扫遍所有盘的 <c>$Recycle.Bin</c>，实测 <b>1.8 秒</b>，
+    /// 必须扔到后台，算完再补上那一行。
+    /// </para>
     /// </summary>
-    private void RunChecks()
+    private async Task RunChecksAsync(bool force = false)
     {
-        _checks = CollectChecks();
-        RenderChecks();
+        if (_checking)
+        {
+            // 正在算的时候又被叫了一次（比如缓存数据和新数据前后脚到达），
+            // 记一笔，等这轮结束再补算一次，别把请求丢了。
+            _checkPending = true;
+            return;
+        }
+
+        var report = _report;
+
+        // 缓存和新数据往往是同一个对象（AppCache 在缓存新鲜时直接返回它），
+        // 那就没必要把同样的体检再跑一遍 —— 之前一次启动会算两遍。
+        // 用户手点"重新检测"时不走这条捷径，他就是想看最新的。
+        if (!force && ReferenceEquals(report, _checksFor) && _checks.Count > 0)
+            return;
+
+        _checking = true;
+        try
+        {
+            var quick = CollectChecks(report);
+            _checks = quick;
+            RenderChecks();
+
+            var (size, count) = await Task.Run(ShellTools.RecycleBin);
+            _checks = new List<(string Level, string Title, string Detail)>(quick)
+            {
+                size > 2L * 1024 * 1024 * 1024
+                    ? ("warn", "回收站占用较大", $"{count} 个文件，共 {ByteFormatter.Format((ulong)size)}")
+                    : ("ok", "回收站占用正常", $"{count} 个文件，共 {ByteFormatter.Format((ulong)size)}"),
+            };
+            _checksFor = report;
+            RenderChecks();
+        }
+        finally
+        {
+            _checking = false;
+            if (_checkPending)
+            {
+                _checkPending = false;
+                _ = RunChecksAsync(force);
+            }
+        }
     }
 
     /// <summary>
     /// 只按 <see cref="_checks"/> 重建那几行，不做任何系统调用。
     ///
-    /// 切主题必须走这里：之前订阅的是 <see cref="RunChecks"/>，结果换一次颜色要去遍历回收站，
+    /// 切主题必须走这里：之前订阅的是重新体检，结果换一次颜色要去遍历回收站，
     /// 实测卡了 4.3 秒（<c>--themeflash</c> 里 Home=4278ms 就是它）。
     /// 换颜色是纯视觉的事，重新读系统状态是两码事。
     /// </summary>
@@ -227,8 +300,18 @@ public partial class HomePage : Page
         CheckSummary.Text = $"{ok}/{_checks.Count} 项正常";
     }
 
-    /// <summary>真正干活的那一段：把所有检查项跑一遍，返回结果表。</summary>
-    private List<(string Level, string Title, string Detail)> CollectChecks()
+    /// <summary>
+    /// 体检里"便宜"的那几项：内存、系统盘、磁盘健康、启动项。
+    /// 全部加起来约 5 毫秒，可以放心在 UI 线程跑。
+    ///
+    /// <para>
+    /// <b>回收站不在这里。</b> <c>SHQueryRecycleBin</c> 传 null 会逐盘枚举
+    /// <c>$Recycle.Bin</c>，本机 4 块盘实测 1.8 秒 —— 放在这里就是把 UI 线程钉死将近两秒，
+    /// 窗口出来了却点不动、也不重画，用户看到的就是"刚打开卡两三秒"。
+    /// 它由 <see cref="RunChecksAsync"/> 单独扔后台。
+    /// </para>
+    /// </summary>
+    private List<(string Level, string Title, string Detail)> CollectChecks(HardwareReport? report)
     {
         var results = new List<(string Level, string Title, string Detail)>();
 
@@ -256,16 +339,16 @@ public partial class HomePage : Page
             // 忽略
         }
 
-        if (_report is not null)
+        if (report is not null)
         {
-            var unhealthy = _report.Disks
+            var unhealthy = report.Disks
                 .Where(d => d.Health.Contains("警告") || d.Health.Contains("异常")
                             || d.Health.Contains("Warning") || d.Health.Contains("Unhealthy"))
                 .ToList();
             if (unhealthy.Count > 0)
                 results.Add(("warn", "磁盘健康异常", string.Join("、", unhealthy.Select(d => d.Model))));
-            else if (_report.Disks.Count > 0)
-                results.Add(("ok", "磁盘健康正常", $"共检测到 {_report.Disks.Count} 块磁盘"));
+            else if (report.Disks.Count > 0)
+                results.Add(("ok", "磁盘健康正常", $"共检测到 {report.Disks.Count} 块磁盘"));
         }
 
         try
@@ -274,18 +357,6 @@ public partial class HomePage : Page
             results.Add(startup.Count <= 12
                 ? ("ok", "启动项数量正常", $"共 {startup.Count} 项开机自启")
                 : ("warn", "开机启动项较多", $"共 {startup.Count} 项，可在任务管理器中精简"));
-        }
-        catch
-        {
-            // 忽略
-        }
-
-        try
-        {
-            var (size, count) = ShellTools.RecycleBin();
-            results.Add(size > 2L * 1024 * 1024 * 1024
-                ? ("warn", "回收站占用较大", $"{count} 个文件，共 {ByteFormatter.Format((ulong)size)}")
-                : ("ok", "回收站占用正常", $"{count} 个文件，共 {ByteFormatter.Format((ulong)size)}"));
         }
         catch
         {
@@ -407,5 +478,5 @@ public partial class HomePage : Page
         }
     }
 
-    private void Check_Click(object sender, RoutedEventArgs e) => RunChecks();
+    private void Check_Click(object sender, RoutedEventArgs e) => _ = RunChecksAsync(force: true);
 }

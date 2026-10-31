@@ -22,7 +22,9 @@ public partial class MainWindow : FluentWindow
 
     public MainWindow()
     {
+        StartupTrace.Mark("MainWindow ctor 进入");
         InitializeComponent();
+        StartupTrace.Mark("InitializeComponent 完成");
 
         Loaded += OnLoaded;
         Nav.SelectionChanged += Nav_SelectionChanged;
@@ -38,10 +40,22 @@ public partial class MainWindow : FluentWindow
         // 永远到不了真正能滚的外层。这里在隧道阶段直接把偏移量
         // 写到"最近一个真正能滚的 ScrollViewer"上，并标记已处理。
         Win11Toolbox.Controls.WheelScroller.Attach(this);
+        StartupTrace.Mark("WheelScroller.Attach 完成");
 
         RestoreWindowPlacement();
+        StartupTrace.Mark("窗口位置恢复完成");
         PreviewKeyDown += OnPreviewKeyDown;
         Closing += (_, _) => SaveWindowPlacement();
+        StartupTrace.Mark("MainWindow ctor 结束");
+
+        // 首帧：WPF 画完第一帧时记一笔，用来区分"窗口出来了"和"内容画出来了"
+        EventHandler? onFrame = null;
+        onFrame = (_, _) =>
+        {
+            System.Windows.Media.CompositionTarget.Rendering -= onFrame;
+            StartupTrace.Mark("首帧渲染完成");
+        };
+        System.Windows.Media.CompositionTarget.Rendering += onFrame;
     }
 
     /// <summary>
@@ -242,6 +256,7 @@ public partial class MainWindow : FluentWindow
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         Loaded -= OnLoaded;
+        StartupTrace.Mark("MainWindow.Loaded");
 
         // 模板套好之后再清：导航栏那层 ScrollViewer 点一下空白处就会拿到键盘焦点，
         // WPF 会给它画一个 1px 深色虚线框，把整列导航项框起来 —— 很难看。
@@ -288,7 +303,9 @@ public partial class MainWindow : FluentWindow
         // 正常启动：--page 优先，其余一律回主页。
         // 不再恢复"上次停留的页面"——一打开就落在某个工具页反而让人找不到北，
         // 主页才是给人看整体状态的地方。（LastPage 仍写进配置，只作排查用。）
-        Navigate(PageFromArgs() ?? typeof(HomePage));
+        using (StartupTrace.Scope("Navigate(首页)"))
+            Navigate(PageFromArgs() ?? typeof(HomePage));
+        StartupTrace.Mark("OnLoaded 结束");
     }
 
     /// <summary>UI Automation 在 STA 线程上最稳。</summary>

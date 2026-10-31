@@ -14,7 +14,9 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        Services.StartupTrace.Mark("OnStartup 进入");
         base.OnStartup(e);
+        Services.StartupTrace.Mark("base.OnStartup 完成");
 
         // 单文件发布下 WPF 的关闭遥测会 Assembly.Load("System.Diagnostics.Tracing, 10.0.0.0, …")，
         // 这个程序集要是还没被加载过，解析就失败、抛 FileNotFoundException —— 而且是在
@@ -25,6 +27,7 @@ public partial class App : Application
 
         // 主题要先切，后面的离屏诊断（--navshot / --shot）也才能按 --theme 出图
         ApplyThemeFromArgs();
+        Services.StartupTrace.Mark("主题已应用");
 
         // --probe：纯后台探测，不建任何窗口，跑完直接退出（写 probe.log）
         if (Array.IndexOf(Environment.GetCommandLineArgs(), "--probe") >= 0)
@@ -368,16 +371,22 @@ public partial class App : Application
         bool isSelfTest = Array.IndexOf(Environment.GetCommandLineArgs(), "--selftest") >= 0
                        || Array.IndexOf(Environment.GetCommandLineArgs(), "--uistall") >= 0
                        || Array.IndexOf(Environment.GetCommandLineArgs(), "--easytest") >= 0;
+        Services.StartupTrace.Mark("诊断参数判断完成");
         if (!isSelfTest)
         {
+            Services.StartupTrace.Mark("单实例检查开始");
             if (!Services.SingleInstance.TryAcquire())
             {
                 Shutdown();
                 return;
             }
+            Services.StartupTrace.Mark("单实例通过");
 
             Exit += (_, _) => Services.SingleInstance.Release();
         }
+
+        Services.StartupTrace.StartStallProbe(Dispatcher);
+        Services.StartupTrace.Mark("OnStartup 结束（下面开始建窗口）");
     }
 
     /// <summary>离屏渲染一个页面，存成 PNG。全程不显示窗口、不抢焦点。</summary>
