@@ -1,7 +1,7 @@
 // ================================================================
 //  EasySettingsCore.cs —— 系统轻松设置 · 逻辑层
 //  由「右键菜单管家 v3.0」的轻松设置模块移植，去掉 WinForms。
-//  40 项安全设置，每项都带 Probe（当前状态）/ Set（应用或恢复默认）。
+//  57 项安全设置，每项都带 Probe（当前状态）/ Set（应用或恢复默认）。
 // ================================================================
 using System;
 using System.Collections.Generic;
@@ -72,11 +72,42 @@ namespace Win11Toolbox.SettingsKit
             catch { return null; }
         }
 
+        /// <summary>读 REG_SZ / REG_EXPAND_SZ；不存在或读不到返回 null。</summary>
+        static string ReadString(string root, string path, string name)
+        {
+            try
+            {
+                RegistryKey k = Reg.Open(root, path, false);
+                if (k == null) return null;
+                try
+                {
+                    object v = k.GetValue(name, null);
+                    return v == null ? null : v.ToString();
+                }
+                finally { k.Close(); }
+            }
+            catch { return null; }
+        }
+
         static void WriteDword(string root, string path, string name, int val)
         {
             RegistryKey k = Reg.Hive(root).CreateSubKey(path, RegistryKeyPermissionCheck.Default);
             if (k == null) throw new InvalidOperationException("打不开 " + root + "\\" + path);
             try { k.SetValue(name, val, RegistryValueKind.DWord); }
+            finally { k.Close(); }
+        }
+
+        /// <summary>
+        /// 写 REG_SZ。
+        ///
+        /// 不能图省事用 WriteExpandString：REG_EXPAND_SZ 里的 %...% 会被系统当环境变量
+        /// 展开，而「新建快捷方式模板」的值恰好是 <c>%s.lnk</c> —— 展开失败后模板就废了。
+        /// </summary>
+        static void WriteString(string root, string path, string name, string val)
+        {
+            RegistryKey k = Reg.Hive(root).CreateSubKey(path, RegistryKeyPermissionCheck.Default);
+            if (k == null) throw new InvalidOperationException("打不开 " + root + "\\" + path);
+            try { k.SetValue(name, val, RegistryValueKind.String); }
             finally { k.Close(); }
         }
 
@@ -193,6 +224,105 @@ namespace Win11Toolbox.SettingsKit
             return it;
         }
 
+        // 字符串值项：勾选写 onValue，取消删除该值
+        static SettingItem Str(string cat, string name, string desc, string root, string path, string val,
+            string onValue, bool admin, bool restart, string risk = "")
+        {
+            SettingItem it = new SettingItem();
+            it.Category = cat;
+            it.Name = name;
+            it.Desc = desc;
+            it.NeedAdmin = admin;
+            it.NeedExplorerRestart = restart;
+            it.Risk = risk;
+            it.RegPath = P(root, path, val + " = \"" + onValue + "\"（默认无此值）");
+            it.Probe = delegate
+            {
+                string v = ReadString(root, path, val);
+                return v != null && string.Equals(v, onValue, StringComparison.OrdinalIgnoreCase);
+            };
+            it.Set = delegate(bool on)
+            {
+                if (on) WriteString(root, path, val, onValue);
+                else DeleteValue(root, path, val);
+            };
+            return it;
+        }
+
+        // 组合项：一组值共用一个开关，全部满足才算「已开启」，勾选全写、取消全删
+        static SettingItem Multi(string cat, string name, string desc, string regPath,
+            (string Root, string Path, string Value, int On)[] values, bool admin, bool restart, string risk = "")
+        {
+            SettingItem it = new SettingItem();
+            it.Category = cat;
+            it.Name = name;
+            it.Desc = desc;
+            it.NeedAdmin = admin;
+            it.NeedExplorerRestart = restart;
+            it.Risk = risk;
+            it.RegPath = regPath;
+            it.Probe = delegate
+            {
+                foreach (var v in values)
+                {
+                    int? cur = ReadDword(v.Root, v.Path, v.Value);
+                    if (!cur.HasValue || cur.Value != v.On) return false;
+                }
+                return true;
+            };
+            it.Set = delegate(bool on)
+            {
+                foreach (var v in values)
+                {
+                    if (on) WriteDword(v.Root, v.Path, v.Value, v.On);
+                    else DeleteValue(v.Root, v.Path, v.Value);
+                }
+            };
+            return it;
+        }
+
+        // ---------------- 桌面图标视图标志（FFlags） ----------------
+        // FFlags 是「桌面」这个文件夹视图的一整块位标志，不是一个值一个开关。
+        // 改单个开关必须读-改-写：整块覆盖会顺手把用户的排序方式、图标间距之类冲掉。
+        const string BAGS = "Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop";
+        const int FWF_AUTOARRANGE = 0x00000001;
+        const int FWF_SNAPTOGRID = 0x00000004;
+
+        /// <summary>FFlags 完全不存在时的基底值（桌面 + 搜索文件夹 + 全行选中 +
+        /// 无客户区边框 + 自动排列 + 对齐网格）。只在值缺失时用，绝不覆盖已有值。</summary>
+        const int FFLAGS_DEFAULT = 1075839525;
+
+        /// <summary>只翻转 mask 指定的那一位，其余位原样保留。</summary>
+        internal static int ApplyFlag(int current, int mask, bool on)
+        {
+            return on ? (current | mask) : (current & ~mask);
+        }
+
+        static SettingItem Flag(string cat, string name, string desc, string path, int mask, bool restart)
+        {
+            SettingItem it = new SettingItem();
+            it.Category = cat;
+            it.Name = name;
+            it.Desc = desc;
+            it.NeedAdmin = false;
+            it.NeedExplorerRestart = restart;
+            it.RegPath = P("HKCU", path, "FFlags 的位 0x" + mask.ToString("X"));
+            it.Probe = delegate
+            {
+                int? v = ReadDword("HKCU", path, "FFlags");
+                return v.HasValue && (v.Value & mask) != 0;
+            };
+            it.Set = delegate(bool on)
+            {
+                int? cur = ReadDword("HKCU", path, "FFlags");
+                int v = cur.HasValue ? cur.Value : FFLAGS_DEFAULT;
+                int want = ApplyFlag(v, mask, on);
+                if (cur.HasValue && want == v) return;   // 没变化就别写，省得桌面无谓重绘
+                WriteDword("HKCU", path, "FFlags", want);
+            };
+            return it;
+        }
+
         // ---------------- 运行命令 ----------------
         static int RunCmd(string file, string args)
         {
@@ -236,12 +366,65 @@ namespace Win11Toolbox.SettingsKit
             return ReadDword("HKLM", "SYSTEM\\CurrentControlSet\\Services\\" + svc, "Start");
         }
 
+        // ---------------- 桌面图标显隐 ----------------
+        /// <summary>
+        /// 桌面图标显隐。值写在 <c>HKCU\...\HideDesktopIcons</c> 下的两个子键里，1 = 隐藏、0 = 显示。
+        ///
+        /// 老版本这 5 项写在 HKLM 下 —— 那是错的：系统只读 HKCU 那一份，
+        /// 勾了等于没勾（而且还要管理员权限才写得进去）。
+        ///
+        /// 两个子键都要写：NewStartPanel 管 Win11 开始菜单式桌面，ClassicStartMenu 管
+        /// 经典开始菜单式桌面。只写一个的话，在另一种桌面样式下会失效。
+        /// </summary>
+        static SettingItem DeskIcon(string name, string desc, string clsid)
+        {
+            string[] paths = new string[] {
+                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel",
+                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu"
+            };
+
+            SettingItem it = new SettingItem();
+            it.Category = "桌面";
+            it.Name = "在桌面显示「" + name + "」";
+            it.Desc = desc;
+            it.NeedAdmin = false;
+            // 桌面图标列表是资源管理器启动时枚举的，改完值当场看不到变化，
+            // 得重启资源管理器（页面上就有按钮）或按 F5 刷新桌面。标出来，别让人以为没生效。
+            it.NeedExplorerRestart = true;
+            it.RegPath = "HKCU\\...\\Explorer\\HideDesktopIcons\\{NewStartPanel, ClassicStartMenu} → "
+                       + clsid + " = 0（1 = 隐藏）";
+            it.Probe = delegate
+            {
+                // 两个子键里只要有一个还写着「隐藏」，就当作没显示出来
+                foreach (string p in paths)
+                    if (ReadDword("HKCU", p, clsid) == 1) return false;
+                return true;
+            };
+            it.Set = delegate(bool on)
+            {
+                foreach (string p in paths)
+                    WriteDword("HKCU", p, clsid, on ? 0 : 1);
+                RefreshIcons();   // 桌面图标不会自己刷新，得主动通知 shell
+            };
+            return it;
+        }
+
         // ---------------- 组装清单 ----------------
         public static List<SettingItem> Build()
         {
             List<SettingItem> L = new List<SettingItem>();
             const string ADV = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced";
             const string SI = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Icons";
+            const string SEARCH = "Software\\Microsoft\\Windows\\CurrentVersion\\Search";
+            const string NAMING = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\NamingTemplates";
+            const string START = "Software\\Microsoft\\Windows\\CurrentVersion\\Start";
+            // 下面几个是「用户策略」和 Win11 自己挪走的键，全在 HKCU 下，不需要管理员
+            const string POL_EXPL = "Software\\Policies\\Microsoft\\Windows\\Explorer";
+            const string PUSH = "Software\\Microsoft\\Windows\\CurrentVersion\\PushNotifications";
+            const string NOTIF = "Software\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings";
+            const string QUIET = "Software\\Microsoft\\Windows\\CurrentVersion\\QuietHours";
+            const string CDM = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager";
+            const string UPE = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\UserProfileEngagement";
 
             // ========== 一、资源管理器与文件夹 ==========
             L.Add(Dword("资源管理器", "显示文件扩展名", "文件名后面显示 .txt / .jpg 这类扩展名，改格式时更方便。",
@@ -258,54 +441,30 @@ namespace Win11Toolbox.SettingsKit
                 "HKCU", ADV, "ShowFrequent", 1, 0, false, false));
             L.Add(Dword("资源管理器", "每个文件夹用独立窗口进程打开", "一个窗口崩溃不会连带其他窗口（略微多占内存）。",
                 "HKCU", ADV, "SeparateProcess", 1, 0, false, false));
+            L.Add(Dword("资源管理器", "默认打开「此电脑」而不是「快速访问」", "打开资源管理器直接进「此电脑」，跳过最近文件列表。",
+                "HKCU", ADV, "LaunchTo", 1, -1, false, false));
 
-            // ========== 二、右键菜单与桌面图标 ==========
+            // ========== 二、右键菜单 ==========
             L.Add(KeyOn("右键菜单", "使用 Windows 10 经典右键菜单", "恢复「更多选项」那种完整右键菜单（Win11 默认是折叠的）。",
                 "HKCU", "Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\\InprocServer32", false, true));
             L.Add(Cmd("右键菜单", "去掉快捷方式小箭头", "桌面快捷方式左下角不再显示小箭头（改图标实现，可随时恢复）。",
                 delegate
                 {
-                    try
-                    {
-                        RegistryKey k = Registry.CurrentUser.OpenSubKey(SI, false);
-                        if (k == null) return false;
-                        object v = k.GetValue("29", null);
-                        k.Close();
-                        return v != null;
-                    }
-                    catch { return false; }
+                    string v = ReadString("HKCU", SI, "29");
+                    return v != null && v.Length > 0;
                 },
                 delegate(bool on)
                 {
-                    if (on)
-                    {
-                        WriteExpandString("HKCU", SI, "29", "%systemroot%\\system32\\imageres.dll,197");
-                        WriteExpandString("HKCU", SI, "77", "%systemroot%\\system32\\imageres.dll,197");
-                    }
-                    else
-                    {
-                        DeleteValue("HKCU", SI, "29");
-                        DeleteValue("HKCU", SI, "77");
-                    }
-                }, false, true, "HKCU\\...\\Explorer\\Shell Icons → 29 / 77 = imageres.dll,197"));
+                    // 只动 29（箭头）。以前这里连 77（UAC 盾牌）一起写，
+                    // 结果是勾了「去箭头」顺手把盾牌也去了 —— 两件事现在分开了。
+                    if (on) WriteExpandString("HKCU", SI, "29", "%systemroot%\\system32\\imageres.dll,197");
+                    else DeleteValue("HKCU", SI, "29");
+                    RefreshIcons();
+                }, false, true, "HKCU\\...\\Explorer\\Shell Icons → 29 = imageres.dll,197"));
 
-            string[] deskIcons = new string[] {
-                "{20D04FE0-3AEA-1069-A2D8-08002B30309D}|此电脑",
-                "{645FF040-5081-101B-9F08-00AA002F954E}|回收站",
-                "{59031a47-3f72-44a7-89c5-5595fe6b30ee}|用户的文件",
-                "{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}|网络",
-                "{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}|控制面板"
-            };
-            string HDK = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel";
-            foreach (string di in deskIcons)
-            {
-                string[] parts = di.Split('|');
-                string clsid = parts[0], cn = parts[1];
-                L.Add(Dword("右键菜单", "在桌面显示「" + cn + "」", "Win11 默认隐藏部分桌面图标，勾选后把它显示出来。",
-                    "HKLM", HDK, clsid, 0, 1, true, false));
-            }
+            // 桌面图标显隐挪到「桌面」分类，并改写到 HKCU（原来写 HKLM，系统不读，等于没生效）
 
-            // ========== 三、任务栏与开始菜单 ==========
+            // ========== 三、任务栏 ==========
             L.Add(Cmd("任务栏", "自动隐藏任务栏", "鼠标不在任务栏上时任务栏自动收起，多出一行屏幕空间。",
                 delegate
                 {
@@ -337,6 +496,25 @@ namespace Win11Toolbox.SettingsKit
                     finally { k.Close(); }
                 }, false, true, "HKCU\\...\\Explorer\\StuckRects3 → Settings[8] = 3 / 2（实测语义）"));
 
+            L.Add(Dword("任务栏", "任务栏图标靠左", "Win11 默认居中，勾选后回到 Win10 那样靠左排列。",
+                "HKCU", ADV, "TaskbarAl", 0, -1, false, true));
+            L.Add(Multi("任务栏", "任务栏按钮从不合并", "像 Win10 那样每个窗口单独占一格、显示窗口标题，不再叠成一堆。",
+                "HKCU\\...\\Explorer\\Advanced → TaskbarGlomLevel / MMTaskbarGlomLevel = 2（0 = 始终合并）",
+                new (string Root, string Path, string Value, int On)[] {
+                    ("HKCU", ADV, "TaskbarGlomLevel", 2),
+                    ("HKCU", ADV, "MMTaskbarGlomLevel", 2),
+                }, false, true));
+            L.Add(Multi("任务栏", "隐藏任务栏搜索框", "任务栏上不再显示搜索框；搜索本身还在，按 Win 键或 Win+S 照样能搜。",
+                "HKCU\\...\\CurrentVersion\\Search → SearchboxTaskbarMode = 0",
+                new (string Root, string Path, string Value, int On)[] {
+                    ("HKCU", SEARCH, "SearchboxTaskbarMode", 0),
+                    ("HKCU", SEARCH, "SearchboxTaskbarModeCache", 1),
+                }, false, true));
+            L.Add(Dword("任务栏", "隐藏任务栏「聊天」按钮", "去掉任务栏上的 Teams 聊天入口。",
+                "HKCU", ADV, "TaskbarMn", 0, -1, false, true));
+            L.Add(Dword("任务栏", "隐藏托盘上的通知铃铛", "任务栏右下角不再显示通知铃铛图标。",
+                "HKCU", ADV, "ShowNotificationIcon", 0, -1, false, true));
+
             L.Add(Dword("任务栏", "任务栏时钟显示秒", "时钟精确到秒（会略微多占一点资源，需重启资源管理器）。",
                 "HKCU", ADV, "ShowSecondsInSystemClock", 1, 0, false, true));
             L.Add(Dword("任务栏", "显示任务视图按钮", "任务栏左侧显示「任务视图」（多桌面）按钮。",
@@ -348,7 +526,91 @@ namespace Win11Toolbox.SettingsKit
             L.Add(Dword("任务栏", "关闭锁屏动态内容（Windows 聚焦）", "锁屏不再轮播图片资讯，改为静态。",
                 "HKLM", "SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search", "EnableDynamicContentInWSB", 0, -1, true, false));
 
-            // ========== 四、系统性能与系统服务 ==========
+            // ========== 四、桌面 ==========
+            L.Add(DeskIcon("此电脑", "在桌面上显示「此电脑」图标。", "{20D04FE0-3AEA-1069-A2D8-08002B30309D}"));
+            L.Add(DeskIcon("回收站", "在桌面上显示「回收站」图标。", "{645FF040-5081-101B-9F08-00AA002F954E}"));
+            L.Add(DeskIcon("用户的文件", "在桌面上显示当前用户的个人文件夹。", "{59031a47-3f72-44a7-89c5-5595fe6b30ee}"));
+            L.Add(DeskIcon("网络", "在桌面上显示「网络」图标。", "{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}"));
+            L.Add(DeskIcon("控制面板", "在桌面上显示「控制面板」图标。", "{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}"));
+
+            L.Add(Flag("桌面", "自动排列图标", "桌面图标按顺序自动排好，就不能再自由拖到任意位置了。",
+                BAGS, FWF_AUTOARRANGE, true));
+            L.Add(Flag("桌面", "图标对齐到网格", "拖动图标时自动吸附到网格线（一般配合「自动排列」一起用）。",
+                BAGS, FWF_SNAPTOGRID, true));
+
+            // 这里原本还想加「桌面图标按名称排序」，写 HKCU\...\Explorer\Advanced\Sort = Name。
+            // 查不到任何可靠依据，而且 Bags\1\Desktop\Sort 是 REG_BINARY 的视图状态块，
+            // 跟这个字符串值不是一回事 —— 大概率是「写了没人读」的安慰剂。
+            // 右键菜单里点两下就能排序，不值得为它留一个可能永远返回「已开启」的假开关。
+
+            L.Add(Cmd("桌面", "去掉 UAC 盾牌角标", "快捷方式右下角不再画蓝黄盾牌。只是不画图标，真正的提权提示照旧会弹。",
+                delegate
+                {
+                    string v = ReadString("HKCU", SI, "77");
+                    return v != null && v.Length > 0;
+                },
+                delegate(bool on)
+                {
+                    if (on) WriteExpandString("HKCU", SI, "77", "%systemroot%\\system32\\imageres.dll,197");
+                    else DeleteValue("HKCU", SI, "77");
+                    RefreshIcons();
+                }, false, true, "HKCU\\...\\Explorer\\Shell Icons → 77 = imageres.dll,197"));
+
+            L.Add(Str("桌面", "新建快捷方式不带「 - 快捷方式」后缀", "新建的快捷方式直接叫原名，不再自动加后缀。",
+                "HKCU", NAMING, "ShortcutNameTemplate", "%s.lnk", false, false));
+
+            // ========== 五、通知 ==========
+            // 这四项系统里都散在好几个不同的键下，用 Multi 一次写全，
+            // 免得出现「关了一半」的状态。
+            L.Add(Multi("通知", "关闭通知中心", "任务栏的通知中心（Win+N）不再收集通知。",
+                "HKCU\\...\\Policies\\Microsoft\\Windows\\Explorer → DisableNotificationCenter = 1",
+                new (string Root, string Path, string Value, int On)[] {
+                    ("HKCU", POL_EXPL, "DisableNotificationCenter", 1),
+                    ("HKCU", PUSH, "ToastEnabled", 0),
+                }, false, true));
+
+            L.Add(Multi("通知", "关闭所有通知弹窗", "任何应用都不再在右下角弹横幅。",
+                "HKCU\\...\\Notifications\\Settings → NOC_GLOBAL_SETTING_TOASTS_ENABLED = 0",
+                new (string Root, string Path, string Value, int On)[] {
+                    ("HKCU", NOTIF, "NOC_GLOBAL_SETTING_TOASTS_ENABLED", 0),
+                    ("HKCU", PUSH, "NoCloudApplicationNotification", 1),
+                }, false, false));
+
+            L.Add(Dword("通知", "关闭专注助手（免打扰）", "不再按时段自动进入免打扰，通知该来就来。",
+                "HKCU", QUIET, "QuietHoursEnabled", 0, -1, false, false));
+
+            L.Add(Multi("通知", "关闭消费级建议 / 锁屏广告", "锁屏和开始菜单不再推广告、不偷偷装「推荐」应用、不弹软着陆引导。",
+                "HKCU\\...\\ContentDeliveryManager（11 个值）+ UserProfileEngagement",
+                new (string Root, string Path, string Value, int On)[] {
+                    ("HKCU", CDM, "SubscribedContent-338387Enabled", 0),
+                    ("HKCU", CDM, "SubscribedContent-338388Enabled", 0),
+                    ("HKCU", CDM, "SubscribedContent-338389Enabled", 0),
+                    ("HKCU", CDM, "SubscribedContent-353694Enabled", 0),
+                    ("HKCU", CDM, "SubscribedContent-353696Enabled", 0),
+                    ("HKCU", CDM, "SubscribedContent-310093Enabled", 0),
+                    ("HKCU", CDM, "RotatingLockScreenEnabled", 0),
+                    ("HKCU", CDM, "RotatingLockScreenOverlayEnabled", 0),
+                    ("HKCU", CDM, "SoftLandingEnabled", 0),
+                    ("HKCU", CDM, "SystemPaneSuggestionsEnabled", 0),
+                    ("HKCU", CDM, "SilentInstalledAppsEnabled", 0),
+                    ("HKCU", UPE, "ScoobeSystemSettingEnabled", 0),
+                }, false, false));
+
+            // ========== 六、开始菜单 ==========
+            L.Add(Multi("开始菜单", "关闭开始菜单「推荐」区内容", "「推荐」区域不再显示最近添加的应用、常用应用和各类建议。",
+                "HKCU\\...\\Explorer\\Advanced → Start_IrisRecommendations / Start_AccountNotifications = 0",
+                new (string Root, string Path, string Value, int On)[] {
+                    ("HKCU", ADV, "Start_IrisRecommendations", 0),
+                    ("HKCU", ADV, "Start_AccountNotifications", 0),
+                }, false, true));
+
+            L.Add(Dword("开始菜单", "不显示最近打开的文件", "开始菜单、「文件资源管理器」的最新文件、跳转列表都不再记录文件。",
+                "HKCU", ADV, "Start_TrackDocs", 0, -1, false, true));
+
+            L.Add(Dword("开始菜单", "关闭「最近添加的应用」列表", "开始菜单不再列出最近装过的应用。",
+                "HKCU", START, "ShowRecentList", 0, -1, false, true));
+
+            // ========== 七、系统性能与系统服务 ==========
             L.Add(Cmd("系统性能", "关闭 SysMain 服务（原 Superfetch）", "减少内存占用与磁盘预读；机械硬盘用户不建议关。",
                 delegate { int? s = ServiceStart("SysMain"); return s.HasValue && s.Value == 4; },
                 delegate(bool on)
@@ -403,7 +665,7 @@ namespace Win11Toolbox.SettingsKit
                 }, true, false, "MMAgent 内存压缩开关",
                 "关掉后内存吃紧时系统不再压缩内存页，物理内存占用会上升。内存小于 16 GB 的机器不建议关。确认关闭吗？"));
 
-            // ========== 五、Windows 更新 ==========
+            // ========== 八、Windows 更新 ==========
             L.Add(Cmd("Windows 更新", "暂停 Windows 更新（到 2042-07-07）", "功能更新和质量更新都暂停，随时可取消恢复。",
                 delegate
                 {
@@ -450,7 +712,7 @@ namespace Win11Toolbox.SettingsKit
             L.Add(Dword("Windows 更新", "更新时排除驱动程序", "质量更新不再夹带驱动，避免显卡 / 声卡驱动被顶掉。",
                 "HKLM", "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate", "ExcludeWUDriversInQualityUpdate", 1, 0, true, false));
 
-            // ========== 六、隐私与搜索 ==========
+            // ========== 九、隐私与搜索 ==========
             L.Add(Dword("隐私", "关闭广告 ID", "系统不再生成跨应用广告标识符。",
                 "HKCU", "Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo", "Enabled", 0, 1, false, false));
             L.Add(Cmd("隐私", "关闭输入个性化（键入与手写）", "不收集键入和手写数据用于改进输入法。",
@@ -547,6 +809,47 @@ namespace Win11Toolbox.SettingsKit
         }
 
         // ---------------- 一次性动作 ----------------
+        /// <summary>
+        /// 写入原语自检：在给定的临时键下把 Dword / String / 删除走一遍。
+        ///
+        /// 这几条是全部 57 个设置项的公共出口，只要它们是对的，
+        /// 单个开关出问题就只剩「路径写错」一种可能，排查面小得多。
+        /// </summary>
+        /// <param name="path">临时键路径，调用方负责事后再删掉。</param>
+        /// <param name="report">(是否通过, 说明)。</param>
+        internal static void SelfTestRegistry(string path, Action<bool, string> report)
+        {
+            WriteDword("HKCU", path, "dw", 0);
+            report(ReadDword("HKCU", path, "dw") == 0, "Dword 写 0 再读回");
+
+            WriteDword("HKCU", path, "dw", -1);
+            report(ReadDword("HKCU", path, "dw") == -1, "Dword 写 -1 能原样读回");
+
+            DeleteValue("HKCU", path, "dw");
+            report(ReadDword("HKCU", path, "dw") == null, "Dword 删除后读到 null");
+
+            // 关键：%s.lnk 必须原样存下来。写成 REG_EXPAND_SZ 的话系统会试着展开，
+            // 这个模板就废了 —— 而「新建快捷方式不带后缀」正是靠它。
+            WriteString("HKCU", path, "sz", "%s.lnk");
+            report(ReadString("HKCU", path, "sz") == "%s.lnk", "String 原样存回 \"%s.lnk\"");
+
+            RegistryValueKind? kind = null;
+            try
+            {
+                RegistryKey k = Reg.Open("HKCU", path, false);
+                if (k != null)
+                {
+                    try { kind = k.GetValueKind("sz"); }
+                    finally { k.Close(); }
+                }
+            }
+            catch { }
+            report(kind == RegistryValueKind.String, "String 写的是 REG_SZ（不是 REG_EXPAND_SZ）");
+
+            DeleteValue("HKCU", path, "sz");
+            report(ReadString("HKCU", path, "sz") == null, "String 删除后读到 null");
+        }
+
         public static void EmptyRecycleBin()
         {
             try { SHEmptyRecycleBin(IntPtr.Zero, null, 0x7); }

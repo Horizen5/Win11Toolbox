@@ -13,6 +13,7 @@ publish*/
 /glyphsheet.png
 /ringsheet.png
 /shots_cs/
+/easydump.txt
 /*.log
 
 # 早期用 Python + PySide6 写的截图辅助脚本，已内置成 --navshot / --shot

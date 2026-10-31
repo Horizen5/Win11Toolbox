@@ -49,7 +49,7 @@ Win11Toolbox.exe --selftest          # 自检：逐页切换 + 验证监控恢�
 Win11Toolbox.exe --probe             # 读一遍托盘清单 + 构造三个页面，结果写 probe.log
 Win11Toolbox.exe --writetest         # 托盘开关写 1 → 读回 → 写 0 → 读回，结果写 writetest.log
 Win11Toolbox.exe --shot tray out.png # 把某个页面离屏渲染成 PNG（窗口在屏幕外、不激活）
-Win11Toolbox.exe --easytest          # 导出 40 项系统设置的探测结果，写 easytest.log
+Win11Toolbox.exe --easytest [a.log]  # 导出 57 项系统设置的探测结果 + 21 条断言，退出码 0/1，默认写 easytest.log
 Win11Toolbox.exe --scrolltest tray   # 离屏滚一遍并计时（加 --all 测全部项），结果写 scrolltest.log
 Win11Toolbox.exe --navshot tray a.png # 用真实 NavigationView 离屏渲染（含左侧导航栏），结果写 a.png.log
 Win11Toolbox.exe --navdump home a.txt # 打印焦点广告层 + 左侧导航视觉树（查焦点框、边框从哪来）
@@ -176,7 +176,7 @@ Win11ToolboxCS/
 │  ├─ Tray/
 │  │  └─ TrayCore.cs             托盘图标清单（注册表）+ 运行状态
 │  └─ SettingsKit/
-│     └─ EasySettingsCore.cs     40 项安全系统开关的读写
+│     └─ EasySettingsCore.cs     57 项安全系统开关的读写
 └─ Pages/                        主页 / 硬件信息 / 风扇控制 / 系统工具 / 实用工具 / 系统优化 / 设置 / 关于
                                  + 右键菜单 / 托盘图标 / 轻松设置
 ```
@@ -195,7 +195,7 @@ Win11ToolboxCS/
 | 关于 | 版本、功能与参考项目 |
 | 右键菜单 | 124 项右键菜单扫描（含 12 项文件右键菜单），勾选后备份并禁用、随时恢复，可导出记录 |
 | 托盘图标 | 36 项「其他系统托盘图标」清单，固定到任务栏 / 收进溢出区，支持撤销 |
-| 轻松设置 | 40 项安全系统开关（扩展名、隐藏文件、经典右键菜单等），带需管理员 / 需重启角标；底部「电源计划」可在平衡 / 高性能 / 节能 / 卓越性能之间一键切换 |
+| 轻松设置 | 57 项安全系统开关，9 个分类（资源管理器 / 右键菜单 / 任务栏 / 桌面 / 通知 / 开始菜单 / 系统性能 / Windows 更新 / 隐私），带需管理员 / 需重启角标；底部「电源计划」可在平衡 / 高性能 / 节能 / 卓越性能之间一键切换 |
 
 ## 三个移植模块的实现要点
 
@@ -217,7 +217,7 @@ HKCU\Control Panel\NotifyIconSettings\<哈希子键>
 现在读一份清单是毫秒级的，进页面就自动列出，改完立刻生效。
 「是否在运行」用进程列表（exe 全路径 + 进程名）判断，不再去点开任务栏溢出区。
 
-**轻松设置**：40 项都是可逆的 `HKCU/HKLM` 值或 `bcdedit`/`powercfg` 类调用，勾选即写、取消即还原，
+**轻松设置**：57 项都是可逆的 `HKCU/HKLM` 值或 `bcdedit`/`powercfg` 类调用，勾选即写、取消即还原，
 高危项（会关掉安全功能或需要重启才生效的）已在移植时剔除或单独标角标。
 页面底部另有一张「电源计划」卡：进页面时在后台线程跑一次 `powercfg /list` 列出全部计划
 （平衡 / 高性能 / 节能 / 卓越性能），选中后 `powercfg /setactive` 立即切换 —— 就是控制面板
@@ -229,6 +229,49 @@ HKCU\Control Panel\NotifyIconSettings\<哈希子键>
 > `System.Text.Encoding.CodePages` 包并在 `ShellTools` 静态构造里注册
 > `CodePagesEncodingProvider.Instance`，再按 `CultureInfo.CurrentCulture.TextInfo.OEMCodePage`
 > 取编码，中文计划名才正常。`--powerdump` 就是专门验证这条链路的。
+
+## 轻松设置扩到 57 项时踩到的四个坑
+
+这批开关大部分是从 [Win11-Tweaks](https://github.com/Horizen5/Win11-Tweaks) 的 `g_ops[]` 表搬过来的
+（39 个开关 → 51 个注册表值）。搬的过程里发现原实现和这边的旧代码各有几处不对，都记在这里：
+
+**1. 桌面图标显隐写在 HKLM 是无效的。**
+`HideDesktopIcons` 系统只读 `HKCU` 那一份，原来这 5 项写的是
+`HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel`，
+所以界面上勾得上、桌面上没反应，而且还要管理员权限才写得进去。现在改成 `HKCU`，
+并且**两个子键都写**：`NewStartPanel` 管 Win11 开始菜单式桌面，`ClassicStartMenu` 管经典开始菜单式桌面，
+只写一个的话在另一种桌面样式下会失效。老版本留在 HKLM 下的那些值是死的，不影响使用，想清掉得手动删。
+
+**2. `Shell Icons\29` 和 `77` 是两件事。**
+`29` = 快捷方式左下角的小箭头，`77` = UAC 盾牌角标。旧代码「去掉快捷方式小箭头」把两个一起写，
+等于勾一项顺手改了另一项。现在拆成两项各管各的。
+
+**3. `FFlags` 是位标志，不能整块覆盖。**
+桌面图标的「自动排列」「对齐到网格」共用 `HKCU\Software\Microsoft\Windows\Shell\Bags\1\Desktop\FFlags`
+这一个 DWORD，同一位段里还塞着排序方式、图标间距等用户自己的偏好。整块写成
+`1075839525` 会把它们一起冲掉。所以只能读-改-写、只翻目标位（`ApplyFlag`），
+而且值不存在时才拿 1075839525 当基底。这段位运算单独在 `--easytest` 里钉了 5 条断言。
+
+**4. 搜索框不在 `Explorer\Advanced` 下。**
+`SearchboxTaskbarMode` / `SearchboxTaskbarModeCache` 在
+`HKCU\Software\Microsoft\Windows\CurrentVersion\Search`。顺手还确认了一个反例：
+`Explorer\Advanced\Sort = "Name"` 这个「桌面按名称排序」的写法查不到任何依据
+（真正的 `Bags\1\Desktop\Sort` 是 `REG_BINARY` 的视图状态块，跟它不是一个东西），
+大概率是「写了没人读」的安慰剂，所以**没有**收进工具箱 —— 宁缺勿假。
+
+另外这批开关里有几个是「一组值共用一个开关」（关通知中心 = `DisableNotificationCenter`
++ `ToastEnabled` 两条一起写），用 `Multi(...)` 工厂统一处理：全部满足才算已开启，
+勾选全写、取消全删，避免出现「只关了一半」的状态。
+
+### `--easytest` 曾经是个假阳性
+
+`--easytest` 被单实例锁挡在外面：用户开着工具箱时跑它，`SingleInstance.TryAcquire()` 返回 false，
+`OnStartup` 直接 `Shutdown()` —— **退出码 0、日志没写，看起来像通过，其实一行都没跑**。
+`--selftest` 早就因为踩过同一个坑而豁免了实例锁（代码里那段注释就是当时写的），
+`--easytest` 后来加上时漏了。现在两者都在 `isSelfTest` 白名单里。
+
+> 教训：任何「跑完写个日志、退出码表示成败」的自检，都要先确认它**真的跑到了**。
+> 顺手验证的办法是故意让它失败一次（`Check(false, ...)`），确认退出码是 1 而不是 0。
 
 **工具磁贴的图标**：一开始用 `ShellIcon.FromPath` 从工具 exe 里抠图标，结果注册表编辑器、事件查看器、
 设备管理器这些 `.msc` 全都指向同一个 `mmc.exe`，抠出来不是重复就是空白、甚至不相干。后来改成直接写
@@ -562,7 +605,7 @@ csproj 里 `<Version>1.1.0</Version>`，`Services/AppInfo.cs` 读程序集的
 
 ## 滚动性能
 
-列表页（右键菜单 124 项 / 托盘 36 项 / 轻松设置 40 项）最初是 `ItemsControl` 套 `ScrollViewer`，
+列表页（右键菜单 124 项 / 托盘 36 项 / 轻松设置 57 项）最初是 `ItemsControl` 套 `ScrollViewer`，
 **没有虚拟化**——所有行一次性实例化，滚动时每帧都要重画整棵树。现在统一换成虚拟化的 `ListBox`
 （`VirtualizingStackPanel` + `VirtualizationMode=Recycling` + `ScrollUnit=Pixel`，容器模板只剩一个
 `ContentPresenter`，不带任何选中态样式）。
@@ -574,7 +617,7 @@ csproj 里 `<Version>1.1.0</Version>`，`Services/AppInfo.cs` 读程序集的
 | 右键菜单 | 31（默认筛选） | 17 | 11.4 ms | 10.7 ms |
 | 右键菜单 | 124（全部项） | 17 | 约 40 ms（按线性推算） | 13.1 ms |
 | 托盘图标 | 36 | 19 | 11.6 ms | 11.0 ms |
-| 轻松设置 | 40 | 11 | 16.1 ms | 9.5 ms |
+| 轻松设置 | 57 | 11 | 16.1 ms | 9.5 ms |
 
 顺带修的两处：
 - 行的状态色不能在属性 getter 里 `new SolidColorBrush`：滚动时每帧都产生新画刷，绑定认为值变了再重画一次。
@@ -704,16 +747,16 @@ hardware       文本  46 个，偏暗 0 个
 
 ## 首屏不能白等：轻松设置页的两段式载入
 
-现象：点开「轻松设置」，先是几秒空白，然后 40 行一下子全出来。
+现象：点开「轻松设置」，先是几秒空白，然后几十行一下子全出来。
 
 原因在 `LoadAsync()`：原来是
 
 ```csharp
-var (items, states) = await Task.Run(() => { 全部 40 项逐个 Probe() });   // 几秒
+var (items, states) = await Task.Run(() => { 全部项逐个 Probe() });   // 几秒
 ... 然后才第一次往 _rows 里塞行
 ```
 
-`Probe()` 要读注册表，有的项还要跑 `powercfg`，40 项串起来就是好几秒。
+`Probe()` 要读注册表，有的项还要跑 `powercfg`，几十项串起来就是好几秒。
 这几秒里 `_rows` 是空的，用户看到的就是一个纯白的空列表。
 
 改成两段：
@@ -725,7 +768,7 @@ var (items, states) = await Task.Run(() => { 全部 40 项逐个 Probe() });   /
    已经自己动过的行（`StateText != "…"`）不覆盖。
 
 验证办法：`--shot easy out.png --pump 300` —— 只等 300ms 就渲染，
-能看到 40 行名字已经在位（改之前这里是全白的）。
+能看到行名字已经在位（改之前这里是全白的）。
 
 ## 切主题时闪一下：真凶是 UI 线程被卡了 4.3 秒
 

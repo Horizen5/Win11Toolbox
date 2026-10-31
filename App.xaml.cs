@@ -339,11 +339,12 @@ public partial class App : Application
         // 两个实例同时写 disabled.tsv / backups 会把「已禁用」记录和备份搞乱。
         // 上面的诊断模式都在这之前 return 了，所以可以和应用同时开。
         //
-        // --selftest 例外：它要建真正的 MainWindow，不能像别的诊断那样提前 return；
+        // --selftest / --easytest 例外：它们要建真正的 MainWindow，不能像别的诊断那样提前 return；
         // 但也不能被单实例挡住 —— 否则用户开着应用时跑自检会「静默退出码 0、却没写日志」，
-        // 看起来像通过、其实是没跑（这个假阳性坑过一次）。所以让它跳过实例锁。
+        // 看起来像通过、其实是没跑（这个假阳性坑过一次，--easytest 后来也踩了同一个坑）。
         bool isSelfTest = Array.IndexOf(Environment.GetCommandLineArgs(), "--selftest") >= 0
-                       || Array.IndexOf(Environment.GetCommandLineArgs(), "--uistall") >= 0;
+                       || Array.IndexOf(Environment.GetCommandLineArgs(), "--uistall") >= 0
+                       || Array.IndexOf(Environment.GetCommandLineArgs(), "--easytest") >= 0;
         if (!isSelfTest)
         {
             if (!Services.SingleInstance.TryAcquire())

@@ -306,33 +306,160 @@ public partial class MainWindow : FluentWindow
         return tcs.Task;
     }
 
-    /// <summary>--easytest：把 40 项设置的探测结果导出来，结果写 easytest.log。</summary>
+    /// <summary>
+    /// <c>--easytest [log路径]</c>：把「轻松设置」全部设置项连同当前探测结果导出来，并跑一组结构断言。
+    ///
+    /// <para>
+    /// 这类开关最怕的是<b>静默失效</b>：路径写错、值类型写错、或者写进了系统根本不读的
+    /// hive —— 界面照样能勾上，实际一点反应没有，也不抛异常。「在桌面显示此电脑」那 5 项
+    /// 原来就写在 HKLM 下（系统只读 HKCU），等于从来没生效过，而且没人会发现。
+    /// </para>
+    /// <para>
+    /// 所以这里除了逐项探测，还要查：有没有重名、有没有缺 Probe、HKCU 的项是不是被错标成
+    /// 「需管理员」、FFlags 的位运算对不对、以及 Dword / String 两条写入原语是不是真的写进去了。
+    /// 任何一条不过，退出码就是 1。
+    /// </para>
+    /// </summary>
     private void RunEasyTest()
     {
         var lines = new List<string>();
+        int pass = 0, fail = 0;
+
+        void Check(bool ok, string desc)
+        {
+            if (ok) pass++; else fail++;
+            lines.Add($"{(ok ? "OK  " : "FAIL")} {desc}");
+        }
+
         try
         {
             var items = Win11Toolbox.SettingsKit.EasySettingsData.Build();
             lines.Add($"设置项：{items.Count}");
             lines.Add("");
+
+            // ---------------- 结构 ----------------
+            lines.Add("== 结构 ==");
+            Check(items.Count > 0, "清单非空");
+
+            var seen = new HashSet<string>();
+            var dup = new List<string>();
+            foreach (var it in items)
+                if (!seen.Add(it.Category + " / " + it.Name)) dup.Add(it.Category + " / " + it.Name);
+            Check(dup.Count == 0, "没有重名项" + (dup.Count > 0 ? "：" + string.Join("，", dup) : ""));
+
+            Check(items.All(i => i.Probe != null), "每项都有 Probe");
+            Check(items.All(i => i.Set != null), "每项都有 Set");
+            Check(items.All(i => i.Category.Length > 0), "每项都有分类");
+            Check(items.All(i => i.Name.Length > 0), "每项都有名称");
+            Check(items.All(i => i.Desc.Length > 0), "每项都有说明");
+            Check(items.All(i => i.RegPath.Length > 0), "每项都有注册表路径（否则排查无从下手）");
+
+            // HKCU 的项标成「需管理员」= 标错了，用户会白提权一次还找不到原因
+            var wrongAdmin = items.Where(i => i.NeedAdmin
+                && i.RegPath.StartsWith("HKCU", StringComparison.OrdinalIgnoreCase)).ToList();
+            Check(wrongAdmin.Count == 0, "没有把 HKCU 项错标成需管理员"
+                + (wrongAdmin.Count > 0 ? "：" + string.Join("，", wrongAdmin.Select(i => i.Name)) : ""));
+
+            // ---------------- FFlags 位运算 ----------------
+            // 桌面图标的「自动排列 / 对齐网格」共用一个 FFlags，整块覆盖会冲掉用户的
+            // 排序方式和图标间距，所以只能翻一位。这段是唯一手算的地方，必须钉住。
+            lines.Add("");
+            lines.Add("== FFlags 位运算 ==");
+            const int FFlagsBase = 1075839525;   // 出厂值：自动排列(0x1) + 对齐网格(0x4) 都开着
+            Check(Win11Toolbox.SettingsKit.EasySettingsData.ApplyFlag(FFlagsBase, 0x1, false) == 1075839524,
+                "关自动排列 → 1075839524");
+            Check(Win11Toolbox.SettingsKit.EasySettingsData.ApplyFlag(FFlagsBase, 0x4, false) == 1075839521,
+                "关对齐网格 → 1075839521");
+            Check(Win11Toolbox.SettingsKit.EasySettingsData.ApplyFlag(FFlagsBase, 0x1, true) == FFlagsBase,
+                "本来就开着，再开一次 → 不变");
+            Check(Win11Toolbox.SettingsKit.EasySettingsData.ApplyFlag(0, 0x1, true) == 0x1,
+                "从 0 开自动排列 → 0x1");
+            Check(Win11Toolbox.SettingsKit.EasySettingsData.ApplyFlag(
+                    Win11Toolbox.SettingsKit.EasySettingsData.ApplyFlag(FFlagsBase, 0x1, false), 0x1, true) == FFlagsBase,
+                "关掉再开回去 → 回到原值（其他位没被吃掉）");
+
+            // ---------------- 写入原语 ----------------
+            // 57 个开关最终都走 WriteDword / WriteString / DeleteValue 这三条，
+            // 在临时键里跑一遍，确认写进去的类型和读回来的值都对，跑完删干净。
+            lines.Add("");
+            lines.Add("== 写入原语 ==");
+            const string scratch = "Software\\Win11Toolbox\\selftest";
+            try
+            {
+                Win11Toolbox.SettingsKit.EasySettingsData.SelfTestRegistry(scratch,
+                    (ok, desc) => Check(ok, desc));
+            }
+            catch (Exception ex)
+            {
+                Check(false, "写入原语自检抛异常：" + ex.GetType().Name + " " + ex.Message);
+            }
+            finally
+            {
+                try
+                {
+                    Microsoft.Win32.Registry.CurrentUser
+                        .DeleteSubKeyTree("Software\\Win11Toolbox", false);
+                }
+                catch { }
+            }
+
+            // ---------------- 逐项探测 ----------------
+            lines.Add("");
+            lines.Add("== 逐项探测 ==");
+            int onCount = 0, probeError = 0;
+            string cat = "";
             foreach (var it in items)
             {
+                if (it.Category != cat)
+                {
+                    cat = it.Category;
+                    lines.Add("");
+                    lines.Add("[" + cat + "]");
+                }
+
                 string state;
-                try { state = it.Probe() ? "已开启" : "默认"; }
-                catch (Exception ex) { state = "探测失败:" + ex.Message; }
-                lines.Add($"[{it.Category}] {it.Name} = {state}"
-                          + (it.NeedAdmin ? "  (需管理员)" : "")
-                          + (it.NeedExplorerRestart ? "  (需重启资源管理器)" : ""));
+                string detail = "";
+                try
+                {
+                    if (it.Probe()) { state = "已开启"; onCount++; }
+                    else state = "默认";
+                }
+                catch (Exception ex)
+                {
+                    state = "探测失败";
+                    probeError++;
+                    detail = "  ← " + ex.GetType().Name + ": " + ex.Message;
+                }
+
+                lines.Add($"  {state,-4}  {it.Name}{detail}");
+                lines.Add($"        路径：{it.RegPath}");
+                if (it.NeedAdmin) lines.Add("        需管理员");
+                if (it.NeedExplorerRestart) lines.Add("        需重启资源管理器");
+                if (it.Danger) lines.Add("        谨慎项");
             }
+
+            Check(probeError == 0, "全部探测未抛异常");
+
+            lines.Add("");
+            lines.Add($"分类 {items.Select(i => i.Category).Distinct().Count()} 个，"
+                    + $"已开启 {onCount} 项，探测失败 {probeError} 项");
+            lines.Add($"结果：通过 {pass}，失败 {fail}");
         }
         catch (Exception ex)
         {
             lines.Add("FAIL " + ex);
+            fail++;
         }
 
-        try { File.WriteAllLines(Path.Combine(AppContext.BaseDirectory, "easytest.log"), lines); }
-        catch { }
-        Application.Current.Shutdown(lines.Any(l => l.StartsWith("FAIL")) ? 1 : 0);
+        // 允许 --easytest <路径> 指定输出位置，默认还是 exe 旁边的 easytest.log
+        string outPath = Path.Combine(AppContext.BaseDirectory, "easytest.log");
+        var argv = Environment.GetCommandLineArgs();
+        int idx = Array.IndexOf(argv, "--easytest");
+        if (idx >= 0 && idx + 1 < argv.Length && !argv[idx + 1].StartsWith("--", StringComparison.Ordinal))
+            outPath = argv[idx + 1];
+
+        try { File.WriteAllLines(outPath, lines); } catch { }
+        Application.Current.Shutdown(fail == 0 ? 0 : 1);
     }
 
     /// <summary>命令行 --page 参数，方便截图和调试。</summary>
