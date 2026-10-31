@@ -15,7 +15,7 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>Win11Toolbox-Simple</AssemblyName>
     <RootNamespace>Win11ToolboxSimple</RootNamespace>
-    <Version>1.1.4</Version>
+    <Version>1.1.5</Version>
     <AssemblyTitle>Win11 工具箱 · 简洁版</AssemblyTitle>
     <Product>Win11 工具箱 · 简洁版</Product>
     <ApplicationManifest>app.manifest</ApplicationManifest>

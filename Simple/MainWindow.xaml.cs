@@ -91,6 +91,15 @@ public partial class MainWindow : Window
 
         SettingList.ItemsSource = _view;
         Loaded += OnLoaded;
+
+        // --tab <0|1|2>：直接停在指定页签。
+        // WPF 不接收合成鼠标消息（PostMessage WM_LBUTTONDOWN 试过，没用），
+        // 想截另外两个页签的图只能从命令行指定，别指望脚本点得动。
+        string[] args = Environment.GetCommandLineArgs();
+        int i = Array.IndexOf(args, "--tab");
+        if (i >= 0 && i + 1 < args.Length && int.TryParse(args[i + 1], out int tab)
+            && tab >= 0 && tab < Tabs.Items.Count)
+            Tabs.SelectedIndex = tab;
     }
 
     // ------------------------------------------------------------------ 载入

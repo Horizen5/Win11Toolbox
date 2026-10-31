@@ -16,7 +16,7 @@
             </StatusBarItem>
         </StatusBar>
 
-        <TabControl Margin="6">
+        <TabControl x:Name="Tabs" Margin="6">
 
             <!-- ==================== 设置 ==================== -->
             <TabItem Header="  设置  ">
@@ -64,15 +64,34 @@
             <TabItem Header="  工具  ">
                 <DockPanel Margin="8">
                     <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" Foreground="#666"
-                               Text="双击一行即可运行。共 47 个系统自带工具。" />
+                               Text="双击即可运行。共 47 个系统自带工具。" />
+                    <!--
+                        横排铺开，像控制面板的图标视图：一行四个，47 项一屏能看到三十来个。
+                        原来是竖着一行一项、整宽排下去，一屏只放得下十一行，翻页翻得手酸。
+                    -->
                     <ListBox x:Name="ToolList" BorderThickness="1" MouseDoubleClick="ToolList_DoubleClick"
-                             VirtualizingPanel.ScrollUnit="Pixel">
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Width" Value="208" />
+                                <Setter Property="Margin" Value="2" />
+                                <Setter Property="Padding" Value="8,6" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel Margin="0,5">
-                                    <TextBlock Text="{Binding Name}" />
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                                     <TextBlock Text="{Binding Description}" Foreground="#666" FontSize="11"
-                                               Margin="0,2,0,0" />
+                                               TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                               MaxHeight="30" Margin="0,2,0,0" />
                                 </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
