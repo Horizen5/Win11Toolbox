@@ -385,10 +385,19 @@ public partial class EasySettingsPage : Page, IRefreshablePage
 
         _busy = true;
         StatusLine.Text = (want ? "正在应用 " : "正在恢复 ") + row.Name + "…";
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            var (text, ok, error) = await Task.Run<(string Text, bool Ok, string Error)>(() =>
+            // 前后各探一次，连同耗时一起写进操作日志。
+            // 这样「勾上了却没生效」再出现时，看一行日志就能分清是哪种情况：
+            //   关 → 关，30 ms  = 压根没写进去（权限 / 被拦）
+            //   关 → 开，420 ms = 写进去了，但外壳没刷新
+            //   关 → ？         = 探测本身抛异常（键读不到）
+            var (text, ok, error, before, after) = await Task.Run(() =>
             {
+                bool? before0 = null;
+                try { before0 = row.Model.Probe(); } catch { }
+
                 try
                 {
                     row.Model.Set(want);
@@ -397,20 +406,23 @@ public partial class EasySettingsPage : Page, IRefreshablePage
                     bool now = row.Model.Probe();
 
                     if (now == want)
-                        return (now ? "已开启" : "默认状态", true, "");
+                        return (now ? "已开启" : "默认状态", true, "", before0, (bool?)now);
 
                     // 想关但读回来还是开着：写进去了，只是要等资源管理器/重启才反映出来，
                     // 这种情况不该判失败，也不能把勾弹回去让用户以为没生效。
                     if (!want)
-                        return ("待重启生效", true, "");
+                        return ("待重启生效", true, "", before0, (bool?)now);
 
-                    return ("未生效", false, "写入后读回来仍是「默认状态」");
+                    return ("未生效", false, "写入后读回来仍是「默认状态」", before0, (bool?)now);
                 }
                 catch (Exception ex)
                 {
-                    return ("写入失败", false, ex.Message);
+                    return ("写入失败", false, ex.Message, before0, (bool?)null);
                 }
             });
+            sw.Stop();
+
+            static string Show(bool? v) => v == null ? "?" : (v.Value ? "开" : "关");
 
             row.Model.StateText = text;
             row.Model.StateOk = ok;
@@ -421,7 +433,8 @@ public partial class EasySettingsPage : Page, IRefreshablePage
 
             if (ok)
             {
-                Log((want ? "已应用 " : "已恢复默认 ") + row.Name + "（当前：" + text + "）"
+                Log((want ? "已应用 " : "已恢复默认 ") + row.Name
+                    + "（" + Show(before) + " → " + Show(after) + "，" + sw.ElapsedMilliseconds + " ms，当前：" + text + "）"
                     + (row.NeedExplorerRestart || text == "待重启生效" ? "　⟳ 需重启资源管理器后生效" : ""));
 
                 if (text == "待重启生效")
@@ -431,7 +444,8 @@ public partial class EasySettingsPage : Page, IRefreshablePage
             }
             else
             {
-                Log((want ? "应用 " : "恢复 ") + row.Name + " 失败：" + error);
+                Log((want ? "应用 " : "恢复 ") + row.Name + " 失败（" + Show(before) + " → " + Show(after)
+                    + "，" + sw.ElapsedMilliseconds + " ms）：" + error);
 
                 bool admin = RightMenuActions.IsAdmin();
                 string hint = !admin && row.NeedAdmin
