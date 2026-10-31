@@ -16,6 +16,13 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // 单文件发布下 WPF 的关闭遥测会 Assembly.Load("System.Diagnostics.Tracing, 10.0.0.0, …")，
+        // 这个程序集要是还没被加载过，解析就失败、抛 FileNotFoundException —— 而且是在
+        // Application.CriticalShutdown 里抛的，直接把关闭流程带崩：窗口没了、进程不退，
+        // 单实例锁一直攥着，用户之后再双击就完全没反应（2026-11-01 就是这么卡住的）。
+        // 这里先摸一下，保证它已经在加载器里，后面按全名 Load 才找得到。
+        _ = typeof(System.Diagnostics.Tracing.EventSource).Assembly;
+
         // 主题要先切，后面的离屏诊断（--navshot / --shot）也才能按 --theme 出图
         ApplyThemeFromArgs();
 

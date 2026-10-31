@@ -707,6 +707,50 @@ internal static class UiThread
 
 所有 `--probe` / `--shot` 这类诊断模式都在单实例判断**之前** return，所以可以和应用同时开着跑。
 
+#### 僵尸实例把锁攥住 → 双击完全没反应（2026-11-01 踩的）
+
+现象：用户双击桌面上的 exe，**什么都不发生**，反复点也没反应。
+
+排查过程（别再走一遍弯路）：
+
+1. 先看有没有实例在跑 —— `Get-Process -Name Win11Toolbox` **返回空**，
+   但这是错的：exe 叫 `Win11工具箱.exe`，进程名跟着文件名走，不叫 `Win11Toolbox`。
+   要么 `Get-CimInstance Win32_Process | Where CommandLine -like '*工具箱*'`，
+   要么按 PID 查。我一开始就被这个假空骗了一次。
+2. `OpenExisting('Local\Win11Toolbox.SingleInstance')` **能打开** → 锁还被人攥着。
+3. `instance.pid` 里的 PID 还活着，但 `MainWindowHandle == 0` —— **窗口没了，进程没退**。
+4. `%APPDATA%\Win11Toolbox\error.log` 里正好有一条 03:46:15 的记录：
+
+```
+System.IO.FileNotFoundException:
+File name: 'System.Diagnostics.Tracing, Version=10.0.0.0, …'
+   at MS.Internal.Telemetry.PresentationFramework.ControlsTraceLogger.LogUsedControlsDetails()
+   at System.Windows.Application.CriticalShutdown(Int32 exitCode)
+   at System.Windows.Window.UpdateWindowListsOnClose()
+```
+
+单文件发布下 WPF 的关闭遥测按全名 `Assembly.Load("System.Diagnostics.Tracing, 10.0.0.0")`，
+这个程序集要是还没被加载过就解析不到（它在包里，但不在「已加载」列表里）。异常抛在
+`CriticalShutdown` 里，等于**关不掉了**：窗口销毁、进程挂着、互斥体不撒手。
+之后每次双击都走「锁在别人手上 → 去唤窗口 → 窗口是 0 → 安静退出」。
+
+两处修：
+
+- `App.OnStartup` 开头 `_ = typeof(System.Diagnostics.Tracing.EventSource).Assembly;`
+  先把它摸进加载器，后面按全名 Load 才找得到。
+- `SingleInstance.TryAcquire` 改成三步兜底：能唤起就唤起 → 唤不起来等它 2 秒自己退
+  → 还不退就**结束这个没窗口的僵尸**、接管这把锁继续启动。
+  判据是 `EnumWindows` 找不找得到**可见顶层窗口**：找得到一律不杀（宁可少杀，
+  不能把用户正开着的窗口干掉），找不到才动手。
+
+顺带把 `new Mutex(true, name, out created)` 换成 `new Mutex(false, name) + WaitOne`：
+前者的 `created == false` 在「对象已存在但没人持有」时也会返回 false，白等一场；
+后者遇到崩溃留下的锁会抛 `AbandonedMutexException` —— 那正好是「锁归我了」的信号。
+
+验证：用 Python 造一个攥着锁、没有窗口的假僵尸，`instance.pid` 指向它，
+再启动应用 —— 5.0 秒内僵尸被结束、新实例建出窗口、`instance.pid` 更新成自己的 PID。
+改之前这条路径是「1.8 秒后退出码 0、什么都没有」。
+
 ### 记住上次的样子
 
 `%APPDATA%\Win11Toolbox\config.json`（和旧 Python 版同一个文件，键名改成 camelCase）：
