@@ -306,6 +306,8 @@ Win11ToolboxCS/
 3. `ToolCatalog.cs` 的图标部分用 `#if !SIMPLE` 圈起来 —— 那部分要 WPF-UI 的
    `SymbolRegular` 和图标字体，简洁版只要清单数据和启动逻辑。简洁版工程里
    `<DefineConstants>` 加了 `SIMPLE`。
+4. `StartupTrace.cs` 也链接进来了 —— 启动耗时的问题简洁版一样会犯（见下面
+   「简洁版打开后白屏好几秒」），排查时用同一套时间线省事。
 
 **主工程要把 `Simple/` 排除掉**：它在主工程目录里，默认的 `**/*.cs`、`**/*.xaml` 通配会
 把 `Simple/App.xaml` 一起吃进去，跟本工程的 `App.xaml` 抢 `ApplicationDefinition`。
@@ -315,6 +317,7 @@ Win11ToolboxCS/
 - 列表的 `ItemsSource` **不能重建**（`= null` 再赋值）。那样每应用一项就把滚动位置打回顶部，
   用户滚到中间点一下，列表跳回最上面。改成 `ObservableCollection` 原地增删。
 - 状态文字要**在载入时一起初始化**。只设 `IsOn` 不设 `StateText`，界面上就是一列「…」。
+  注意：载入改成两段式之后，「…」正好用来表示「还没探测」，用户点过的行据此判断不被覆盖。
 
 > 排查这个 exe 的时候又栽在同一个坑里：**进程名跟着文件名走**。
 > `Get-Process -Name Win11Toolbox-Simple` 查不到，是因为 exe 叫 `Win11工具箱-简洁版.exe`，
@@ -1133,6 +1136,43 @@ v1.1.2  窗口可见 725~952 ms   最长无响应    0 ms（全程没有一次�
 ```
 
 `--selftest` 15 项全过。截图确认五条体检项都在（汇总显示「3/5 项正常」）。
+
+## 简洁版打开后白屏好几秒：同一类病，病根不同
+
+现象：简洁版窗口 0.38 秒就出来了，比完整版还快，但内容区一片白，要等两三秒才出现列表。
+截图上看就是一个纯白的空窗口。
+
+`W11TB_TRACE=1` 跑一遍，一行就指出来了：
+
+```
++  155 ms  InitializeComponent 完成
++  267 ms  Loaded 进入
++ 2624 ms  Build + 全部 Probe 用时 2384 ms    ← 全在 UI 线程
++ 2630 ms  Loaded 结束
+```
+
+`Simple/MainWindow.OnLoaded` 原来是「65 项全部 `Probe()` 完 → 才第一次往列表里塞行」。
+`Probe()` 要读注册表，个别项还要跑 `powercfg`，串起来 2.4 秒。这段时间 UI 线程被占着，
+WPF 连第一帧都没机会画——窗口边框是 DWM 画的，所以边框在、内容白。
+
+改法照抄完整版「轻松设置」页的两段式：
+
+1. 同步 `EasySettingsData.Build()`（实测 5 ms）+ 建行，`StateText` 初始 `…`，
+   立刻 `RefreshList()`。**首屏内容 281 ms 就到位了。**
+2. `ProbeAllAsync()` 分批（每批 4 项）扔 `Task.Run`，批与批之间 `await` 让出 UI 线程，
+   回来一批填一批，`CountHint` 显示「已读取 44 项…」。
+   已经有结论的行（`StateText != "…"`）不覆盖，防止把用户刚点的结果冲掉。
+3. 「刷新状态」按钮改成 `ProbeAllAsync(force: true)`，复用同一段逻辑。
+
+实测（`C:\WbProbe\probe_resp.py`，每 40ms 发 `WM_NULL` 量 UI 响应）：
+
+```
+改前  窗口可见 372~382 ms   最长无响应 1607 ms
+改后  窗口可见 371~398 ms   最长无响应    0 ms
+```
+
+0.9 秒截图：列表已经全部有内容，状态填了 44/65 项；6 秒后「显示 65 / 共 65 项，已开启 37 项」。
+`--selftest` 5 项全过。
 
 ## 切主题时闪一下：真凶是 UI 线程被卡了 4.3 秒
 

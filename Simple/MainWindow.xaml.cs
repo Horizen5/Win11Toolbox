@@ -81,14 +81,31 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        StartupTrace.Mark("MainWindow ctor 进入");
         InitializeComponent();
+        StartupTrace.Mark("InitializeComponent 完成");
         SettingList.ItemsSource = _view;
         Loaded += OnLoaded;
     }
 
     // ------------------------------------------------------------------ 载入
-    private void OnLoaded(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// 两段式载入，和完整版「轻松设置」页是同一套办法。
+    ///
+    /// <para>
+    /// 原来这里是「65 项全部 Probe 完 → 才第一次往列表里塞行」。Probe 要读注册表，
+    /// 个别项还要跑 powercfg，整段实测 <b>2.4 秒</b>，全压在 UI 线程上：
+    /// 窗口边框早就画出来了，内容区却一直是白的，看上去就是「打开后白屏好几秒」。
+    /// </para>
+    /// <para>
+    /// 现在先把清单和行建出来（纯内存，毫秒级）立刻显示，状态列显示「…」表示未知；
+    /// 再分批扔后台探测，每批回来就回填，用户能看到它一项项亮起来。
+    /// </para>
+    /// </summary>
+    private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        StartupTrace.Mark("Loaded 进入");
+
         if (Win11Toolbox.Admin.IsAdmin())
         {
             StatusText.Text = "管理员模式";
@@ -101,33 +118,89 @@ public partial class MainWindow : Window
 
         try
         {
-            foreach (SettingItem item in EasySettingsData.Build())
+            // 第一段：建清单 + 建行。全部是内存操作，不碰系统。
+            List<SettingItem> items;
+            using (StartupTrace.Scope("EasySettingsData.Build"))
+                items = EasySettingsData.Build();
+
+            _allRows.Clear();
+            foreach (SettingItem item in items)
+                _allRows.Add(new SettingRow(item));       // StateText 初始为「…」
+
+            using (StartupTrace.Scope("分类下拉 + RefreshList"))
             {
-                bool on = SafeProbe(item);
-                _allRows.Add(new SettingRow(item)
-                {
-                    IsOn = on,
-                    StateText = on ? "已开启" : "默认状态",
-                });
+                CategoryCombo.Items.Add(AllCategories);
+                foreach (string c in _allRows.Select(r => r.Model.Category).Distinct())
+                    CategoryCombo.Items.Add(c);
+                CategoryCombo.SelectedIndex = 0;
+                RefreshList();
             }
 
-            CategoryCombo.Items.Add(AllCategories);
-            foreach (string c in _allRows.Select(r => r.Model.Category).Distinct())
-                CategoryCombo.Items.Add(c);
-            CategoryCombo.SelectedIndex = 0;
-
-            RefreshList();
+            CountHint.Text = $"共 {_allRows.Count} 项，正在读取当前状态…";
         }
         catch (Exception ex)
         {
             StatusText.Text = "读取设置失败：" + ex.Message;
+            return;
         }
 
-        ToolList.ItemsSource = ToolCatalog.Categories.SelectMany(c => c.Items).ToList();
+        // 工具清单 / 快捷入口也是纯内存，顺手建掉（各 1ms）
+        using (StartupTrace.Scope("工具清单 + 快捷入口"))
+        {
+            ToolList.ItemsSource = ToolCatalog.Categories.SelectMany(c => c.Items).ToList();
 
-        foreach (string[] link in EasySettingsData.QuickLinks())
-            _links.Add(new LinkItem(link[0], link[1]));
-        LinkList.ItemsSource = _links;
+            foreach (string[] link in EasySettingsData.QuickLinks())
+                _links.Add(new LinkItem(link[0], link[1]));
+            LinkList.ItemsSource = _links;
+        }
+
+        StartupTrace.Mark("首屏内容已显示，开始后台探测");
+
+        // 第二段：分批探测并回填
+        await ProbeAllAsync();
+
+        StartupTrace.Mark("Loaded 结束");
+    }
+
+    /// <summary>
+    /// 分批探测所有设置项的当前状态。每批 4 项，批与批之间 <c>await</c> 让出 UI 线程，
+    /// 保证列表随时能滚、能点。
+    /// </summary>
+    /// <param name="force">true 时连用户刚点过的行也一并覆盖（「刷新状态」按钮用）。</param>
+    private async Task ProbeAllAsync(bool force = false)
+    {
+        const int BatchSize = 4;
+        int total = _allRows.Count;
+
+        for (int start = 0; start < total; start += BatchSize)
+        {
+            int from = start;
+            int to = Math.Min(start + BatchSize, total);
+
+            bool[] batch = await Task.Run(() =>
+            {
+                var result = new bool[to - from];
+                for (int i = from; i < to; i++)
+                    result[i - from] = SafeProbe(_allRows[i].Model);
+                return result;
+            });
+
+            for (int i = 0; i < batch.Length; i++)
+            {
+                SettingRow row = _allRows[from + i];
+
+                // 用户已经自己动过的行（StateText 不再是「…」）不覆盖，以他刚写进去的为准
+                if (!force && row.StateText != "…") continue;
+
+                row.IsOn = batch[i];
+                row.StateText = batch[i] ? "已开启" : "默认状态";
+            }
+
+            CountHint.Text = $"共 {total} 项，已读取 {to} 项…";
+        }
+
+        UpdateCountHint();
+        StatusText.Text = "状态已读取";
     }
 
     private static bool SafeProbe(SettingItem item)
@@ -230,16 +303,7 @@ public partial class MainWindow : Window
     private async void Refresh_Click(object sender, RoutedEventArgs e)
     {
         StatusText.Text = "正在重新读取状态…";
-
-        var states = await Task.Run(() => _allRows.Select(r => SafeProbe(r.Model)).ToList());
-
-        for (int i = 0; i < _allRows.Count && i < states.Count; i++)
-        {
-            _allRows[i].IsOn = states[i];
-            _allRows[i].StateText = states[i] ? "已开启" : "默认状态";
-        }
-
-        UpdateCountHint();
+        await ProbeAllAsync(force: true);
         StatusText.Text = "状态已刷新";
     }
 

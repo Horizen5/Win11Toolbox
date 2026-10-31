@@ -41,6 +41,8 @@ public partial class App : Application
 
         MainWindow = new MainWindow();
         MainWindow.Show();
+
+        StartupTrace.StartStallProbe(Dispatcher);
     }
 
     /// <summary>自检。返回 0 表示全部通过。</summary>
