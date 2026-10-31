@@ -331,6 +331,20 @@ public partial class EasySettingsPage : Page, IRefreshablePage
 
     private async Task ApplyOneAsync(SettingRow row, bool want)
     {
+        // 系统不让程序改的项（目前只有 Win11 锁死的搜索键）：别硬写，直接把人送到系统设置。
+        // 硬写的下场是弹一句「写入失败 / 拒绝访问」，用户既不知道原因也不知道下一步干什么。
+        if (want && row.Model.GuideUrl.Length > 0)
+        {
+            bool go = await ConfirmAsync("这一项得去系统设置里改",
+                row.Model.Desc + "\n\n点「打开设置」会跳到「设置 → 个性化 → 任务栏」，"
+                + "在「搜索」那一行选「隐藏」就行。改完回来点「刷新状态」就能对上。",
+                primaryText: "打开设置");
+            row.SetSilently(false);
+            RefreshList();
+            if (go) EasySettingsData.OpenLink(row.Model.GuideUrl);
+            return;
+        }
+
         // 危险项在「打开」之前问一句；取消勾选是恢复默认，不打扰
         if (want && row.Model.Danger)
         {

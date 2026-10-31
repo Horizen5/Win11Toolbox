@@ -360,6 +360,13 @@ public partial class MainWindow : FluentWindow
             Check(wrongAdmin.Count == 0, "没有把 HKCU 项错标成需管理员"
                 + (wrongAdmin.Count > 0 ? "：" + string.Join("，", wrongAdmin.Select(i => i.Name)) : ""));
 
+            // 系统锁死的项（如搜索框）只能靠引导，所以引导地址和说明都不能漏
+            var guided = items.Where(i => i.GuideUrl.Length > 0).ToList();
+            Check(guided.All(i => i.GuideUrl.StartsWith("ms-settings:", StringComparison.OrdinalIgnoreCase)),
+                "引导地址都是 ms-settings: 协议");
+            Check(guided.All(i => i.Desc.IndexOf("系统设置", StringComparison.Ordinal) >= 0),
+                "带引导的项在说明里讲清了要去系统设置");
+
             // ---------------- FFlags 位运算 ----------------
             // 桌面图标的「自动排列 / 对齐网格」共用一个 FFlags，整块覆盖会冲掉用户的
             // 排序方式和图标间距，所以只能翻一位。这段是唯一手算的地方，必须钉住。
@@ -433,6 +440,7 @@ public partial class MainWindow : FluentWindow
 
                 lines.Add($"  {state,-4}  {it.Name}{detail}");
                 lines.Add($"        路径：{it.RegPath}");
+                if (it.GuideUrl.Length > 0) lines.Add($"        引导：{it.GuideUrl}（系统不让程序改，勾选时跳这里）");
                 if (it.NeedAdmin) lines.Add("        需管理员");
                 if (it.NeedExplorerRestart) lines.Add("        需重启资源管理器");
                 if (it.Danger) lines.Add("        谨慎项");

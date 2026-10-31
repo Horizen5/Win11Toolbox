@@ -30,6 +30,12 @@ namespace Win11Toolbox.SettingsKit
         public string StateText = "";     // 最近一次探测后的状态文字
         public bool StateOk = true;       // 探测是否成功
 
+        /// <summary>
+        /// 非空 = 这一项系统不让程序改，勾选时不要硬写，直接引导用户去这个位置手动改
+        /// （<c>ms-settings:taskbar</c> 这类）。目前只有「隐藏任务栏搜索框」用得上。
+        /// </summary>
+        public string GuideUrl = "";
+
         public bool Danger => Risk.Length > 0;
     }
 
@@ -151,6 +157,51 @@ namespace Win11Toolbox.SettingsKit
                 finally { parent.Close(); }
             }
             catch { }
+        }
+
+        /// <summary>
+        /// 实测某个键到底能不能写 —— 写一个临时值再删掉。
+        ///
+        /// <para>
+        /// 不能靠看 DACL 判断：<c>HKCU\...\CurrentVersion\Search</c> 的 DACL 里明明有
+        /// <c>Administrators = KEY_ALL_ACCESS</c>，但 <c>SetValue</c> / <c>CreateSubKey</c>
+        /// 都返回 <c>0x80070005</c>（拒绝访问），连以管理员（High 完整性）运行也一样，
+        /// 换成 <c>HKEY_USERS\&lt;SID&gt;</c> 直连同一个物理键也照样拒。
+        /// 那个键上有一条只给 Windows 搜索 AppContainer 的 ACE，实际写入由系统挡着。
+        /// </para>
+        /// <para>
+        /// 所以只能试。试完立刻删掉临时值，不留痕迹。
+        /// </para>
+        /// </summary>
+        static bool CanWriteKey(string root, string path)
+        {
+            try
+            {
+                RegistryKey k = Reg.Open(root, path, true);
+                if (k == null) return false;
+                try
+                {
+                    k.SetValue("__wtest__", 1, RegistryValueKind.DWord);
+                    k.DeleteValue("__wtest__", false);
+                    return true;
+                }
+                catch { return false; }
+                finally { k.Close(); }
+            }
+            catch { return false; }
+        }
+
+        /// <summary>搜索设置的键。Win11 上整片被锁（见 CanWriteKey）。</summary>
+        const string SEARCH_KEY = "Software\\Microsoft\\Windows\\CurrentVersion\\Search";
+
+        /// <summary>只测一次：进页面、跑诊断都会调 Build()，没必要每次都写一遍临时值。</summary>
+        static bool? _searchWritable;
+
+        static bool SearchKeyWritable()
+        {
+            if (!_searchWritable.HasValue)
+                _searchWritable = CanWriteKey("HKCU", SEARCH_KEY);
+            return _searchWritable.Value;
         }
 
         static string P(string root, string path, string val)
@@ -504,12 +555,43 @@ namespace Win11Toolbox.SettingsKit
                     ("HKCU", ADV, "TaskbarGlomLevel", 2),
                     ("HKCU", ADV, "MMTaskbarGlomLevel", 2),
                 }, false, true));
-            L.Add(Multi("任务栏", "隐藏任务栏搜索框", "任务栏上不再显示搜索框；搜索本身还在，按 Win 键或 Win+S 照样能搜。",
-                "HKCU\\...\\CurrentVersion\\Search → SearchboxTaskbarMode = 0",
-                new (string Root, string Path, string Value, int On)[] {
-                    ("HKCU", SEARCH, "SearchboxTaskbarMode", 0),
-                    ("HKCU", SEARCH, "SearchboxTaskbarModeCache", 1),
-                }, false, true));
+            // 搜索框这一项要特判，两个原因：
+            //
+            // 1) Win11 把 CurrentVersion\Search 整个键锁死了，写入返回 0x80070005，
+            //    管理员也不行（见 CanWriteKey 的注释）。能写的系统照常写；写不了的，
+            //    勾选时别硬碰，直接把用户送到系统设置页。
+            // 2) 不能用 Multi：Multi 是「两个值都满足才算已开启」，但用户在系统设置里
+            //    手动关掉搜索框时，系统只写 SearchboxTaskbarMode，不写 ...Cache，
+            //    那样工具箱会一直显示「默认状态」。所以探测只认主值。
+            SettingItem hideSearch = Cmd("任务栏", "隐藏任务栏搜索框",
+                "任务栏上不再显示搜索框；搜索本身还在，按 Win 键或 Win+S 照样能搜。",
+                delegate
+                {
+                    int? v = ReadDword("HKCU", SEARCH, "SearchboxTaskbarMode");
+                    return v.HasValue && v.Value == 0;
+                },
+                delegate(bool on)
+                {
+                    if (on)
+                    {
+                        WriteDword("HKCU", SEARCH, "SearchboxTaskbarMode", 0);
+                        WriteDword("HKCU", SEARCH, "SearchboxTaskbarModeCache", 1);
+                    }
+                    else
+                    {
+                        DeleteValue("HKCU", SEARCH, "SearchboxTaskbarMode");
+                        DeleteValue("HKCU", SEARCH, "SearchboxTaskbarModeCache");
+                    }
+                }, false, true,
+                "HKCU\\...\\CurrentVersion\\Search → SearchboxTaskbarMode = 0（0=隐藏 1=仅图标 2=搜索框）");
+
+            if (!SearchKeyWritable())
+            {
+                hideSearch.Desc = "任务栏上不再显示搜索框。这个 Windows 版本把搜索设置的注册表键锁住了，"
+                                + "程序改不了（管理员也不行），勾选后会带你去系统设置里手动关一次。";
+                hideSearch.GuideUrl = "ms-settings:taskbar";
+            }
+            L.Add(hideSearch);
             L.Add(Dword("任务栏", "隐藏任务栏「聊天」按钮", "去掉任务栏上的 Teams 聊天入口。",
                 "HKCU", ADV, "TaskbarMn", 0, -1, false, true));
             L.Add(Dword("任务栏", "隐藏托盘上的通知铃铛", "任务栏右下角不再显示通知铃铛图标。",

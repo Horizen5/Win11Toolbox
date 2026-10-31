@@ -49,7 +49,7 @@ Win11Toolbox.exe --selftest          # 自检：逐页切换 + 验证监控恢�
 Win11Toolbox.exe --probe             # 读一遍托盘清单 + 构造三个页面，结果写 probe.log
 Win11Toolbox.exe --writetest         # 托盘开关写 1 → 读回 → 写 0 → 读回，结果写 writetest.log
 Win11Toolbox.exe --shot tray out.png # 把某个页面离屏渲染成 PNG（窗口在屏幕外、不激活）
-Win11Toolbox.exe --easytest [a.log]  # 导出 57 项系统设置的探测结果 + 21 条断言，退出码 0/1，默认写 easytest.log
+Win11Toolbox.exe --easytest [a.log]  # 导出 57 项系统设置的探测结果 + 23 条断言，退出码 0/1，默认写 easytest.log
 Win11Toolbox.exe --scrolltest tray   # 离屏滚一遍并计时（加 --all 测全部项），结果写 scrolltest.log
 Win11Toolbox.exe --navshot tray a.png # 用真实 NavigationView 离屏渲染（含左侧导航栏），结果写 a.png.log
 Win11Toolbox.exe --navdump home a.txt # 打印焦点广告层 + 左侧导航视觉树（查焦点框、边框从哪来）
@@ -262,6 +262,42 @@ HKCU\Control Panel\NotifyIconSettings\<哈希子键>
 另外这批开关里有几个是「一组值共用一个开关」（关通知中心 = `DisableNotificationCenter`
 + `ToastEnabled` 两条一起写），用 `Multi(...)` 工厂统一处理：全部满足才算已开启，
 勾选全写、取消全删，避免出现「只关了一半」的状态。
+
+### 搜索框那一项：为什么只能「带你去设置」
+
+「隐藏任务栏搜索框」本来写 `HKCU\Software\Microsoft\Windows\CurrentVersion\Search\SearchboxTaskbarMode`，
+在这台机器上写入直接报 `Attempted to perform an unauthorized operation.`（`0x80070005` 拒绝访问）。
+查下来是 Windows 把搜索相关的键整片锁了，**不是代码写错**，也不是缺管理员权限：
+
+| 试过的手段 | 结果 |
+| --- | --- |
+| `OpenSubKey(path, writable: true)` | 成功 |
+| `SetValue` / `CreateSubKey` | 都返回 `0x80070005` |
+| 以管理员运行（High 完整性级别，`whoami /groups` 确认） | 一样拒绝 |
+| 换成 `HKEY_USERS\<SID>\Software\...` 直连同一个物理键 | 一样拒绝 |
+| 看 DACL | `Administrators = KEY_ALL_ACCESS`，看着完全能写 |
+| 看 SACL / 完整性标签 | 没有 `S:` 段，不存在标签差异 |
+
+DACL 明明允许、实际却拒绝，是因为那个键上挂着一条只给 Windows 搜索
+AppContainer（`S-1-15-3-1024-...`）的 ACE，实际写入由系统挡着。
+`CurrentVersion\SearchSettings` 及其 `Appearance` / `Dynamic` / `WebSearchProviders`
+子键同样全部拒绝写入。
+
+**还试过换个键**：往可写的 `Explorer\Advanced\SearchboxTaskbarMode` 写 0，
+再重启资源管理器 —— **搜索框照旧显示**，说明系统只认 `Search` 那个键，换位置不生效。
+
+所以这一项在锁死的系统上**程序无解**。处理方式是 `SettingItem.GuideUrl`：
+构建时用 `CanWriteKey()` 实测一次键能不能写（写个临时值再删，只测一次并缓存），
+不能写就把说明改成「系统锁了，勾选会带你去设置」，并挂上 `ms-settings:taskbar`。
+用户勾选时不再硬写，而是弹一句说明 + 「打开设置」按钮，跳到
+「设置 → 个性化 → 任务栏 → 搜索」手动选「隐藏」。
+
+这样两边都不吃亏：能写的系统照常一键搞定；锁死的系统至少告诉用户为什么、
+以及下一步该点哪里，而不是甩一句「写入失败」。用户手动改完，注册表里会出现
+`SearchboxTaskbarMode = 0`（系统自己能写），回来点「刷新状态」就能对上。
+
+> 顺带记一条排查经验：**判断一个键能不能写，别看 DACL，要实测**。
+> `CanWriteKey()` 就是干这个的。DACL 允许但写入被拒的情况是真实存在的。
 
 ### `--easytest` 曾经是个假阳性
 
