@@ -1,19 +1,25 @@
-<div align="center">
+<h1 align="center">Win11 工具箱</h1>
 
-# Win11 工具箱
+<p align="center"><strong>把 Windows 11 散落在十几个地方的设置、硬件信息和维护工具，收进一个窗口。</strong></p>
 
-**把 Windows 11 散落在十几个地方的设置、硬件信息和维护工具，收进一个窗口。**
+<p align="center">
+  <img src="https://img.shields.io/badge/Windows-11-0078D4?logo=windows11&logoColor=white" alt="Windows 11">
+  <img src="https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white" alt=".NET 10">
+  <img src="https://img.shields.io/badge/WPF--UI-4.3-7B4FB5" alt="WPF-UI 4.3">
+  <img src="https://img.shields.io/badge/license-MIT-3DA639" alt="MIT">
+</p>
 
-![Windows](https://img.shields.io/badge/Windows-11-0078D4?logo=windows11&logoColor=white)
-![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
-![WPF-UI](https://img.shields.io/badge/WPF--UI-4.3-7B4FB5)
-![License](https://img.shields.io/badge/license-MIT-3DA639)
+<p align="center">
+  <a href="#功能">功能</a> ·
+  <a href="#截图">截图</a> ·
+  <a href="#下载">下载</a> ·
+  <a href="#从源码构建">从源码构建</a> ·
+  <a href="#常见问题">常见问题</a>
+</p>
 
-[功能](#功能) · [截图](#截图) · [下载](#下载) · [从源码构建](#从源码构建) · [常见问题](#常见问题)
-
-</div>
-
-![主页](docs/screenshots/home.png)
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="主页" width="820">
+</p>
 
 ---
 
@@ -51,16 +57,19 @@ Windows 11 的设置项散在十几个地方：想显示文件扩展名要翻三
 
 ## 截图
 
-<table>
-<tr>
-<td width="50%"><img src="docs/screenshots/tools.png" alt="系统工具"><br><sub>系统工具 · 47 个内置工具，按用途分类</sub></td>
-<td width="50%"><img src="docs/screenshots/fan.png" alt="风扇控制"><br><sub>风扇控制 · 温度曲线与手动调速</sub></td>
-</tr>
-<tr>
-<td width="50%"><img src="docs/screenshots/two-factor.png" alt="2FA 验证码"><br><sub>实用工具 · 2FA 验证码与倒计时</sub></td>
-<td width="50%"><img src="docs/screenshots/home-dark.png" alt="深色模式"><br><sub>深色模式 · 跟随系统主题</sub></td>
-</tr>
-</table>
+<p align="center">
+  <img src="docs/screenshots/tools.png" alt="系统工具" width="49%">
+  <img src="docs/screenshots/fan.png" alt="风扇控制" width="49%">
+  <br>
+  <sub>左：系统工具 · 47 个内置工具，按用途分类　　右：风扇控制 · 温度曲线与手动调速</sub>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/two-factor.png" alt="2FA 验证码" width="49%">
+  <img src="docs/screenshots/home-dark.png" alt="深色模式" width="49%">
+  <br>
+  <sub>左：实用工具 · 2FA 验证码与倒计时　　右：深色模式 · 跟随系统主题</sub>
+</p>
 
 ## 下载
 
