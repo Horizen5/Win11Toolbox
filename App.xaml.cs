@@ -169,6 +169,22 @@ public partial class App : Application
             return;
         }
 
+        // --searchfix <txt>：验证「取得所有权 → 写入 → 恢复权限」能否绕过被锁的搜索键
+        var searchFixIndex = Array.IndexOf(Environment.GetCommandLineArgs(), "--searchfix");
+        if (searchFixIndex >= 0)
+        {
+            var a = Environment.GetCommandLineArgs();
+            string log = searchFixIndex + 1 < a.Length && !a[searchFixIndex + 1].StartsWith("--", StringComparison.Ordinal)
+                ? a[searchFixIndex + 1]
+                : Path.Combine(AppContext.BaseDirectory, "searchfix.log");
+            try
+            {
+                File.WriteAllText(log, SettingsKit.EasySettingsData.DiagnoseSearchKey());
+            }
+            catch { }
+            Environment.Exit(0);
+        }
+
         // --totp <txt>：用 RFC 6238 官方测试向量核对 TOTP 实现（含 Base32 与 otpauth 解析）
         var totpIndex = Array.IndexOf(Environment.GetCommandLineArgs(), "--totp");
         if (totpIndex >= 0)

@@ -1,13 +1,16 @@
 // ================================================================
 //  EasySettingsCore.cs —— 系统轻松设置 · 逻辑层
 //  由「右键菜单管家 v3.0」的轻松设置模块移植，去掉 WinForms。
-//  57 项安全设置，每项都带 Probe（当前状态）/ Set（应用或恢复默认）。
+//  65 项安全设置，每项都带 Probe（当前状态）/ Set（应用或恢复默认）。
+//  开关清单参照「Windows 11 轻松设置」（免费软件）等工具整理，代码为自行实现。
 // ================================================================
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text;
 using Microsoft.Win32;
 using Win11Toolbox.RightMenu;
@@ -194,8 +197,408 @@ namespace Win11Toolbox.SettingsKit
         /// <summary>搜索设置的键。Win11 上整片被锁（见 CanWriteKey）。</summary>
         const string SEARCH_KEY = "Software\\Microsoft\\Windows\\CurrentVersion\\Search";
 
+        // ---------------- 注册表权限修复 ----------------
+        //
+        // 有些系统键的 DACL 看着完全正常（Administrators = KEY_ALL_ACCESS），实际写入却返回
+        // 0x80070005。Win11 的 CurrentVersion\Search 就是这种：管理员、32 位视图、HKEY_USERS
+        // 直连、Registry.SetValue 静态方法、New-ItemProperty 全都试过，一律拒绝。
+        //
+        // 唯一还能走的路是：先拿到这个键的所有权，再补一条给当前用户的 ACE，然后写。
+        // 写完必须把原 SDDL 原样写回去，否则会在用户的注册表里留下一个被改过权限的键。
+        //
+        // 这套东西只在「正常写入失败」时才触发，平时碰都不碰。
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct LUID { public uint LowPart; public int HighPart; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct LUID_AND_ATTRIBUTES { public LUID Luid; public uint Attributes; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct TOKEN_PRIVILEGES { public uint PrivilegeCount; public LUID_AND_ATTRIBUTES Privileges; }
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
+
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        static extern bool LookupPrivilegeValueW(string system, string name, out LUID luid);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        static extern bool AdjustTokenPrivileges(IntPtr token, bool disableAll,
+            ref TOKEN_PRIVILEGES newState, int bufferLength, IntPtr prev, IntPtr returnLength);
+
+        [DllImport("kernel32.dll")]
+        static extern IntPtr GetCurrentProcess();
+
+        [DllImport("kernel32.dll")]
+        static extern bool CloseHandle(IntPtr handle);
+
+        // 直接用 Win32 注册表 API 再测一遍，拿到确切错误码（.NET 的异常信息太笼统）
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        static extern int RegOpenKeyExW(IntPtr hKey, string subKey, uint options, int samDesired, out IntPtr result);
+
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        static extern int RegSetValueExW(IntPtr hKey, string valueName, uint reserved, uint type,
+            byte[] data, int cbData);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        static extern int RegCloseKey(IntPtr hKey);
+
+        static readonly IntPtr HKEY_CURRENT_USER = (IntPtr)unchecked((int)0x80000001);
+        const int KEY_QUERY_VALUE = 0x0001;
+        const int KEY_SET_VALUE = 0x0002;
+        const uint REG_DWORD = 4;
+
+        const uint TOKEN_ADJUST_PRIVILEGES = 0x0020;
+        const uint TOKEN_QUERY = 0x0008;
+        const uint SE_PRIVILEGE_ENABLED = 0x0002;
+
+        /// <summary>启用当前进程的一个特权（如 SeTakeOwnershipPrivilege）。</summary>
+        static bool EnablePrivilege(string name)
+        {
+            IntPtr token;
+            if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out token))
+                return false;
+            try
+            {
+                LUID luid;
+                if (!LookupPrivilegeValueW(null, name, out luid)) return false;
+                TOKEN_PRIVILEGES tp = new TOKEN_PRIVILEGES();
+                tp.PrivilegeCount = 1;
+                tp.Privileges.Luid = luid;
+                tp.Privileges.Attributes = SE_PRIVILEGE_ENABLED;
+                if (!AdjustTokenPrivileges(token, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero)) return false;
+                // AdjustTokenPrivileges 会「成功返回但一个都没改」，必须查 LastError
+                return Marshal.GetLastWin32Error() == 0;
+            }
+            finally { CloseHandle(token); }
+        }
+
+        static NTAccount CurrentUser()
+        {
+            return new NTAccount(Environment.UserDomainName, Environment.UserName);
+        }
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        static extern bool GetTokenInformation(IntPtr token, int infoClass, IntPtr info, int len, out int retLen);
+
+        [DllImport("advapi32.dll")]
+        static extern IntPtr GetSidSubAuthorityCount(IntPtr sid);
+
+        [DllImport("advapi32.dll")]
+        static extern IntPtr GetSidSubAuthority(IntPtr sid, uint index);
+
+        const int TokenIntegrityLevel = 25;
+
+        /// <summary>
+        /// 当前进程的完整性级别（Medium / High / System）。
+        /// <para>
+        /// 这一项很关键：写 <c>CurrentVersion\Search</c> 时，Medium（普通双击启动）和
+        /// High（以管理员身份运行）的行为不一样，不把这个打出来就没法判断失败到底是
+        /// 权限不够还是 DACL 真的不给。
+        /// </para>
+        /// </summary>
+        internal static string IntegrityLevel()
+        {
+            IntPtr token;
+            if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, out token)) return "读不到";
+            try
+            {
+                int len;
+                GetTokenInformation(token, TokenIntegrityLevel, IntPtr.Zero, 0, out len);
+                if (len <= 0) return "读不到";
+                IntPtr buf = Marshal.AllocHGlobal(len);
+                try
+                {
+                    if (!GetTokenInformation(token, TokenIntegrityLevel, buf, len, out len)) return "读不到";
+                    IntPtr sid = Marshal.ReadIntPtr(buf);          // TOKEN_MANDATORY_LABEL.Label.Sid
+                    int count = Marshal.ReadByte(GetSidSubAuthorityCount(sid));
+                    int rid = Marshal.ReadInt32(GetSidSubAuthority(sid, (uint)(count - 1)));
+                    string name = rid >= 0x4000 ? "System"
+                                : rid >= 0x3000 ? "High"
+                                : rid >= 0x2000 ? "Medium"
+                                : rid >= 0x1000 ? "Low"
+                                : "Untrusted";
+                    return name + "（0x" + rid.ToString("X") + "）";
+                }
+                finally { Marshal.FreeHGlobal(buf); }
+            }
+            catch { return "读不到"; }
+            finally { CloseHandle(token); }
+        }
+
+        /// <summary>
+        /// 拿到键的所有权并给当前用户完全控制。
+        /// 成功时返回原来的 SDDL 字符串（调用方写完值后必须用它恢复），失败返回 null。
+        /// </summary>
+        internal static string GrantWriteAccess(string root, string path, out string error)
+        {
+            error = "";
+            if (!EnablePrivilege("SeTakeOwnershipPrivilege") || !EnablePrivilege("SeRestorePrivilege"))
+            {
+                error = "启用 SeTakeOwnershipPrivilege / SeRestorePrivilege 失败（需要以管理员身份运行）";
+                return null;
+            }
+
+            string backup = null;
+            try
+            {
+                // 第一步：备份原 SDDL
+                using (RegistryKey k = Reg.Hive(root).OpenSubKey(path,
+                    RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.ReadPermissions))
+                {
+                    if (k == null) { error = "打不开键（读权限）"; return null; }
+                    backup = k.GetAccessControl(AccessControlSections.All)
+                              .GetSecurityDescriptorSddlForm(AccessControlSections.All);
+                }
+
+                // 第二步：把所有者改成当前用户
+                using (RegistryKey k = Reg.Hive(root).OpenSubKey(path,
+                    RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.TakeOwnership))
+                {
+                    if (k == null) { error = "打不开键（WRITE_OWNER）"; return null; }
+                    RegistrySecurity sec = k.GetAccessControl(AccessControlSections.Owner);
+                    sec.SetOwner(CurrentUser());
+                    k.SetAccessControl(sec);
+                }
+
+                // 第三步：补一条完全控制的 ACE
+                using (RegistryKey k = Reg.Hive(root).OpenSubKey(path,
+                    RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.ChangePermissions))
+                {
+                    if (k == null) { error = "打不开键（WRITE_DAC）"; return null; }
+                    RegistrySecurity sec = k.GetAccessControl(AccessControlSections.Access);
+                    sec.AddAccessRule(new RegistryAccessRule(CurrentUser(), RegistryRights.FullControl,
+                        InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                        PropagationFlags.None, AccessControlType.Allow));
+                    k.SetAccessControl(sec);
+                }
+
+                return backup;
+            }
+            catch (Exception ex)
+            {
+                error = ex.GetType().Name + "：" + ex.Message;
+                // 中途失败也要尽量把原 SDDL 写回去
+                if (backup != null) RestoreKeySecurity(root, path, backup, out _);
+                return null;
+            }
+        }
+
+        /// <summary>把 SDDL（含所有者）原样写回键上。</summary>
+        internal static bool RestoreKeySecurity(string root, string path, string sddl, out string error)
+        {
+            error = "";
+            if (string.IsNullOrEmpty(sddl)) { error = "SDDL 为空"; return false; }
+            try
+            {
+                EnablePrivilege("SeRestorePrivilege");   // 把所有者改回 SYSTEM 需要它
+                using (RegistryKey k = Reg.Hive(root).OpenSubKey(path,
+                    RegistryKeyPermissionCheck.ReadWriteSubTree,
+                    RegistryRights.ChangePermissions | RegistryRights.TakeOwnership | RegistryRights.ReadPermissions))
+                {
+                    if (k == null) { error = "打不开键（恢复权限）"; return false; }
+                    RegistrySecurity sec = new RegistrySecurity();
+                    sec.SetSecurityDescriptorSddlForm(sddl, AccessControlSections.All);
+                    k.SetAccessControl(sec);
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex.GetType().Name + "：" + ex.Message;
+                return false;
+            }
+        }
+
+        /// <summary>把 Win32 错误码翻译成人话。注册表 API 返回的是 Win32 错误码（ERROR_xxx）。</summary>
+        internal static string Win32Msg(int code)
+        {
+            if (code == 0) return "成功";
+            // RegXxx 系列返回的是 Win32 错误码（ERROR_xxx），不是 NTSTATUS
+            switch (code)
+            {
+                case 5: return "0x5 ERROR_ACCESS_DENIED 拒绝访问";
+                case 2: return "0x2 ERROR_FILE_NOT_FOUND 键不存在";
+                case 87: return "0x57 ERROR_INVALID_PARAMETER 参数不对";
+                case 6: return "0x6 ERROR_INVALID_HANDLE 句柄无效";
+                case 8: return "0x8 ERROR_NOT_ENOUGH_MEMORY";
+                case 1314: return "0x522 ERROR_PRIVILEGE_NOT_HELD 缺特权";
+            }
+            return "0x" + code.ToString("X") + " " + new System.ComponentModel.Win32Exception(code).Message;
+        }
+
+        /// <summary>
+        /// 把 DACL 逐条拆开打印。
+        /// <para>
+        /// 光看一整串 SDDL 很难判断「到底有没有一条 ACE 给当前用户 KEY_SET_VALUE」——
+        /// 而 <c>OICIID</c> 这种继承标志（I = inherit-only）恰恰是坑：带 I 的 ACE
+        /// 只对子键生效，对键本身完全不管用。上一版诊断就是被这一串 KA 骗了。
+        /// </para>
+        /// </summary>
+        internal static void DumpDacl(StringBuilder sb, string root, string path)
+        {
+            try
+            {
+                using (RegistryKey k = Reg.Open(root, path, false))
+                {
+                    if (k == null) { sb.AppendLine("  打不开键"); return; }
+                    RegistrySecurity sec = k.GetAccessControl(AccessControlSections.Access);
+                    AuthorizationRuleCollection rules = sec.GetAccessRules(true, false, typeof(NTAccount));
+                    if (rules.Count == 0) sb.AppendLine("  （没有任何 ACE —— 这就是写不进去的原因）");
+                    foreach (RegistryAccessRule r in rules)
+                    {
+                        string who;
+                        try { who = r.IdentityReference.Value; }
+                        catch { who = r.IdentityReference.ToString(); }
+                        sb.AppendLine("  - " + (r.AccessControlType == AccessControlType.Allow ? "允许" : "拒绝")
+                            + " | " + who
+                            + " | " + r.RegistryRights
+                            + " | 继承:" + r.InheritanceFlags
+                            + " | 传播:" + r.PropagationFlags
+                            + (r.IsInherited ? " | 继承来的" : " | 直接写在键上"));
+                    }
+                }
+            }
+            catch (Exception ex) { sb.AppendLine("  读 DACL 失败：" + ex.Message); }
+        }
+
         /// <summary>只测一次：进页面、跑诊断都会调 Build()，没必要每次都写一遍临时值。</summary>
         static bool? _searchWritable;
+
+        /// <summary>
+        /// <c>--searchfix</c> 的实现：验证「取得所有权 → 写入 → 恢复原权限」这条路能不能走通。
+        ///
+        /// <para>
+        /// 只写一个临时值 <c>__fix_test__</c>，不碰用户真正的搜索框设置。
+        /// 跑完会验证 SDDL 是否恢复原样，并且再测一次可写性 —— 如果恢复后重新变成「不可写」，
+        /// 说明权限确实还原了，没有留下后遗症。
+        /// </para>
+        /// </summary>
+        internal static string DiagnoseSearchKey()
+        {
+            StringBuilder sb = new StringBuilder();
+            string err;
+
+            sb.AppendLine("== 修复前 ==");
+            sb.AppendLine("  可写：" + CanWriteKey("HKCU", SEARCH_KEY));
+            string owner0 = "";
+            try
+            {
+                using (RegistryKey k = Reg.Open("HKCU", SEARCH_KEY, false))
+                {
+                    if (k != null)
+                    {
+                        RegistrySecurity s = k.GetAccessControl(AccessControlSections.Owner);
+                        owner0 = s.GetOwner(typeof(NTAccount)).ToString();
+                    }
+                }
+            }
+            catch (Exception ex) { owner0 = "(读不到：" + ex.Message + ")"; }
+            sb.AppendLine("  所有者：" + owner0);
+            sb.AppendLine("  当前进程是否管理员：" + RightMenuActions.IsAdmin());
+            sb.AppendLine("  当前进程完整性级别：" + IntegrityLevel());
+            sb.AppendLine("  进程位数：" + (Environment.Is64BitProcess ? "64 位" : "32 位（注册表会走 WOW64 重定向）"));
+            sb.AppendLine();
+            sb.AppendLine("== 修复前的 DACL（逐条）==");
+            DumpDacl(sb, "HKCU", SEARCH_KEY);
+
+            sb.AppendLine();
+            sb.AppendLine("== 取得所有权 + 补 ACE ==");
+            string backup = GrantWriteAccess("HKCU", SEARCH_KEY, out err);
+            if (backup == null)
+            {
+                sb.AppendLine("  失败：" + err);
+                sb.AppendLine();
+                sb.AppendLine("结论：这条路走不通，需要别的方案。");
+                return sb.ToString();
+            }
+            sb.AppendLine("  成功");
+            sb.AppendLine("  原 SDDL：" + backup);
+
+            // ★ 关键验证：ACE 到底有没有真的加上？
+            // 上一版诊断漏了这一步，于是「改成功了」和「改失败了」看起来一模一样。
+            sb.AppendLine();
+            sb.AppendLine("== 改完之后实际的 SDDL ==");
+            string afterGrant = "";
+            try
+            {
+                using (RegistryKey k = Reg.Open("HKCU", SEARCH_KEY, false))
+                {
+                    if (k != null)
+                    {
+                        RegistrySecurity s = k.GetAccessControl(AccessControlSections.All);
+                        afterGrant = s.GetSecurityDescriptorSddlForm(AccessControlSections.All);
+                        sb.AppendLine("  所有者：" + s.GetOwner(typeof(NTAccount)));
+                    }
+                }
+            }
+            catch (Exception ex) { sb.AppendLine("  读不到：" + ex.Message); }
+            sb.AppendLine("  " + afterGrant);
+            sb.AppendLine("  与原来不同：" + (afterGrant != backup));
+
+            // ★ 直接用 Win32 API 测，拿确切错误码
+            sb.AppendLine();
+            sb.AppendLine("== Win32 直测 ==");
+            IntPtr hKey;
+            int rcOpen = RegOpenKeyExW(HKEY_CURRENT_USER, SEARCH_KEY, 0, KEY_SET_VALUE, out hKey);
+            sb.AppendLine($"  RegOpenKeyEx(KEY_SET_VALUE) = {rcOpen}" + (rcOpen == 0 ? "（成功）" : "（" + Win32Msg(rcOpen) + "）"));
+            if (rcOpen == 0)
+            {
+                byte[] data = BitConverter.GetBytes(4242);
+                int rcSet = RegSetValueExW(hKey, "__fix_test__", 0, REG_DWORD, data, data.Length);
+                sb.AppendLine($"  RegSetValueEx = {rcSet}" + (rcSet == 0 ? "（成功）" : "（" + Win32Msg(rcSet) + "）"));
+                if (rcSet == 0) DeleteValue("HKCU", SEARCH_KEY, "__fix_test__");
+                RegCloseKey(hKey);
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("== 写入测试（.NET 路径）==");
+            bool wrote = false;
+            try
+            {
+                WriteDword("HKCU", SEARCH_KEY, "__fix_test__", 12345);
+                int? back = ReadDword("HKCU", SEARCH_KEY, "__fix_test__");
+                wrote = back.HasValue && back.Value == 12345;
+                sb.AppendLine("  写 12345 读回：" + (back.HasValue ? back.Value.ToString() : "null"));
+                DeleteValue("HKCU", SEARCH_KEY, "__fix_test__");
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine("  失败：" + ex.GetType().Name + "：" + ex.Message);
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("== 恢复原权限 ==");
+            bool restored = RestoreKeySecurity("HKCU", SEARCH_KEY, backup, out err);
+            sb.AppendLine("  " + (restored ? "成功" : "失败：" + err));
+
+            sb.AppendLine();
+            sb.AppendLine("== 恢复后 ==");
+            string owner1 = "";
+            try
+            {
+                using (RegistryKey k = Reg.Open("HKCU", SEARCH_KEY, false))
+                {
+                    if (k != null)
+                    {
+                        RegistrySecurity s = k.GetAccessControl(AccessControlSections.Owner);
+                        owner1 = s.GetOwner(typeof(NTAccount)).ToString();
+                        string now = s.GetSecurityDescriptorSddlForm(AccessControlSections.All);
+                        sb.AppendLine("  SDDL 与原来一致：" + (now == backup));
+                    }
+                }
+            }
+            catch (Exception ex) { owner1 = "(读不到：" + ex.Message + ")"; }
+            sb.AppendLine("  所有者：" + owner1);
+            sb.AppendLine("  可写：" + CanWriteKey("HKCU", SEARCH_KEY));
+
+            sb.AppendLine();
+            sb.AppendLine(wrote
+                ? "结论：取得所有权后能写，方案可行。"
+                : "结论：取得所有权后仍然写不进去，需要别的方案。");
+            return sb.ToString();
+        }
 
         static bool SearchKeyWritable()
         {
@@ -887,6 +1290,59 @@ namespace Win11Toolbox.SettingsKit
                 }, true, false, "高级安全防火墙 – 出站规则",
                 "会新增一条防火墙出站阻止规则。开始菜单搜索结果会变少（不含网络内容），取消勾选可删除该规则。确认继续吗？"));
 
+            // ========== 十、对照「Windows 11 轻松设置」补齐的项 ==========
+            //
+            // 这一批是拿「Windows 11 轻松设置」V1.11 的开关清单逐条对过之后补的 ——
+            // 它覆盖到、这里原来没有的那几项。取值全部在本机注册表上实测过，
+            // 不是照抄它的实现：本项目的每一项都要有 Probe（能读回当前状态），
+            // 而它的做法是「勾选时按反向标志位写死」，读不回来。
+            L.Add(Dword("资源管理器", "隐藏没有插入媒体的驱动器", "「此电脑」里不再列出读卡器、空光驱这类没有介质的盘符。",
+                "HKCU", ADV, "HideDrivesWithNoMedia", 1, -1, false, false));
+            L.Add(Dword("资源管理器", "关闭缩略图预览（只显示图标）", "文件夹里不再为图片、视频生成缩略图，老机器上滚动更快。",
+                "HKCU", ADV, "IconsOnly", 1, 0, false, false));
+            L.Add(Dword("资源管理器", "快速访问不显示云文件", "OneDrive 之类的云盘文件不再出现在「快速访问」里。",
+                "HKCU", "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", "ShowCloudFilesInQuickAccess", 0, 1, false, false));
+            L.Add(Dword("资源管理器", "关闭 OneDrive「文件按需同步」集成", "资源管理器侧边栏不再挂 OneDrive 入口（不影响已装的 OneDrive 本体）。",
+                "HKLM", "SOFTWARE\\Policies\\Microsoft\\Windows\\OneDrive", "DisableFileSyncNGSC", 1, -1, true, true));
+
+            L.Add(Dword("任务栏", "隐藏任务栏小组件按钮", "去掉任务栏左下角的天气 / 小组件按钮（直接改任务栏值，不走策略）。",
+                "HKCU", ADV, "TaskbarDa", 0, -1, false, true));
+
+            L.Add(Multi("系统性能", "关闭远程协助与远程桌面", "别人无法远程连到这台电脑；本机照常可以远程连出去。",
+                "HKLM\\SYSTEM\\...\\Control\\{Remote Assistance, Terminal Server} → fAllowToGetHelp = 0 / fDenyTSConnections = 1",
+                new (string Root, string Path, string Value, int On)[] {
+                    ("HKLM", "SYSTEM\\CurrentControlSet\\Control\\Remote Assistance", "fAllowToGetHelp", 0),
+                    ("HKLM", "SYSTEM\\CurrentControlSet\\Control\\Terminal Server", "fDenyTSConnections", 1),
+                }, true, false,
+                "关闭后这台电脑不再接受远程协助邀请，也不再接受远程桌面连接。如果平时靠远程桌面操作这台机器，勾选后会连不上。确认继续吗？"));
+
+            L.Add(Cmd("Windows 更新", "锁定当前大版本（不升到下一个版本）", "把功能更新钉在当前版本上，安全补丁和小版本更新照常安装。",
+                delegate
+                {
+                    return ReadDword("HKLM", "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate", "TargetReleaseVersion") == 1;
+                },
+                delegate(bool on)
+                {
+                    string p = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate";
+                    if (on)
+                    {
+                        WriteDword("HKLM", p, "TargetReleaseVersion", 1);
+                        // 值必须是「24H2」这种显示版本号，写错系统会忽略整条策略
+                        string ver = ReadString("HKLM", "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "DisplayVersion");
+                        if (string.IsNullOrEmpty(ver)) ver = "24H2";
+                        WriteString("HKLM", p, "TargetReleaseVersionInfo", ver);
+                    }
+                    else
+                    {
+                        DeleteValue("HKLM", p, "TargetReleaseVersion");
+                        DeleteValue("HKLM", p, "TargetReleaseVersionInfo");
+                    }
+                }, true, false, "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate → TargetReleaseVersion = 1 + TargetReleaseVersionInfo = 当前 DisplayVersion",
+                "锁定后系统不会自动升级到下一个大版本（比如 24H2 → 25H2），直到你手动取消。安全更新不受影响。确认继续吗？"));
+
+            L.Add(Dword("Windows 更新", "不推送恶意软件删除工具更新", "每月那条 KB890830 不再随 Windows 更新安装。",
+                "HKLM", "SOFTWARE\\Policies\\Microsoft\\MRT", "DontOfferThroughWUAU", 1, -1, true, false));
+
             return L;
         }
 
@@ -894,7 +1350,7 @@ namespace Win11Toolbox.SettingsKit
         /// <summary>
         /// 写入原语自检：在给定的临时键下把 Dword / String / 删除走一遍。
         ///
-        /// 这几条是全部 57 个设置项的公共出口，只要它们是对的，
+        /// 这几条是全部 65 个设置项的公共出口，只要它们是对的，
         /// 单个开关出问题就只剩「路径写错」一种可能，排查面小得多。
         /// </summary>
         /// <param name="path">临时键路径，调用方负责事后再删掉。</param>
