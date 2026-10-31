@@ -275,6 +275,40 @@ Win11ToolboxCS/
                                  + 右键菜单 / 托盘图标 / 轻松设置
 ```
 
+## 简洁版（`Simple/`）
+
+装机的时候要往 U 盘里塞一堆东西，69 MB 的完整版不方便，所以另做了一个只做「装完机要调的东西」的版本：
+
+| | 完整版 | 简洁版 |
+| --- | --- | --- |
+| 体积 | 69 MB（自包含）/ 16 MB（lite） | **245 KB**（框架依赖单文件） |
+| 依赖 | 无 / .NET 10 桌面运行时 | .NET 10 桌面运行时 |
+| 界面 | WPF-UI + Mica | 默认 WPF 控件，纯文字，无图标 |
+| 内容 | 十个页面 | 三个页签：设置（65 项）/ 工具（47 个）/ 入口（10 个） |
+| 权限 | 手动提权，页面里给「以管理员身份重启」 | 清单里直接 `requireAdministrator` |
+
+**代码不复制，链接主工程的源文件**（`<Compile Include="..\Services\..." Link="Shared\..." />`），
+改一处两边都生效。为此做了三处拆分：
+
+1. `Reg` 类从 `RightMenuCore.cs` 挪到 `Services/RightMenu/Reg.cs` —— 轻松设置要用它，
+   但简洁版不该为 60 行注册表封装把 2300 行右键菜单逻辑一起拖进来。
+2. `IsAdmin()` 单独拆成 `Services/Admin.cs`，同理（原来在 `RightMenuActions` 里）。
+3. `ToolCatalog.cs` 的图标部分用 `#if !SIMPLE` 圈起来 —— 那部分要 WPF-UI 的
+   `SymbolRegular` 和图标字体，简洁版只要清单数据和启动逻辑。简洁版工程里
+   `<DefineConstants>` 加了 `SIMPLE`。
+
+**主工程要把 `Simple/` 排除掉**：它在主工程目录里，默认的 `**/*.cs`、`**/*.xaml` 通配会
+把 `Simple/App.xaml` 一起吃进去，跟本工程的 `App.xaml` 抢 `ApplicationDefinition`。
+
+界面上的两个坑：
+
+- 列表的 `ItemsSource` **不能重建**（`= null` 再赋值）。那样每应用一项就把滚动位置打回顶部，
+  用户滚到中间点一下，列表跳回最上面。改成 `ObservableCollection` 原地增删。
+- 状态文字要**在载入时一起初始化**。只设 `IsOn` 不设 `StateText`，界面上就是一列「…」。
+
+`--selftest <日志>` 会检查设置项数量、逐项探测、工具与入口数量，并对「显示文件扩展名」
+做一次真实的写入往返（写完恢复原值），装完机跑一遍就知道这台机器能不能用。
+
 ## 功能对照（与 Python 版一致，另加风扇控制）
 
 | 页面 | 内容 |

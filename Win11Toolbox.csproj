@@ -52,5 +52,17 @@
   <ItemGroup Condition="Exists('tools\PawnIO_setup.exe')">
     <EmbeddedResource Include="tools\PawnIO_setup.exe" LogicalName="PawnIO_setup.exe" />
   </ItemGroup>
+  <!--
+    Simple\ 是独立的「简洁版」工程（自己的 csproj），但它在主工程目录里面，
+    默认的 **/*.cs、**/*.xaml 通配会把它一起吃进来 —— 尤其 Simple\App.xaml 会跟
+    本工程的 App.xaml 抢 ApplicationDefinition。这里整体排除掉。
+  -->
+  <ItemGroup>
+    <Compile Remove="Simple\**" />
+    <Page Remove="Simple\**" />
+    <ApplicationDefinition Remove="Simple\**" />
+    <Resource Remove="Simple\**" />
+    <None Remove="Simple\**" />
+  </ItemGroup>
 
 </Project>

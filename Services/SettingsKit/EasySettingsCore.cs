@@ -1424,7 +1424,7 @@ namespace Win11Toolbox.SettingsKit
         /// </summary>
         internal static void SelfTestMutate(string path, Action<bool, string> report)
         {
-            if (!RightMenuActions.IsAdmin())
+            if (!Admin.IsAdmin())
             {
                 report(true, "整键还原通道（跳过：需要管理员，RegSaveKey 要 SeBackupPrivilege）");
                 return;

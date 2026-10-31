@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+// 图标相关的两段代码用 #if !SIMPLE 圈起来了：简洁版（Simple/）链接同一个文件，
+// 但那里不带 WPF-UI 和图标字体，只要清单数据和启动逻辑。
+#if !SIMPLE
 using System.Windows.Media;
 using Wpf.Ui.Controls;
+#endif
 
 namespace Win11Toolbox.Services;
 
@@ -30,6 +34,7 @@ public sealed record ToolCategory(string Title, IReadOnlyList<ToolItem> Items);
 /// </summary>
 public static class ToolCatalog
 {
+#if !SIMPLE
     /// <summary>
     /// 每个工具对应的字形。名字即 <see cref="SymbolRegular"/> 的成员名（带 24 后缀）。
     /// 全部用 <c>--symbols</c> 校验过存在，写错的名字不会报错、只会显示空白，所以别手改。
@@ -138,6 +143,7 @@ public static class ToolCatalog
 
         return problems;
     }
+#endif
 
     private static string System32 => Environment.GetFolderPath(Environment.SpecialFolder.System);
 
@@ -212,6 +218,7 @@ public static class ToolCatalog
 
     public static int TotalCount => Categories.Sum(c => c.Items.Count);
 
+#if !SIMPLE
     /// <summary>用于取图标的真实文件路径。</summary>
     public static string? IconSource(ToolItem item)
     {
@@ -238,6 +245,7 @@ public static class ToolCatalog
         var source = IconSource(item);
         return source is null ? null : ShellIcon.FromPath(source);
     }
+#endif
 
     /// <summary>
     /// 协议 / URL / Shell 目标：交给 ShellExecute 打开，不按可执行文件去解析。

@@ -1,0 +1,96 @@
+<Window x:Class="Win11ToolboxSimple.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Win11 工具箱 · 简洁版" Height="660" Width="920"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Microsoft YaHei UI" FontSize="13"
+        UseLayoutRounding="True">
+    <DockPanel>
+        <StatusBar DockPanel.Dock="Bottom" Height="26">
+            <StatusBarItem>
+                <TextBlock x:Name="StatusText" Text="就绪" />
+            </StatusBarItem>
+        </StatusBar>
+
+        <TabControl Margin="6">
+
+            <!-- ==================== 设置 ==================== -->
+            <TabItem Header="  设置  ">
+                <DockPanel Margin="8">
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="搜索" VerticalAlignment="Center" />
+                        <TextBox x:Name="SearchBox" Width="180" Margin="6,0,0,0"
+                                 VerticalContentAlignment="Center" TextChanged="Filter_Changed" />
+                        <TextBlock Text="分类" VerticalAlignment="Center" Margin="14,0,0,0" />
+                        <ComboBox x:Name="CategoryCombo" Width="150" Margin="6,0,0,0"
+                                  VerticalContentAlignment="Center" SelectionChanged="Filter_Changed" />
+                        <Button Content="刷新状态" Margin="14,0,0,0" Padding="12,2" Click="Refresh_Click" />
+                        <TextBlock x:Name="CountHint" Margin="14,0,0,0" VerticalAlignment="Center" Foreground="#666" />
+                    </StackPanel>
+
+                    <ListBox x:Name="SettingList" BorderThickness="1"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             VirtualizingPanel.ScrollUnit="Pixel">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox Grid.Column="0" VerticalAlignment="Center"
+                                              IsChecked="{Binding IsOn, Mode=TwoWay}" Click="Row_Click" />
+                                    <StackPanel Grid.Column="1" Margin="10,0,10,0">
+                                        <TextBlock Text="{Binding Name}" />
+                                        <TextBlock Text="{Binding Desc}" Foreground="#666" FontSize="11"
+                                                   TextWrapping="Wrap" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="{Binding StateText}" MinWidth="62"
+                                               TextAlignment="Right" VerticalAlignment="Center"
+                                               Foreground="{Binding StateBrush}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </TabItem>
+
+            <!-- ==================== 工具 ==================== -->
+            <TabItem Header="  工具  ">
+                <DockPanel Margin="8">
+                    <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" Foreground="#666"
+                               Text="双击一行即可运行。共 47 个系统自带工具。" />
+                    <ListBox x:Name="ToolList" BorderThickness="1" MouseDoubleClick="ToolList_DoubleClick"
+                             VirtualizingPanel.ScrollUnit="Pixel">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,5">
+                                    <TextBlock Text="{Binding Name}" />
+                                    <TextBlock Text="{Binding Description}" Foreground="#666" FontSize="11"
+                                               Margin="0,2,0,0" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </TabItem>
+
+            <!-- ==================== 入口 ==================== -->
+            <TabItem Header="  入口  ">
+                <DockPanel Margin="8">
+                    <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" Foreground="#666"
+                               Text="双击一行即可打开。都是系统自带的设置页面和经典控制台项。" />
+                    <ListBox x:Name="LinkList" BorderThickness="1" MouseDoubleClick="LinkList_DoubleClick">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}" Margin="0,6" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </TabItem>
+
+        </TabControl>
+    </DockPanel>
+</Window>

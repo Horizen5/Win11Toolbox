@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    简洁版：只做装机之后最常做的那几件事 —— 系统开关、系统工具、常用入口。
+    不引用任何第三方包（不带 WPF-UI、不带 LibreHardwareMonitor），界面全部是纯文字，
+    所以整包只有 1 MB 出头，装机时用 U 盘拷过去最省事。
+
+    逻辑层不复制代码，直接链接主工程的源文件，改一处两边都生效。
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Win11Toolbox-Simple</AssemblyName>
+    <RootNamespace>Win11ToolboxSimple</RootNamespace>
+    <Version>1.1.1</Version>
+    <AssemblyTitle>Win11 工具箱 · 简洁版</AssemblyTitle>
+    <Product>Win11 工具箱 · 简洁版</Product>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <!-- ToolCatalog.cs 里的图标代码靠这个开关裁掉 -->
+    <DefineConstants>$(DefineConstants);SIMPLE</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PublishSingleFile>true</PublishSingleFile>
+    <!-- 框架依赖发布不支持单文件压缩（会报 NETSDK1176），这里显式关掉 -->
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+    <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Services\SettingsKit\EasySettingsCore.cs" Link="Shared\EasySettingsCore.cs" />
+    <Compile Include="..\Services\RightMenu\Reg.cs" Link="Shared\Reg.cs" />
+    <Compile Include="..\Services\Admin.cs" Link="Shared\Admin.cs" />
+    <Compile Include="..\Services\ToolCatalog.cs" Link="Shared\ToolCatalog.cs" />
+  </ItemGroup>
+
+</Project>
