@@ -84,6 +84,11 @@ public partial class MainWindow : Window
         StartupTrace.Mark("MainWindow ctor 进入");
         InitializeComponent();
         StartupTrace.Mark("InitializeComponent 完成");
+
+        // 标题栏带版本号：光看界面分不出新旧，只能去右键属性里翻。
+        // 版本号从 AppInfo 取（唯一来源是 csproj 的 <Version>）。
+        Title = "Win11 工具箱 · 简洁版 v" + AppInfo.Version;
+
         SettingList.ItemsSource = _view;
         Loaded += OnLoaded;
     }

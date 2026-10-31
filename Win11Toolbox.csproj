@@ -8,7 +8,7 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>Win11Toolbox</AssemblyName>
     <RootNamespace>Win11Toolbox</RootNamespace>
-    <Version>1.1.3</Version>
+    <Version>1.1.4</Version>
     <AssemblyTitle>Win11 工具箱</AssemblyTitle>
     <Product>Win11 工具箱</Product>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>

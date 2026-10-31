@@ -20,7 +20,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <ui:TitleBar Grid.Row="0" Title="Win11 工具箱" ShowMaximize="True" ShowMinimize="True" />
+        <ui:TitleBar x:Name="Bar" Grid.Row="0" Title="Win11 工具箱" ShowMaximize="True" ShowMinimize="True" />
 
         <ui:NavigationView
             x:Name="Nav"

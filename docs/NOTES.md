@@ -887,6 +887,14 @@ File name: 'System.Diagnostics.Tracing, Version=10.0.0.0, …'
 csproj 里 `<Version>1.1.0</Version>`，`Services/AppInfo.cs` 读程序集的
 `InformationalVersion`（去掉 `+commit` 后缀），设置页和关于页都从它取。以前两处硬编码 `1.0.0`。
 
+标题栏也带上版本号（`MainWindow` 构造里 `Title = "Win11 工具箱 v" + AppInfo.Version`）。
+起因是发完版之后分不出跑的是新的还是旧的——窗口标题和文件名都不带版本，
+只能去右键属性里翻 `FileVersion`。**简洁版也链接了同一个 `AppInfo.cs`，别另写一个版本类**：
+一开始我给简洁版单独写了个 `AppVersion`，两处版本来源，正是这条要防的事。
+
+发版时桌面上的文件也带版本号：`Win11工具箱 v1.1.4.exe` / `Win11工具箱-简洁版 v1.1.4.exe`，
+旧版挪进工程目录留档，不在桌面留同名旧文件。
+
 ### 启动模式判定
 
 原来靠 `Directory.Exists("C:\Windows\Boot\EFI")` 猜 UEFI，系统装在 D 盘或 EFI 分区没挂到那个路径就误判。

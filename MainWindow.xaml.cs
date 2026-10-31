@@ -26,6 +26,11 @@ public partial class MainWindow : FluentWindow
         InitializeComponent();
         StartupTrace.Mark("InitializeComponent 完成");
 
+        // 标题栏带版本号：不带的话换了一版根本看不出跑的是新的还是旧的。
+        // 版本号从 AppInfo 取（唯一来源是 csproj 的 <Version>），不在这里硬编码。
+        Title = "Win11 工具箱 v" + AppInfo.Version;
+        Bar.Title = Title;
+
         Loaded += OnLoaded;
         Nav.SelectionChanged += Nav_SelectionChanged;
 
