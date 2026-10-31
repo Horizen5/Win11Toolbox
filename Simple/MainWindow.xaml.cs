@@ -89,9 +89,15 @@ public partial class MainWindow : Window
     // ------------------------------------------------------------------ 载入
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        StatusText.Text = Win11Toolbox.Admin.IsAdmin()
-            ? "管理员模式"
-            : "普通权限：写 HKLM 的项会失败，请右键以管理员身份运行";
+        if (Win11Toolbox.Admin.IsAdmin())
+        {
+            StatusText.Text = "管理员模式";
+        }
+        else
+        {
+            StatusText.Text = "普通权限：写 HKLM 的项会失败，点右下角按钮提权重开";
+            ElevateButton.Visibility = Visibility.Visible;
+        }
 
         try
         {
@@ -259,5 +265,30 @@ public partial class MainWindow : Window
         StatusText.Text = EasySettingsData.LastError.Length > 0
             ? EasySettingsData.LastError
             : "已打开 " + link.Name;
+    }
+
+    // ------------------------------------------------------------------ 提权
+    private void Elevate_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string exe = Environment.ProcessPath ?? "";
+            if (exe.Length == 0)
+            {
+                StatusText.Text = "找不到自身路径，请手动右键「以管理员身份运行」";
+                return;
+            }
+
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe)
+            {
+                UseShellExecute = true,
+                Verb = "runas",
+            });
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = "提权失败：" + ex.Message;
+        }
     }
 }

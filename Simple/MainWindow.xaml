@@ -10,6 +10,10 @@
             <StatusBarItem>
                 <TextBlock x:Name="StatusText" Text="就绪" />
             </StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <Button x:Name="ElevateButton" Content="以管理员身份重新启动"
+                        Padding="10,0" Height="20" Visibility="Collapsed" Click="Elevate_Click" />
+            </StatusBarItem>
         </StatusBar>
 
         <TabControl Margin="6">

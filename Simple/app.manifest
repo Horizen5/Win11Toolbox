@@ -13,14 +13,11 @@
     </windowsSettings>
   </application>
   <!--
-    简洁版直接要管理员：65 项开关里有近一半写的是 HKLM，
-    装机场景本来就用管理员账户，省掉「以管理员身份重启」那一步。
+    这里**故意不写** requireAdministrator。
+
+    原因不是技术限制，是取舍：强制提权意味着启动多一道 UAC，而 UAC 被关掉的机器上
+    行为又各不相同。完整版一直是「不强制提权 + 界面提示 + 一键重启」，
+    简洁版沿用同一套，两个版本行为一致，也不会多出一个「双击之后什么都没发生」的入口。
+    没提权时状态栏右下角会出现「以管理员身份重新启动」按钮（见 MainWindow.xaml）。
   -->
-  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
-    <security>
-      <requestedPrivileges>
-        <requestedExecutionLevel level="requireAdministrator" uiAccess="false" />
-      </requestedPrivileges>
-    </security>
-  </trustInfo>
 </assembly>
