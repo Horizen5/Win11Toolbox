@@ -1093,7 +1093,13 @@ namespace Win11Toolbox.RightMenu
             "addlibrary","mapliben","restore","workfolders","scanwithwindowsdefender",
             "opencontainingfolder","openfolderlocation","shellhomegroup","homegroup",
             "windowsscanwithdefender","windowsdefenderscan","encrypt","efsdecrypt",
-            "removeproperties"
+            "removeproperties",
+            // 桌面空白处的系统项：加了「桌面空白处」这个扫描位置之后才需要，
+            // 不然「显示设置」「个性化」「贴纸」会被当成第三方项列出来，
+            // 用户勾一下就把 Windows 自己的菜单项禁掉了。
+            "display","personalize","editstickers","view","sortby","refresh",
+            "nextdesktopbackground","setdesktopbackground","slideshow","gadgets",
+            ".spotlightlearnmore",".spotlightnextimage"
         };
 
         public static bool IsSystemName(string name)
@@ -1678,15 +1684,20 @@ namespace Win11Toolbox.RightMenu
             List<ShellTarget> targets = new List<ShellTarget>();
 
             // 传统 shell 键
+            // 位置标签必须能区分「Directory」和「Folder」两个根：
+            // Directory 只对磁盘上的真实文件夹生效，Folder 对所有 shell 文件夹生效
+            // （回收站、此电脑、控制面板都算），两者原来都叫「文件夹」，
+            // 用户看到两行一模一样的标签，完全不知道差别在哪。
             string[] shellPaths = new string[] {
                 @"SOFTWARE\Classes\Directory\Background\shell",
                 @"SOFTWARE\Classes\Directory\shell",
                 @"SOFTWARE\Classes\*\shell",
                 @"SOFTWARE\Classes\Folder\shell",
                 @"SOFTWARE\Classes\Drive\shell",
-                @"SOFTWARE\Classes\AllFilesystemObjects\shell"
+                @"SOFTWARE\Classes\AllFilesystemObjects\shell",
+                @"SOFTWARE\Classes\DesktopBackground\Shell"
             };
-            string[] shellCats = new string[] { "文件夹空白处", "文件夹", "文件", "文件夹", "驱动器", "所有对象" };
+            string[] shellCats = new string[] { "文件夹空白处", "文件夹", "文件", "所有文件夹", "驱动器", "所有对象", "桌面空白处" };
 
             for (int i = 0; i < shellPaths.Length; i++)
                 foreach (string r in roots)
@@ -1704,9 +1715,10 @@ namespace Win11Toolbox.RightMenu
                 @"SOFTWARE\Classes\Directory\Background\shellex\ContextMenuHandlers",
                 @"SOFTWARE\Classes\Folder\shellex\ContextMenuHandlers",
                 @"SOFTWARE\Classes\Drive\shellex\ContextMenuHandlers",
-                @"SOFTWARE\Classes\AllFilesystemObjects\shellex\ContextMenuHandlers"
+                @"SOFTWARE\Classes\AllFilesystemObjects\shellex\ContextMenuHandlers",
+                @"SOFTWARE\Classes\DesktopBackground\shellex\ContextMenuHandlers"
             };
-            string[] exCats = new string[] { "文件", "文件夹", "文件夹空白处", "文件夹", "驱动器", "所有对象" };
+            string[] exCats = new string[] { "文件", "文件夹", "文件夹空白处", "所有文件夹", "驱动器", "所有对象", "桌面空白处" };
             for (int i = 0; i < exPaths.Length; i++)
                 foreach (string r in roots)
                     targets.Add(new ShellTarget(exCats[i], r, exPaths[i], true));
@@ -2145,7 +2157,8 @@ namespace Win11Toolbox.RightMenu
             string p = path.ToLowerInvariant();
             if (p.IndexOf(@"\directory\background\shell\") >= 0) return "文件夹空白处";
             if (p.IndexOf(@"\allfilesystemobjects\shell\") >= 0) return "所有对象";
-            if (p.IndexOf(@"\folder\shell\") >= 0) return "文件夹";
+            if (p.IndexOf(@"\desktopbackground\shell\") >= 0) return "桌面空白处";
+            if (p.IndexOf(@"\folder\shell\") >= 0) return "所有文件夹";
             if (p.IndexOf(@"\directory\shell\") >= 0) return "文件夹";
             if (p.IndexOf(@"\drive\shell\") >= 0) return "驱动器";
             if (p.IndexOf(@"\*\shell\") >= 0) return "文件";
@@ -2154,6 +2167,50 @@ namespace Win11Toolbox.RightMenu
             if (p.IndexOf(ThisPcClsid.ToLowerInvariant()) >= 0) return "此电脑";
             if (p.IndexOf(RecycleClsid.ToLowerInvariant()) >= 0) return "回收站";
             return "（来自备份）";
+        }
+
+        /// <summary>
+        /// 「出现位置」这一列每个值到底是什么意思 —— 界面上的表头提示和每行悬停提示都用它。
+        ///
+        /// <para>
+        /// 这一列原来只有值没有解释，用户看不懂「文件夹空白处 / 文件夹 / 驱动器」这些词，
+        /// 更看不懂为什么同一个软件会连着出现四行。真正的原因是：
+        /// <b>右键菜单是按注册表根分别注册的</b>，一个软件想在四个地方出现，就得写四份，
+        /// 四份可以各自单独禁用，所以必须分列成四行，不能合并。
+        /// </para>
+        /// </summary>
+        public static string CategoryHint(string cat)
+        {
+            switch (cat)
+            {
+                case "文件":
+                    return "在任何文件上右键（通配 *）。";
+                case "文件夹":
+                    return "在磁盘上的文件夹上右键（Directory）。只对真实文件夹生效。";
+                case "文件夹空白处":
+                    return "打开一个文件夹、在里面的空白处右键（Directory\\Background）。";
+                case "所有文件夹":
+                    return "对所有「外壳文件夹」生效（Folder）：磁盘文件夹、回收站、此电脑、控制面板、网络位置都算。"
+                         + "\n回收站右键里出现第三方菜单，通常就是注册在这里 —— 禁用这一行，回收站里也会一起消失。";
+                case "驱动器":
+                    return "在 C:、D: 这类盘符上右键（Drive）。";
+                case "所有对象":
+                    return "对文件和文件夹都生效（AllFilesystemObjects），范围比「文件」「文件夹」都宽。";
+                case "桌面空白处":
+                    return "在桌面空白处右键（DesktopBackground）。";
+                case "此电脑":
+                    return "只在「此电脑」上右键，注册在它的 CLSID 下。";
+                case "此电脑图标":
+                    return "在「此电脑」里列出的磁盘图标上右键。";
+                case "回收站":
+                    return "只在回收站上右键，注册在回收站的 CLSID 下。";
+                case "桌面图标":
+                    return "在桌面图标上右键（注册在 Desktop\\NameSpace）。";
+                case "（来自备份）":
+                    return "这一条是从备份记录里读出来的，注册表里暂时找不到对应位置。";
+                default:
+                    return "";
+            }
         }
 
         // 把 disabled.tsv 里的历史记录补进扫描结果；

@@ -99,7 +99,8 @@
                 <ui:TextBlock FontTypography="Title" Text="右键菜单管理" />
                 <ui:TextBlock FontTypography="Body" Margin="0,4,0,0"
                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                              Text="勾选不想再看到的项 → 备份并禁用 → 重启资源管理器，随时可还原" />
+                              TextWrapping="Wrap"
+                              Text="勾选不想再看到的项 → 备份并禁用 → 重启资源管理器，随时可还原。同一软件常会同时注册在好几个位置，会分列成多行，每行可以单独禁用。" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <ui:Button Content="重新扫描" Appearance="Secondary" Icon="{ui:SymbolIcon ArrowSync24}"
@@ -187,7 +188,23 @@
                         <ui:TextBlock Grid.Column="2" FontTypography="Caption" Text="菜单名称"
                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         <ui:TextBlock Grid.Column="3" FontTypography="Caption" Text="出现位置"
-                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      ToolTipService.ShowDuration="60000">
+                            <ui:TextBlock.ToolTip>
+                                <TextBlock TextWrapping="Wrap" MaxWidth="460">
+                                    <Run FontWeight="SemiBold" Text="这一列是这个菜单项在哪个位置右键时出现。" /><LineBreak /><LineBreak />
+                                    <Run FontWeight="SemiBold" Text="文件" /><Run Text="　在任何文件上右键" /><LineBreak />
+                                    <Run FontWeight="SemiBold" Text="文件夹" /><Run Text="　在磁盘上的文件夹上右键" /><LineBreak />
+                                    <Run FontWeight="SemiBold" Text="文件夹空白处" /><Run Text="　打开文件夹，在里面的空白处右键" /><LineBreak />
+                                    <Run FontWeight="SemiBold" Text="所有文件夹" /><Run Text="　回收站、此电脑、控制面板这类也算文件夹，在这里注册的项会同时出现在它们身上" /><LineBreak />
+                                    <Run FontWeight="SemiBold" Text="驱动器" /><Run Text="　在 C:、D: 盘符上右键" /><LineBreak />
+                                    <Run FontWeight="SemiBold" Text="所有对象" /><Run Text="　文件和文件夹都算" /><LineBreak />
+                                    <Run FontWeight="SemiBold" Text="桌面空白处" /><Run Text="　在桌面空白处右键" /><LineBreak />
+                                    <Run FontWeight="SemiBold" Text="回收站 / 此电脑" /><Run Text="　只在那一个图标上右键" /><LineBreak /><LineBreak />
+                                    <Run Text="同一个软件出现好几行，是因为它在好几个位置各注册了一份，互不影响，可以只禁其中一个。" />
+                                </TextBlock>
+                            </ui:TextBlock.ToolTip>
+                        </ui:TextBlock>
                         <ui:TextBlock Grid.Column="4" FontTypography="Caption" Text="状态"
                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         <ui:TextBlock Grid.Column="5" FontTypography="Caption" Text="归属软件"

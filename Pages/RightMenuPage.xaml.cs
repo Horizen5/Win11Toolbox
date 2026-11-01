@@ -85,6 +85,8 @@ internal sealed class MenuRow : INotifyPropertyChanged
             sb.AppendLine("菜单名称：" + Model.DisplayName);
             sb.AppendLine("归属软件：" + (string.IsNullOrEmpty(Model.AppName) ? "(未识别)" : Model.AppName));
             sb.AppendLine("出现位置：" + Model.Category);
+            string catHint = Scanner.CategoryHint(Model.Category);
+            if (catHint.Length > 0) sb.AppendLine("　　" + catHint.Replace("\n", "\n　　"));
             sb.AppendLine("当前状态：" + Model.StatusText);
             sb.AppendLine("项目类型：" + RightMenuActions.KindText(Model.Kind));
             if (!string.IsNullOrEmpty(Model.Clsid)) sb.AppendLine("CLSID：" + Model.Clsid);
