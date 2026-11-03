@@ -209,6 +209,7 @@ public partial class FanPage : Page
         public Wpf.Ui.Controls.Button? Apply;
         public Canvas? Spark;
         public TextBlock? SparkNote;
+        public TextBox? RenameBox;
         public Border? BarFill;
         public bool Suppress;
 
@@ -224,6 +225,18 @@ public partial class FanPage : Page
     private const int HistoryLength = 60;
 
     private static string KeyOf(FanChannel fan) => fan.Hardware + "|" + fan.Name;
+
+    /// <summary>
+    /// 通道显示名：用户改过就用改过的，否则用芯片给的编号。
+    /// SuperIO 寄存器里没有 CPU_FAN / CHA_FAN 这种丝印名，读不出来，只能让用户标一次。
+    /// </summary>
+    private static string DisplayName(FanChannel fan)
+    {
+        var names = AppConfig.Current.FanNames;
+        return names.TryGetValue(KeyOf(fan), out var custom) && !string.IsNullOrWhiteSpace(custom)
+            ? custom
+            : fan.Name;
+    }
 
     private void BuildTiles(List<FanChannel> fans, int total)
     {
@@ -272,7 +285,7 @@ public partial class FanPage : Page
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            var name = UiTheme.Body(fan.Name);
+            var name = UiTheme.Body(DisplayName(fan));
             name.FontSize = 12;
             row.Children.Add(name);
 
@@ -321,12 +334,20 @@ public partial class FanPage : Page
         top.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         top.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        var name = UiTheme.BodyStrong(fan.Name);
+        var name = UiTheme.BodyStrong(DisplayName(fan));
         name.FontSize = 13;
         name.TextTrimming = TextTrimming.CharacterEllipsis;
         name.VerticalAlignment = VerticalAlignment.Bottom;
-        name.ToolTip = $"{fan.Name}\n{fan.Hardware}"
-                     + (fan.Controllable ? $"\n可写入范围 {fan.MinPercent:0}–{fan.MaxPercent:0}%" : "\n只读通道");
+        name.Cursor = System.Windows.Input.Cursors.Hand;
+        name.ToolTip = $"{DisplayName(fan)}（{fan.Name}）\n{fan.Hardware}"
+                     + (fan.Controllable ? $"\n可写入范围 {fan.MinPercent:0}–{fan.MaxPercent:0}%" : "\n只读通道")
+                     + "\n\n双击可以改名，比如「机箱」「CPU 双塔」";
+        name.MouseLeftButtonDown += (_, e) =>
+        {
+            if (e.ClickCount != 2) return;
+            e.Handled = true;
+            BeginRename(tile, name, top, fan);
+        };
         top.Children.Add(name);
 
         tile.Rpm = new TextBlock
@@ -534,6 +555,71 @@ public partial class FanPage : Page
             Content = root,
         };
         return tile;
+    }
+
+    /// <summary>双击通道名就地改名：回车保存，Esc 取消，点到别处也算保存。</summary>
+    private void BeginRename(Tile tile, TextBlock label, Grid host, FanChannel fan)
+    {
+        if (tile.RenameBox is not null) return;
+
+        var box = new TextBox
+        {
+            Text = label.Text,
+            FontSize = 13,
+            Padding = new Thickness(3, 0, 3, 0),
+            MinWidth = 110,
+            VerticalAlignment = VerticalAlignment.Bottom,
+        };
+        Grid.SetColumn(box, 0);
+        host.Children.Add(box);
+        label.Visibility = Visibility.Collapsed;
+        tile.RenameBox = box;
+
+        var finished = false;
+
+        void Finish(bool save)
+        {
+            if (finished) return;
+            finished = true;
+
+            var text = box.Text.Trim();
+            host.Children.Remove(box);
+            label.Visibility = Visibility.Visible;
+            tile.RenameBox = null;
+
+            if (!save) return;
+
+            // 改回原名或留空，就把这条自定义名删掉，别在配置里留垃圾
+            if (text.Length == 0 || text == fan.Name)
+                AppConfig.Current.FanNames.Remove(KeyOf(fan));
+            else
+                AppConfig.Current.FanNames[KeyOf(fan)] = text;
+
+            AppConfig.Current.Save();
+            label.Text = DisplayName(fan);
+            label.ToolTip = $"{DisplayName(fan)}（{fan.Name}）\n{fan.Hardware}"
+                          + "\n\n双击可以改名";
+        }
+
+        box.KeyDown += (_, e) =>
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                e.Handled = true;
+                Finish(true);
+            }
+            else if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                e.Handled = true;
+                Finish(false);
+            }
+        };
+        box.LostFocus += (_, _) => Finish(true);
+        box.Loaded += (_, _) =>
+        {
+            box.Focus();
+            box.SelectAll();
+        };
     }
 
     /// <summary>把历史采样画成一条趋势线，右侧对齐（数据不满时从右往左长）。</summary>

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -53,6 +54,12 @@ internal sealed class AppConfig
 
     /// <summary>最低转速（%）。</summary>
     public int FanCurveMin { get; set; } = 30;
+
+    /// <summary>
+    /// 风扇通道的自定义名。键是「芯片型号|通道名」，值是用户起的名字。
+    /// 主板丝印上的 CPU_FAN / CHA_FAN 读不到，只能让用户自己标一次，之后记住。
+    /// </summary>
+    public Dictionary<string, string> FanNames { get; set; } = new();
 
     // ------------------------------------------------------------------ 页面键
     public static string KeyOf(Type pageType)
