@@ -27,3 +27,6 @@ desktop.ini
 
 # 提交信息临时文件（git commit -F 用，别进库）
 .commitmsg.txt
+
+# 临时截图目录（--navshot 的产物，不入库）
+/_shots/

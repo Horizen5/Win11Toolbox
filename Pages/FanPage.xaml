@@ -30,19 +30,6 @@
                            Visibility="Collapsed" Margin="0,0,10,0" Click="StatusAction_Click" />
             </Grid>
 
-            <ui:Card Padding="16">
-                <StackPanel Orientation="Horizontal">
-                    <ui:SymbolIcon Symbol="Gauge24" FontSize="20" Margin="0,0,10,0"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
-                    <ui:TextBlock FontTypography="BodyStrong" Text="快捷预设" VerticalAlignment="Center" />
-                    <ui:Button Content="静音" Appearance="Secondary" Margin="18,0,8,0" Click="PresetQuiet_Click" />
-                    <ui:Button Content="均衡" Appearance="Secondary" Margin="0,0,8,0" Click="PresetBalanced_Click" />
-                    <ui:Button Content="全速" Margin="0,0,8,0" Click="PresetMax_Click" />
-                    <ui:Button Content="全部自动" Appearance="Secondary" Click="PresetAuto_Click" />
-                </StackPanel>
-            </ui:Card>
-
             <ui:Card Padding="18">
                 <StackPanel>
                     <Grid>
@@ -52,15 +39,24 @@
                                            Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
                             <ui:TextBlock FontTypography="BodyStrong" Text="风扇曲线" VerticalAlignment="Center" />
                         </StackPanel>
-                        <ui:ToggleSwitch x:Name="CurveToggle" Content="启用" HorizontalAlignment="Right"
-                                         VerticalAlignment="Center"
-                                         Checked="CurveToggle_Changed" Unchecked="CurveToggle_Changed" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <ui:ToggleSwitch x:Name="CurveToggle" Content="启用"
+                                             VerticalAlignment="Center"
+                                             Checked="CurveToggle_Changed" Unchecked="CurveToggle_Changed" />
+                            <!-- 收起后风扇区能整体上移，多风扇的机器一屏就能看全 -->
+                            <ui:Button x:Name="CurveFold" Appearance="Transparent" Margin="10,0,0,0"
+                                       Padding="6" ToolTip="展开曲线" Click="CurveFold_Click">
+                                <ui:SymbolIcon x:Name="CurveFoldIcon" Symbol="ChevronDown24" FontSize="14" />
+                            </ui:Button>
+                        </StackPanel>
                     </Grid>
 
                     <ui:TextBlock x:Name="CurveSummary" FontTypography="Caption" Margin="30,4,0,0"
                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                   Text="按最高温度自动调节转速：低温静音，高温全速。" />
 
+                    <!-- 默认收起：风扇多的时候，曲线一展开就把卡片全挤到屏幕外 -->
+                    <StackPanel x:Name="CurveBody" Visibility="Collapsed">
                     <Border Margin="0,12,0,0" Height="164" CornerRadius="8"
                             Background="{DynamicResource ControlFillColorDefaultBrush}"
                             BorderThickness="1"
@@ -104,11 +100,31 @@
                                     ValueChanged="CurveValue_Changed" />
                         </StackPanel>
                     </Grid>
+                    </StackPanel>
                 </StackPanel>
             </ui:Card>
 
-            <ui:TextBlock FontTypography="BodyStrong" Text="风扇" Margin="2,6,0,0" />
-            <controls:SpacingStackPanel x:Name="FanPanel" Spacing="10" />
+            <!-- 预设按钮并到风扇标题行：原本独占一张卡片，白白吃掉一整行高度 -->
+            <Grid Margin="2,6,0,0">
+                <ui:TextBlock FontTypography="BodyStrong" Text="风扇" VerticalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <ui:TextBlock FontTypography="Caption" Text="快捷预设" VerticalAlignment="Center"
+                                  Margin="0,0,10,0"
+                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <ui:Button Content="静音" Appearance="Secondary" Padding="12,3,12,4" FontSize="12"
+                               Margin="0,0,6,0" Click="PresetQuiet_Click" />
+                    <ui:Button Content="均衡" Appearance="Secondary" Padding="12,3,12,4" FontSize="12"
+                               Margin="0,0,6,0" Click="PresetBalanced_Click" />
+                    <ui:Button Content="全速" Padding="12,3,12,4" FontSize="12"
+                               Margin="0,0,6,0" Click="PresetMax_Click" />
+                    <ui:Button Content="全部自动" Appearance="Secondary" Padding="12,3,12,4" FontSize="12"
+                               Click="PresetAuto_Click" />
+                </StackPanel>
+            </Grid>
+
+            <!-- 网格排列：每个风扇一张固定宽度的小卡，而不是一张占满整行的长条。
+                 8 个风扇时纵向卡片要滚 8 屏，网格三列一屏就能看全。 -->
+            <WrapPanel x:Name="FanPanel" />
 
             <ui:Card x:Name="EmptyCard" Padding="16" Visibility="Collapsed">
                 <ui:TextBlock x:Name="EmptyText" FontTypography="Body" TextWrapping="Wrap"

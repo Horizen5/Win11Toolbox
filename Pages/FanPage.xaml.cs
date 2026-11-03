@@ -170,14 +170,25 @@ public partial class FanPage : Page
         public Wpf.Ui.Controls.Card Card = null!;
         public FanChannel Channel = null!;
         public TextBlock Rpm = null!;
+        public TextBlock Unit = null!;
         public TextBlock Percent = null!;
         public Slider? Slider;
         public Wpf.Ui.Controls.Button? Apply;
+        public Canvas? Spark;
+        public TextBlock? SparkNote;
+        public Border? BarFill;
         public bool Suppress;
 
         /// <summary>用户动过滑块但还没点「应用」——这时不要被定时刷新覆盖。</summary>
         public bool Dirty;
+
+        /// <summary>最近若干个转速采样，用来画趋势线。2 秒一个点，60 点 = 2 分钟。</summary>
+        public readonly List<float> History = new();
     }
+
+    // 卡片宽度：1240 窗口减去侧栏与内边距后约 950，288 宽正好排三列。
+    private const double TileWidth = 288;
+    private const int HistoryLength = 60;
 
     private static string KeyOf(FanChannel fan) => fan.Hardware + "|" + fan.Name;
 
@@ -191,12 +202,20 @@ public partial class FanPage : Page
 
     private void BuildTiles(List<FanChannel> fans)
     {
+        // 重建时把旧的转速历史接过来，否则每次刷新曲线都会断掉
+        var old = new Dictionary<string, List<float>>(StringComparer.Ordinal);
+        foreach (var pair in _tiles)
+            old[pair.Key] = pair.Value.History;
+
         FanPanel.Children.Clear();
         _tiles.Clear();
 
         foreach (var fan in fans)
         {
             var tile = BuildTile(fan);
+            if (old.TryGetValue(KeyOf(fan), out var history))
+                tile.History.AddRange(history);
+
             _tiles[KeyOf(fan)] = tile;
             FanPanel.Children.Add(tile.Card);
         }
@@ -210,49 +229,112 @@ public partial class FanPage : Page
         }
     }
 
+    /// <summary>
+    /// 单个风扇卡片。布局参考 FanControl 的 Controls 卡片：名称与实时转速同行，
+    /// 下面是趋势线、滑块与操作按钮，所有信息压在一张 288×150 的卡里。
+    /// </summary>
     private Tile BuildTile(FanChannel fan)
     {
         var tile = new Tile { Channel = fan };
-
         var root = new StackPanel();
 
-        // 标题行：图标 + 名称 + 转速
-        var header = new Grid();
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-        header.Children.Add(new Wpf.Ui.Controls.SymbolIcon
-        {
-            Symbol = Wpf.Ui.Controls.SymbolRegular.Gauge24,
-            FontSize = 22,
-            Margin = new Thickness(0, 0, 12, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-            Foreground = UiTheme.Accent,
-        });
+        // ---- 第一行：名称 + 转速数值（数字用等宽字形，刷新时不会左右跳）
+        var top = new Grid();
+        top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        top.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        top.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         var name = UiTheme.BodyStrong(fan.Name);
-        name.VerticalAlignment = VerticalAlignment.Center;
+        name.FontSize = 13;
         name.TextTrimming = TextTrimming.CharacterEllipsis;
-        Grid.SetColumn(name, 1);
-        header.Children.Add(name);
+        name.VerticalAlignment = VerticalAlignment.Bottom;
+        name.ToolTip = $"{fan.Name}\n{fan.Hardware}"
+                     + (fan.Controllable ? $"\n可写入范围 {fan.MinPercent:0}–{fan.MaxPercent:0}%" : "\n只读通道");
+        top.Children.Add(name);
 
-        tile.Rpm = UiTheme.Body("— RPM");
-        tile.Rpm.FontWeight = FontWeights.SemiBold;
-        tile.Rpm.VerticalAlignment = VerticalAlignment.Center;
-        Grid.SetColumn(tile.Rpm, 2);
-        header.Children.Add(tile.Rpm);
+        tile.Rpm = new TextBlock
+        {
+            Text = "—",
+            FontSize = 19,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = UiTheme.TextPrimary,
+            VerticalAlignment = VerticalAlignment.Bottom,
+        };
+        System.Windows.Documents.Typography.SetNumeralAlignment(
+            tile.Rpm, System.Windows.FontNumeralAlignment.Tabular);
+        Grid.SetColumn(tile.Rpm, 1);
+        top.Children.Add(tile.Rpm);
 
-        root.Children.Add(header);
+        var unit = UiTheme.Caption("RPM");
+        unit.FontSize = 10;
+        unit.VerticalAlignment = VerticalAlignment.Bottom;
+        unit.Margin = new Thickness(3, 0, 0, 3);
+        Grid.SetColumn(unit, 2);
+        top.Children.Add(unit);
+        tile.Unit = unit;
+        root.Children.Add(top);
 
-        var caption = UiTheme.Caption($"{fan.Hardware} · {(fan.Controllable ? "可调速" : "仅监测")}");
-        caption.Margin = new Thickness(34, 2, 0, 10);
-        caption.Foreground = UiTheme.TextSecondary;
-        root.Children.Add(caption);
+        // ---- 第二行：芯片型号 + 是否可调速
+        var meta = new Grid { Margin = new Thickness(0, 1, 0, 0) };
+        meta.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        meta.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var hardware = UiTheme.Caption(fan.Hardware);
+        hardware.FontSize = 11;
+        hardware.TextTrimming = TextTrimming.CharacterEllipsis;
+        meta.Children.Add(hardware);
+
+        var badge = new Border
+        {
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(6, 1, 6, 2),
+            Background = UiTheme.Brush("SubtleFillColorSecondaryBrush", Brushes.Transparent),
+            Child = new TextBlock
+            {
+                Text = fan.Controllable ? "可调速" : "仅监测",
+                FontSize = 10,
+                Foreground = fan.Controllable ? UiTheme.Accent : UiTheme.TextSecondary,
+            },
+        };
+        Grid.SetColumn(badge, 1);
+        meta.Children.Add(badge);
+        root.Children.Add(meta);
+
+        // ---- 第三行：最近两分钟的转速趋势；没有转速时这里放一行状态说明，
+        //      否则空通道的卡片上半截就是一块白，看着像没加载出来。
+        var sparkHost = new Grid
+        {
+            Width = TileWidth - 28,
+            Height = 22,
+            Margin = new Thickness(0, 8, 0, 0),
+            ClipToBounds = true,
+        };
+
+        var spark = new Canvas
+        {
+            Width = TileWidth - 28,
+            Height = 22,
+            Background = Brushes.Transparent,
+        };
+        sparkHost.Children.Add(spark);
+        tile.Spark = spark;
+
+        tile.SparkNote = new TextBlock
+        {
+            FontSize = 11,
+            Foreground = UiTheme.TextSecondary,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            Visibility = Visibility.Collapsed,
+        };
+        sparkHost.Children.Add(tile.SparkNote);
+        root.Children.Add(sparkHost);
 
         if (fan.Controllable)
         {
-            var row = new Grid { Margin = new Thickness(34, 0, 0, 0) };
+            // ---- 第四行：滑块 + 百分比
+            var row = new Grid { Margin = new Thickness(0, 4, 0, 0) };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
@@ -264,7 +346,7 @@ public partial class FanPage : Page
                 IsSnapToTickEnabled = true,
                 Value = Math.Clamp(fan.Percent ?? 50, 0, 100),
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 12, 0),
+                Margin = new Thickness(0, 0, 10, 0),
             };
             slider.ValueChanged += (_, _) =>
             {
@@ -277,25 +359,28 @@ public partial class FanPage : Page
             tile.Slider = slider;
 
             tile.Percent = UiTheme.Body($"{slider.Value:0}%");
-            tile.Percent.MinWidth = 44;
+            tile.Percent.FontSize = 12;
+            tile.Percent.MinWidth = 34;
             tile.Percent.TextAlignment = TextAlignment.Right;
             tile.Percent.VerticalAlignment = VerticalAlignment.Center;
             Grid.SetColumn(tile.Percent, 1);
             row.Children.Add(tile.Percent);
             root.Children.Add(row);
 
+            // ---- 第五行：自动 / 应用
             var buttons = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(34, 10, 0, 0),
+                Margin = new Thickness(0, 6, 0, 0),
             };
 
             var auto = new Wpf.Ui.Controls.Button
             {
                 Content = "自动",
                 Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary,
-                Padding = new Thickness(14, 5, 14, 5),
+                Padding = new Thickness(12, 3, 12, 4),
+                FontSize = 12,
             };
             auto.Click += async (_, _) =>
             {
@@ -308,8 +393,9 @@ public partial class FanPage : Page
             var apply = new Wpf.Ui.Controls.Button
             {
                 Content = "应用",
-                Padding = new Thickness(14, 5, 14, 5),
-                Margin = new Thickness(8, 0, 0, 0),
+                Padding = new Thickness(12, 3, 12, 4),
+                FontSize = 12,
+                Margin = new Thickness(6, 0, 0, 0),
             };
             apply.Click += async (_, _) =>
             {
@@ -327,13 +413,118 @@ public partial class FanPage : Page
             root.Children.Add(buttons);
             tile.Apply = apply;
         }
+        else
+        {
+            // 只读通道：用一条细进度条代替滑块，同样能看出当前占空比
+            var track = new Border
+            {
+                Height = 4,
+                CornerRadius = new CornerRadius(2),
+                Margin = new Thickness(0, 12, 0, 0),
+                Background = UiTheme.Brush("ControlFillColorSecondaryBrush", Brushes.Transparent),
+            };
+            var fill = new Border
+            {
+                Height = 4,
+                Width = 0,
+                CornerRadius = new CornerRadius(2),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Background = UiTheme.Accent,
+                Opacity = 0.55,
+            };
+            var layer = new Grid();
+            layer.Children.Add(track);
+            layer.Children.Add(fill);
+            root.Children.Add(layer);
+            tile.BarFill = fill;
+
+            var note = UiTheme.Caption("BIOS 控制，软件不可调速");
+            note.FontSize = 11;
+            note.Margin = new Thickness(0, 8, 0, 0);
+            root.Children.Add(note);
+        }
 
         tile.Card = new Wpf.Ui.Controls.Card
         {
-            Padding = new Thickness(16, 14, 16, 14),
+            Width = TileWidth,
+            MinHeight = 140,
+            Padding = new Thickness(14, 12, 14, 12),
+            Margin = new Thickness(0, 0, 8, 8),
             Content = root,
         };
         return tile;
+    }
+
+    /// <summary>把历史采样画成一条趋势线，右侧对齐（数据不满时从右往左长）。</summary>
+    private void DrawSpark(Tile tile)
+    {
+        if (tile.Spark is null) return;
+
+        var canvas = tile.Spark;
+        canvas.Children.Clear();
+
+        var values = tile.History;
+        double width = canvas.Width;
+        double height = canvas.Height;
+
+        // 没有采样时画一条贴底的基线，让卡片这一块不是纯白
+        if (values.Count < 2)
+        {
+            canvas.Children.Add(new System.Windows.Shapes.Line
+            {
+                X1 = 0, X2 = width,
+                Y1 = height - 1.5, Y2 = height - 1.5,
+                Stroke = UiTheme.Brush("ControlStrokeColorDefaultBrush", Brushes.Gray),
+                StrokeThickness = 1,
+                StrokeDashArray = new DoubleCollection { 2, 3 },
+            });
+            return;
+        }
+
+        // 上下各留 2 px，避免线贴着边被裁掉
+        double top = 2, bottom = height - 2;
+
+        // 窗口至少 300 RPM 高，否则风扇轻微波动会被放大成剧烈起伏
+        float min = values.Min();
+        float max = values.Max();
+        float span = max - min;
+        if (span < 300f)
+        {
+            var mid = (max + min) / 2;
+            min = mid - 150f;
+            max = mid + 150f;
+            span = 300f;
+        }
+
+        var count = Math.Min(values.Count, HistoryLength);
+        var start = values.Count - count;
+
+        var points = new PointCollection(count);
+        for (var i = 0; i < count; i++)
+        {
+            var v = Math.Clamp(values[start + i], min, max);
+            var x = width - (count - 1 - i) * (width / (HistoryLength - 1));
+            var y = bottom - (v - min) / span * (bottom - top);
+            points.Add(new Point(x, y));
+        }
+
+        // 线下方填一层淡色，卡片不至于太空
+        var area = new Polygon
+        {
+            Points = new PointCollection(points) { new Point(points[^1].X, height), new Point(points[0].X, height) },
+            Fill = UiTheme.Accent,
+            Opacity = 0.10,
+        };
+        canvas.Children.Add(area);
+
+        canvas.Children.Add(new Polyline
+        {
+            Points = points,
+            Stroke = UiTheme.Accent,
+            StrokeThickness = 1.4,
+            StrokeLineJoin = PenLineJoin.Round,
+            Opacity = 0.85,
+        });
     }
 
     private void SyncTiles(List<FanChannel> fans)
@@ -344,9 +535,45 @@ public partial class FanPage : Page
 
             // 用最新快照里的通道（其中的写入句柄是稳定的）
             tile.Channel = fan;
-            tile.Rpm.Text = fan.Rpm is null ? "— RPM"
+
+            var rpm = fan.Rpm ?? 0;
+            tile.Rpm.FontSize = rpm <= 0 ? 14 : 19;
+            tile.Rpm.Text = fan.Rpm is null ? "—"
                           : fan.Rpm <= 0 ? "停转"
-                          : $"{fan.Rpm:0} RPM";
+                          : $"{fan.Rpm:0}";
+            // 「停转 RPM」这种拼接读着别扭，单位跟着数值一起藏
+            tile.Unit.Visibility = rpm > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+            // 空通道：设定值有、转速读不到。这个矛盾必须写出来，
+            // 否则用户看到「67% + 停转」只会以为软件坏了。
+            if (tile.SparkNote is not null)
+            {
+                var stopped = rpm <= 0;
+                tile.SparkNote.Visibility = stopped ? Visibility.Visible : Visibility.Collapsed;
+                if (stopped)
+                    tile.SparkNote.Text = fan.Percent is > 0
+                        ? $"设定 {fan.Percent:0}%，无转速"
+                        : "无转速";
+            }
+
+            // 趋势线只在转起来的时候记，停转期间一条平线没有信息量
+            if (fan.Rpm is > 0)
+            {
+                // 新卡片先按当前值铺满，否则刚开始只有一两个点，卡片上半截是空的
+                if (tile.History.Count == 0)
+                    for (var i = 0; i < HistoryLength; i++) tile.History.Add(fan.Rpm.Value);
+
+                tile.History.Add(fan.Rpm.Value);
+                if (tile.History.Count > HistoryLength * 2)
+                    tile.History.RemoveRange(0, tile.History.Count - HistoryLength);
+            }
+            DrawSpark(tile);
+
+            if (tile.BarFill is not null)
+            {
+                var pct = Math.Clamp(fan.Percent ?? 0, 0, 100);
+                tile.BarFill.Width = (TileWidth - 28) * pct / 100.0;
+            }
 
             if (tile.Slider is null || tile.Dirty || tile.Slider.IsMouseCaptureWithin)
                 continue;
@@ -662,6 +889,17 @@ public partial class FanPage : Page
 
         _curveEnabled = cfg.FanCurve;
         UpdateCurveLabels();
+    }
+
+    /// <summary>收起 / 展开曲线编辑区。风扇多的时候收起来，一屏就能看全所有卡片。</summary>
+    private void CurveFold_Click(object sender, RoutedEventArgs e)
+    {
+        var collapse = CurveBody.Visibility == Visibility.Visible;
+        CurveBody.Visibility = collapse ? Visibility.Collapsed : Visibility.Visible;
+        CurveFoldIcon.Symbol = collapse
+            ? Wpf.Ui.Controls.SymbolRegular.ChevronDown24
+            : Wpf.Ui.Controls.SymbolRegular.ChevronUp24;
+        CurveFold.ToolTip = collapse ? "展开曲线" : "收起曲线";
     }
 
     private void CurveToggle_Changed(object sender, RoutedEventArgs e)
