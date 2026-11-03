@@ -256,6 +256,18 @@ public partial class App : Application
 
         // --appdump <txt>：把「应用管理」依赖的 winget / Appx 查询结果落盘，
         //                  验证 tab 分隔解析、预装包版本段提取、ID 匹配
+        // --fandump <txt>：把风扇通道原样打出来，用来区分「接了风扇」和「只有接口」
+        var fanIndex = Array.IndexOf(Environment.GetCommandLineArgs(), "--fandump");
+        if (fanIndex >= 0)
+        {
+            var a = Environment.GetCommandLineArgs();
+            string log = fanIndex + 1 < a.Length && !a[fanIndex + 1].StartsWith("--", StringComparison.Ordinal)
+                ? a[fanIndex + 1]
+                : Path.Combine(AppContext.BaseDirectory, "fandump.txt");
+            RunFanDump(log);
+            Environment.Exit(0);
+        }
+
         var appIndex = Array.IndexOf(Environment.GetCommandLineArgs(), "--appdump");
         if (appIndex >= 0)
         {

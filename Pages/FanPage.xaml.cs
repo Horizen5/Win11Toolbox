@@ -26,6 +26,12 @@ public partial class FanPage : Page
     private string _statusAction = "";
     private readonly Dictionary<string, Tile> _tiles = new(StringComparer.Ordinal);
 
+    // ---- 通道分类 ----
+    private readonly Dictionary<string, TextBlock> _idleRows = new(StringComparer.Ordinal);   // 空接口那一行
+    private readonly HashSet<string> _everSpun = new(StringComparer.Ordinal);                 // 本次运行中读到过转速
+    private readonly HashSet<string> _touched = new(StringComparer.Ordinal);                  // 用户手动调过的通道
+    private string _activeSig = "";
+
     // ---- 风扇曲线 ----
     private bool _ready;                  // 构造期间滑块会触发 ValueChanged，此时控件还没齐
     private bool _curveSync;              // 内部改滑块时不要再递归
@@ -132,18 +138,45 @@ public partial class FanPage : Page
 
     private void Render(List<FanChannel> fans, List<TempReading> temps)
     {
-        if (!_built || !TilesMatch(fans))
+        // 先按「读不读得到转速」分成两组：真接了风扇的、只有接口没插风扇的。
+        // 后者能枚举、能写 PWM，但转速恒为 0，混在网格里只会让人以为风扇坏了。
+        var active = new List<FanChannel>();
+        var idle = new List<FanChannel>();
+        foreach (var fan in fans)
+            (LooksConnected(fan) ? active : idle).Add(fan);
+
+        var signature = string.Join("|", active.Select(KeyOf));
+        if (!_built || signature != _activeSig)
         {
-            BuildTiles(fans);
+            BuildTiles(active, fans.Count);
+            BuildIdle(idle);
+            _activeSig = signature;
             _built = true;
         }
 
-        // 新建的磁贴也要立刻填上数值，否则第一帧会显示占位符
+        // 两组都要同步：空接口的 PWM 读数也会变
         SyncTiles(fans);
-
         RenderTemps(temps);
-        UpdateStatus(fans);
+        UpdateStatus(fans, active.Count, idle.Count);
     }
+
+    /// <summary>
+    /// 判断这个通道后面到底有没有风扇。依据依次是：正在转 → 这次运行中转过 →
+    /// 用户手动调过 → 显卡风扇（零转速模式下转速也是 0，但不能算空接口）。
+    /// </summary>
+    private bool LooksConnected(FanChannel fan)
+    {
+        if (fan.Rpm is > 0) return true;
+        if (_everSpun.Contains(KeyOf(fan))) return true;
+        if (_touched.Contains(KeyOf(fan))) return true;
+        return IsGpuFan(fan);
+    }
+
+    private static bool IsGpuFan(FanChannel fan)
+        => fan.Hardware.Contains("GPU", StringComparison.OrdinalIgnoreCase)
+        || fan.Hardware.Contains("Radeon", StringComparison.OrdinalIgnoreCase)
+        || fan.Hardware.Contains("GeForce", StringComparison.OrdinalIgnoreCase)
+        || fan.Name.Contains("GPU", StringComparison.OrdinalIgnoreCase);
 
     private async Task ReloadAsync()
     {
@@ -192,15 +225,7 @@ public partial class FanPage : Page
 
     private static string KeyOf(FanChannel fan) => fan.Hardware + "|" + fan.Name;
 
-    private bool TilesMatch(List<FanChannel> fans)
-    {
-        if (_tiles.Count != fans.Count) return false;
-        foreach (var fan in fans)
-            if (!_tiles.ContainsKey(KeyOf(fan))) return false;
-        return true;
-    }
-
-    private void BuildTiles(List<FanChannel> fans)
+    private void BuildTiles(List<FanChannel> fans, int total)
     {
         // 重建时把旧的转速历史接过来，否则每次刷新曲线都会断掉
         var old = new Dictionary<string, List<float>>(StringComparer.Ordinal);
@@ -225,8 +250,57 @@ public partial class FanPage : Page
         {
             EmptyText.Text = !FanController.DriverPresent
                 ? "一个风扇都读不到。主板那边需要 PawnIO 驱动，点上面的「安装 PawnIO」一键装上，然后点「重新读取」。"
-                : "驱动已装，但这块主板的 SuperIO 芯片没能识别出来，只能等后续版本支持。";
+                : total > 0
+                    ? $"读到 {total} 个接口，但全部没有转速。通常是没有插风扇，或者风扇没接在主板的测速针脚上（有些机箱集线器只供电、不回传转速）。"
+                    : "驱动已装，但这块主板的 SuperIO 芯片没能识别出来，只能等后续版本支持。";
         }
+    }
+
+    /// <summary>空接口列表：一行一个，紧凑排，默认折叠。</summary>
+    private void BuildIdle(List<FanChannel> idle)
+    {
+        IdlePanel.Children.Clear();
+        _idleRows.Clear();
+
+        IdleCard.Visibility = idle.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        IdleHeader.Text = $"未接风扇的接口（{idle.Count} 个）";
+
+        foreach (var fan in idle)
+        {
+            var row = new Grid { Margin = new Thickness(0, 0, 0, 7) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(96) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var name = UiTheme.Body(fan.Name);
+            name.FontSize = 12;
+            row.Children.Add(name);
+
+            var hardware = UiTheme.Caption(fan.Hardware);
+            hardware.FontSize = 11;
+            hardware.TextTrimming = TextTrimming.CharacterEllipsis;
+            Grid.SetColumn(hardware, 1);
+            row.Children.Add(hardware);
+
+            var pwm = UiTheme.Caption(fan.Percent is null ? "PWM —" : $"PWM {fan.Percent:0}%");
+            pwm.FontSize = 11;
+            pwm.VerticalAlignment = VerticalAlignment.Center;
+            Grid.SetColumn(pwm, 2);
+            row.Children.Add(pwm);
+
+            IdlePanel.Children.Add(row);
+            _idleRows[KeyOf(fan)] = pwm;
+        }
+    }
+
+    private void IdleHead_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        var show = IdlePanel.Visibility != Visibility.Visible;
+        IdlePanel.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        IdleHint.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        IdleChevron.Symbol = show
+            ? Wpf.Ui.Controls.SymbolRegular.ChevronUp24
+            : Wpf.Ui.Controls.SymbolRegular.ChevronDown24;
     }
 
     /// <summary>
@@ -236,7 +310,10 @@ public partial class FanPage : Page
     private Tile BuildTile(FanChannel fan)
     {
         var tile = new Tile { Channel = fan };
-        var root = new StackPanel();
+
+        // 内容宽度必须钉死：显卡那种长名字（AMD Radeon RX 6700 XT）会把
+        // Grid 的星号列撑开，徽标被挤到卡片外、按钮跟着溢出，整张卡看着变宽。
+        var root = new StackPanel { Width = TileWidth - 28 };
 
         // ---- 第一行：名称 + 转速数值（数字用等宽字形，刷新时不会左右跳）
         var top = new Grid();
@@ -288,6 +365,8 @@ public partial class FanPage : Page
         {
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(6, 1, 6, 2),
+            Margin = new Thickness(6, 2, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
             Background = UiTheme.Brush("SubtleFillColorSecondaryBrush", Brushes.Transparent),
             Child = new TextBlock
             {
@@ -402,6 +481,8 @@ public partial class FanPage : Page
                 if (tile.Slider is null) return;
                 DisableCurveByManual();
                 var target = (float)tile.Slider.Value;
+                // 手动调过就说明这个通道后面有东西，别因为一时读不到转速被收进空接口
+                _touched.Add(KeyOf(tile.Channel));
                 var ok = _controller?.SetPercent(tile.Channel, target) == true;
                 tile.Dirty = false;
                 await RefreshAsync();
@@ -531,7 +612,18 @@ public partial class FanPage : Page
     {
         foreach (var fan in fans)
         {
-            if (!_tiles.TryGetValue(KeyOf(fan), out var tile)) continue;
+            var key = KeyOf(fan);
+
+            // 转过一次就记住，之后即使停转也不会被当成空接口
+            if (fan.Rpm is > 0) _everSpun.Add(key);
+
+            if (!_tiles.TryGetValue(key, out var tile))
+            {
+                // 空接口那一行只需要 PWM 读数
+                if (_idleRows.TryGetValue(key, out var pwm))
+                    pwm.Text = fan.Percent is null ? "PWM —" : $"PWM {fan.Percent:0}%";
+                continue;
+            }
 
             // 用最新快照里的通道（其中的写入句柄是稳定的）
             tile.Channel = fan;
@@ -551,9 +643,9 @@ public partial class FanPage : Page
                 var stopped = rpm <= 0;
                 tile.SparkNote.Visibility = stopped ? Visibility.Visible : Visibility.Collapsed;
                 if (stopped)
-                    tile.SparkNote.Text = fan.Percent is > 0
-                        ? $"设定 {fan.Percent:0}%，无转速"
-                        : "无转速";
+                    tile.SparkNote.Text = IsGpuFan(fan)
+                        ? "零转速模式"
+                        : fan.Percent is > 0 ? $"设定 {fan.Percent:0}%，无转速" : "无转速";
             }
 
             // 趋势线只在转起来的时候记，停转期间一条平线没有信息量
@@ -640,7 +732,7 @@ public partial class FanPage : Page
 
     // ------------------------------------------------------------------ 状态条
 
-    private void UpdateStatus(List<FanChannel> fans)
+    private void UpdateStatus(List<FanChannel> fans, int activeCount, int idleCount)
     {
         // 刚弹过「调速没有生效」，别让 2 秒一次的刷新立刻盖掉
         if (DateTime.UtcNow < _verifyHold) return;
@@ -688,8 +780,10 @@ public partial class FanPage : Page
         }
         else
         {
+            // 只把「确实接了风扇」的数量报出来，空接口单独提一句，不然 8 个通道看着像 8 把风扇
+            var tail = idleCount > 0 ? $"，{idleCount} 个接口没接风扇" : "";
             SetStatus(Wpf.Ui.Controls.InfoBarSeverity.Success, "风扇控制已就绪",
-                $"{controllable} 个风扇可调速。", "");
+                $"{activeCount} 个风扇在转{tail}。", "");
         }
     }
 

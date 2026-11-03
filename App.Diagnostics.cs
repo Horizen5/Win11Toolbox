@@ -49,6 +49,57 @@ public partial class App
     /// 不用盯着界面猜。
     /// </para>
     /// </summary>
+    /// <summary>
+    /// --fandump [txt]：把所有风扇通道原样打出来。
+    /// 用途：区分「真接了风扇」和「只有接口、没接风扇」——后者能枚举出通道、
+    /// 能写 PWM，但转速恒为 0，界面上不该和真风扇混在一起。
+    /// </summary>
+    private static void RunFanDump(string outPath)
+    {
+        try { File.Delete(outPath); } catch { }
+        void W(string line)
+        {
+            try { File.AppendAllText(outPath, line + Environment.NewLine, Encoding.UTF8); } catch { }
+        }
+
+        try
+        {
+            W($"提权        ：{Win11Toolbox.Services.FanController.IsElevated}");
+            W($"PawnIO 驱动 ：{Win11Toolbox.Services.FanController.DriverPresent}");
+
+            using var controller = new Win11Toolbox.Services.FanController();
+            controller.Open();
+            W($"SuperIO 识别：{controller.SuperIoDetected}");
+            if (!string.IsNullOrWhiteSpace(controller.LastError))
+                W($"错误        ：{controller.LastError}");
+
+            var (fans, temps) = controller.Snapshot();
+            W("");
+            W($"=== 风扇通道 {fans.Count} 个 ===");
+            W("名称            | 芯片                   |   RPM |  PWM | 可调 | 范围");
+            foreach (var f in fans)
+            {
+                var rpm = f.Rpm is null ? "null" : f.Rpm.Value.ToString("0");
+                var pwm = f.Percent is null ? "null" : f.Percent.Value.ToString("0");
+                W($"{f.Name,-15} | {f.Hardware,-22} | {rpm,5} | {pwm,4} | "
+                  + $"{(f.Controllable ? "是" : "否"),-4} | {f.MinPercent:0}-{f.MaxPercent:0}");
+            }
+
+            var spinning = fans.Count(f => f.Rpm is > 0);
+            W("");
+            W($"有转速 {spinning} 个，无转速 {fans.Count - spinning} 个");
+
+            W("");
+            W($"=== 温度 {temps.Count} 个 ===");
+            foreach (var t in temps.OrderByDescending(t => t.Value))
+                W($"  {t.Name,-24} {t.Value,6:0.0} °C   {t.Hardware}");
+        }
+        catch (Exception ex)
+        {
+            W("异常：" + ex);
+        }
+    }
+
     private static void RunAppDump(string outPath)
     {
         // 边跑边写盘：这条诊断最容易卡在某个外部进程上，全部攒到最后写就什么都看不到

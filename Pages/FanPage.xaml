@@ -126,6 +126,33 @@
                  8 个风扇时纵向卡片要滚 8 屏，网格三列一屏就能看全。 -->
             <WrapPanel x:Name="FanPanel" />
 
+            <!-- 空接口：能枚举出通道、能写 PWM，但转速恒为 0，通常是主板上没插风扇的口。
+                 这类通道不该和真风扇挤在一起，收进下面这张卡里。 -->
+            <ui:Card x:Name="IdleCard" Padding="14" Visibility="Collapsed">
+                <StackPanel>
+                    <Grid x:Name="IdleHead" Background="Transparent" Cursor="Hand"
+                          MouseLeftButtonUp="IdleHead_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Info24" FontSize="15" Margin="0,0,8,0"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <ui:TextBlock x:Name="IdleHeader" FontTypography="BodyStrong"
+                                          Text="未接风扇的接口" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <ui:SymbolIcon x:Name="IdleChevron" Symbol="ChevronDown24" FontSize="12"
+                                       HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+
+                    <StackPanel x:Name="IdlePanel" Visibility="Collapsed" Margin="0,12,0,0" />
+
+                    <ui:TextBlock x:Name="IdleHint" FontTypography="Caption" Margin="0,10,0,0"
+                                  TextWrapping="Wrap" Visibility="Collapsed"
+                                  Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                  Text="这些通道能读写 PWM，但一直读不到转速，通常是主板上没插风扇的口。插上风扇后点「刷新」就会移到上面。" />
+                </StackPanel>
+            </ui:Card>
+
             <ui:Card x:Name="EmptyCard" Padding="16" Visibility="Collapsed">
                 <ui:TextBlock x:Name="EmptyText" FontTypography="Body" TextWrapping="Wrap"
                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
@@ -140,6 +167,11 @@
             <ui:TextBlock FontTypography="Caption" Margin="2,4,0,0" TextWrapping="Wrap"
                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                           Text="转速与调速依赖主板 SuperIO 芯片，需要管理员权限 + PawnIO 驱动。调速属于软件控制，退出程序或重启后由 BIOS 重新接管。" />
+
+            <!-- 通道编号 ≠ 主板丝印上的接口名，也不等于风扇数量，这两件事最容易看糊涂 -->
+            <ui:TextBlock FontTypography="Caption" Margin="2,2,0,0" TextWrapping="Wrap"
+                          Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                          Text="Fan #1、Fan #2 是 SuperIO 芯片的接口编号，不对应主板丝印上的 CPU_FAN / SYS_FAN / AIO_PUMP 等名字。一个接口上并联多个风扇（或经一分多线）时只算一个通道、一个转速。" />
 
         </controls:SpacingStackPanel>
     </ScrollViewer>
