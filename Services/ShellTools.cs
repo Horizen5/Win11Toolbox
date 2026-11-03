@@ -517,17 +517,34 @@ public static class ShellTools
     /// </summary>
     private static (int ExitCode, string StandardOutput) Run(string file, string arguments)
     {
-        using var process = Process.Start(new ProcessStartInfo(file, arguments)
+        var psi = new ProcessStartInfo(file, arguments)
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
             StandardOutputEncoding = ConsoleEncoding(),
-        })!;
+        };
+
+        using var process = new Process { StartInfo = psi };
+
+        // stderr 必须一起排空。重定向了却只读 stdout，子进程往 stderr 写满 4 KB 管道缓冲区
+        // 之后就会卡在 WriteFile 上，父进程在 ReadToEnd 里等它，两边互相等到超时。
+        // 这里挂一个空处理器，只为了让管道有人读。
+        process.ErrorDataReceived += static (_, _) => { };
+
+        process.Start();
+        process.BeginErrorReadLine();
 
         var output = process.StandardOutput.ReadToEnd();
-        process.WaitForExit(15000);
-        return (process.HasExited ? process.ExitCode : -1, output);
+
+        if (!process.WaitForExit(15000))
+        {
+            try { process.Kill(entireProcessTree: true); } catch { }
+            return (-1, output);
+        }
+
+        process.WaitForExit();      // 等异步读线程把尾巴排空
+        return (process.ExitCode, output);
     }
 }

@@ -49,6 +49,9 @@
                 <ui:NavigationViewItem NavigationCacheMode="Required" Content="系统优化" TargetPageType="{x:Type pages:OptimizePage}">
                     <ui:NavigationViewItem.Icon><ui:SymbolIcon Symbol="Broom24" /></ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
+                <ui:NavigationViewItem NavigationCacheMode="Required" Content="应用管理" TargetPageType="{x:Type pages:AppPage}">
+                    <ui:NavigationViewItem.Icon><ui:SymbolIcon Symbol="BoxMultiple24" /></ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
                 <ui:NavigationViewItem NavigationCacheMode="Required" Content="右键菜单" TargetPageType="{x:Type pages:RightMenuPage}">
                     <ui:NavigationViewItem.Icon><ui:SymbolIcon Symbol="CursorClick24" /></ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>

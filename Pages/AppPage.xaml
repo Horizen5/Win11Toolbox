@@ -1,0 +1,232 @@
+<Page
+    Style="{StaticResource DefaultPageStyle}"
+    x:Class="Win11Toolbox.Pages.AppPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="应用管理">
+
+    <Page.Resources>
+        <Style x:Key="RowBorder" TargetType="Border">
+            <!-- 右边留 16：WPF-UI 的滚动条是浮在内容上的，不留空的话
+                 「当前用户」「未安装」这些右对齐的字会被滚动条压掉半个字 -->
+            <Setter Property="Padding" Value="10,8,16,8" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="Transparent" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 装机清单的一行 -->
+        <DataTemplate x:Key="InstallRowTemplate">
+            <Border Style="{StaticResource RowBorder}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="88" />
+                    </Grid.ColumnDefinitions>
+
+                    <ToggleButton Grid.Column="0" Style="{StaticResource RowCheckBox}"
+                                  IsChecked="{Binding IsChecked, Mode=TwoWay}" />
+
+                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Desc}" FontSize="12" Margin="0,2,0,0"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="2" Text="{Binding Id}" FontSize="11" Margin="0,0,10,0"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="240"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+
+                    <TextBlock Grid.Column="3" Text="{Binding StateText}" VerticalAlignment="Center"
+                               HorizontalAlignment="Right" FontSize="12"
+                               Foreground="{Binding StateBrush}" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- 已装应用的一行 -->
+        <DataTemplate x:Key="AppxRowTemplate">
+            <Border Style="{StaticResource RowBorder}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <ToggleButton Grid.Column="0" Style="{StaticResource RowCheckBox}"
+                                  IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                  IsEnabled="{Binding CanSelect}" />
+
+                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding PackageFullName}" FontSize="11" Margin="0,2,0,0"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                   TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="2" Text="{Binding Version}" FontSize="12" Margin="0,0,10,0"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border x:Name="ProtectBadge" CornerRadius="3" Padding="6,2" Margin="0,0,6,0"
+                                Visibility="Collapsed"
+                                Background="{DynamicResource SystemFillColorCriticalBackgroundBrush}">
+                            <TextBlock Text="系统组件" FontSize="11"
+                                       Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
+                        </Border>
+
+                        <Border CornerRadius="3" Padding="6,2"
+                                Background="{DynamicResource SystemFillColorCautionBackgroundBrush}">
+                            <TextBlock Text="{Binding Source}" FontSize="11"
+                                       Foreground="{DynamicResource SystemFillColorCautionBrush}" />
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsProtected}" Value="True">
+                    <Setter TargetName="ProtectBadge" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Margin="24,18,24,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 标题 -->
+        <Grid Grid.Row="0">
+            <StackPanel>
+                <ui:TextBlock FontTypography="Title" Text="应用管理" />
+                <ui:TextBlock FontTypography="Body" Margin="0,4,0,0"
+                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                              Text="用 winget 装常用软件，卸载系统自带应用；动之前建议先建一个还原点" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <ui:Button Content="创建还原点" Appearance="Secondary" Icon="{ui:SymbolIcon ShieldCheckmark24}"
+                           Margin="0,0,8,0" Click="RestorePoint_Click" />
+                <ui:Button Content="刷新" Appearance="Secondary" Icon="{ui:SymbolIcon ArrowSync24}"
+                           Click="Refresh_Click" />
+            </StackPanel>
+        </Grid>
+
+        <TabControl Grid.Row="1" x:Name="Tabs" Style="{StaticResource Win11TabControl}" Margin="0,12,0,0"
+                    SelectionChanged="Tabs_SelectionChanged">
+
+            <!-- ================= 装机清单 ================= -->
+            <TabItem Header="装机清单">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="170" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <ComboBox x:Name="CategoryCombo" SelectionChanged="InstallFilter_Changed" />
+                        <ui:TextBox x:Name="InstallSearch" Grid.Column="1" Margin="10,0,0,0"
+                                    PlaceholderText="搜索软件" TextChanged="InstallFilter_Changed" />
+
+                        <ui:ToggleSwitch x:Name="SilentSwitch" Grid.Column="2" Margin="14,0,0,0"
+                                         Content="静默安装" IsChecked="True" />
+
+                        <ui:TextBlock x:Name="InstallCount" Grid.Column="3" FontTypography="Caption"
+                                      VerticalAlignment="Center" Margin="14,0,12,0"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="" />
+
+                        <ui:Button Grid.Column="4" Content="安装选中" Icon="{ui:SymbolIcon ArrowDownload24}"
+                                   Click="Install_Click" />
+                    </Grid>
+
+                    <ui:Card Grid.Row="1" Padding="0" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch">
+                        <ListBox x:Name="InstallList" Style="{StaticResource VirtualList}"
+                                 ItemTemplate="{StaticResource InstallRowTemplate}" />
+                    </ui:Card>
+                </Grid>
+            </TabItem>
+
+            <!-- ================= 已装应用 ================= -->
+            <TabItem Header="已装应用">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="170" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <ComboBox x:Name="SourceCombo" SelectionChanged="AppFilter_Changed" />
+                        <ui:TextBox x:Name="AppSearch" Grid.Column="1" Margin="10,0,0,0"
+                                    PlaceholderText="搜索应用名或包名" TextChanged="AppFilter_Changed" />
+
+                        <ui:TextBlock x:Name="AppCount" Grid.Column="2" FontTypography="Caption"
+                                      VerticalAlignment="Center" Margin="14,0,12,0"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="" />
+
+                        <ui:Button Grid.Column="3" Content="卸载选中" Appearance="Secondary"
+                                   Icon="{ui:SymbolIcon Delete24}" Click="Remove_Click" />
+                    </Grid>
+
+                    <ui:Card Grid.Row="1" Padding="0" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch">
+                        <Grid>
+                            <ListBox x:Name="AppList" Style="{StaticResource VirtualList}"
+                                     ItemTemplate="{StaticResource AppxRowTemplate}" />
+
+                            <!-- 首次读取要跑 PowerShell，给个明确的等待提示，别让用户对着空列表发呆 -->
+                            <ui:TextBlock x:Name="AppEmptyHint" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          FontTypography="Body"
+                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                          Text="正在读取已安装应用…" />
+                        </Grid>
+                    </ui:Card>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- 底部状态 -->
+        <Grid Grid.Row="2" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <ui:InfoBar x:Name="Toast" Grid.Column="0" IsOpen="False" IsClosable="True" Margin="0,0,12,0" />
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <ui:TextBlock x:Name="StatusLine" FontTypography="Caption" MaxWidth="380"
+                              TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                              Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="就绪" />
+                <ui:Button Content="日志" Appearance="Secondary" Margin="10,0,0,0" Click="ShowLog_Click" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

@@ -254,6 +254,19 @@ public partial class App : Application
             return;
         }
 
+        // --appdump <txt>：把「应用管理」依赖的 winget / Appx 查询结果落盘，
+        //                  验证 tab 分隔解析、预装包版本段提取、ID 匹配
+        var appIndex = Array.IndexOf(Environment.GetCommandLineArgs(), "--appdump");
+        if (appIndex >= 0)
+        {
+            var a = Environment.GetCommandLineArgs();
+            string log = appIndex + 1 < a.Length && !a[appIndex + 1].StartsWith("--", StringComparison.Ordinal)
+                ? a[appIndex + 1]
+                : Path.Combine(AppContext.BaseDirectory, "appdump.log");
+            RunAppDump(log);
+            Environment.Exit(0);
+        }
+
         // --powerdump <txt>：把 powercfg /list 读出来的电源计划名原样写文件，
         //                    专门验证 OEM 代码页编码修复后中文名不再乱码
         var powerIndex = Array.IndexOf(Environment.GetCommandLineArgs(), "--powerdump");

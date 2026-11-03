@@ -33,9 +33,62 @@ public partial class App
             case "hardware": return new Pages.HardwarePage();
             case "fan": return new Pages.FanPage();
             case "optimize": return new Pages.OptimizePage();
+            case "app": return new Pages.AppPage();
             case "settings": return new Pages.SettingsPage();
             case "about": return new Pages.AboutPage();
             default: return new Pages.HomePage();
+        }
+    }
+
+    /// <summary>
+    /// --appdump &lt;txt&gt;：把「应用管理」页依赖的两套查询结果落盘。
+    ///
+    /// <para>
+    /// 页面上看不到的部分才是最容易错的：<c>Get-AppxPackage</c> 的制表符分隔输出、
+    /// 预装包名里的版本段、winget list 的 ID 匹配。这里跑一遍写进文件，出问题看文件就行，
+    /// 不用盯着界面猜。
+    /// </para>
+    /// </summary>
+    private static void RunAppDump(string outPath)
+    {
+        // 边跑边写盘：这条诊断最容易卡在某个外部进程上，全部攒到最后写就什么都看不到
+        try { File.Delete(outPath); } catch { }
+        void W(string line)
+        {
+            try { File.AppendAllText(outPath, line + Environment.NewLine, System.Text.Encoding.UTF8); } catch { }
+        }
+
+        try
+        {
+            // 整段扔线程池再等：这里是 UI 线程，直接对异步方法 GetResult 会死锁
+            // （续体要回 UI 线程，而 UI 线程正卡在 GetResult 上）。
+            Task.Run(async () =>
+            {
+                W("=== winget ===");
+                bool has = await Win11Toolbox.Services.AppManager.HasWingetAsync();
+                W("可用：" + has);
+                if (!has) return;
+
+                var catalog = Win11Toolbox.Services.AppCatalog.Build();
+                W($"目录 {catalog.Count} 款，开始跑 winget list…");
+                var installed = await Win11Toolbox.Services.AppManager
+                    .InstalledIdsAsync(catalog.Select(a => a.Id), System.Threading.CancellationToken.None);
+                W($"匹配到已安装 {installed.Count} 款");
+                foreach (var id in installed.OrderBy(x => x))
+                    W("  已装 " + id);
+
+                W("=== Appx 当前用户 ===");
+                var apps = await Win11Toolbox.Services.AppManager
+                    .LoadAppsAsync(true, null, System.Threading.CancellationToken.None);
+                W($"总数 {apps.Count}（当前用户 {apps.Count(a => a.Source == "当前用户")}，系统预装 {apps.Count(a => a.Source == "系统预装")}）");
+                foreach (var a in apps.Take(20))
+                    W($"  [{a.Source}] {a.Name} | {a.Version} | {a.PackageFullName}");
+                W("=== 结束 ===");
+            }).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            W("异常：" + ex);
         }
     }
 
@@ -455,6 +508,7 @@ public partial class App
         "hardware" => typeof(Pages.HardwarePage),
         "fan" => typeof(Pages.FanPage),
         "optimize" => typeof(Pages.OptimizePage),
+        "app" => typeof(Pages.AppPage),
         "utilities" => typeof(Pages.UtilitiesPage),
         "settings" => typeof(Pages.SettingsPage),
         "about" => typeof(Pages.AboutPage),
