@@ -159,9 +159,40 @@
                               Text="没有检测到风扇。" />
             </ui:Card>
 
+            <!-- 电源电压：读数来自主板 Super I/O 的 ADC，+12V / +5V 需按板型分压系数还原 -->
+            <ui:TextBlock FontTypography="BodyStrong" Text="电源电压" Margin="2,6,0,0" />
+            <ui:Card Padding="14">
+                <StackPanel>
+                    <WrapPanel x:Name="RailPanel" />
+                    <ui:TextBlock x:Name="VoltageSummary" FontTypography="Caption" Margin="0,8,0,0"
+                                  TextWrapping="Wrap"
+                                  Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                  Text="正在读取电压…" />
+                    <Grid x:Name="OtherHead" Background="Transparent" Cursor="Hand" Margin="0,10,0,0"
+                          MouseLeftButtonUp="OtherHead_Click" Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Info24" FontSize="15" Margin="0,0,8,0"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <ui:TextBlock x:Name="OtherHeader" FontTypography="BodyStrong"
+                                          Text="其他电压" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <ui:SymbolIcon x:Name="OtherChevron" Symbol="ChevronDown24" FontSize="12"
+                                       HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+                    <WrapPanel x:Name="OtherPanel" Visibility="Collapsed" Margin="0,8,0,0" />
+                </StackPanel>
+            </ui:Card>
+
             <ui:TextBlock FontTypography="BodyStrong" Text="温度" Margin="2,6,0,0" />
             <ui:Card Padding="14">
-                <WrapPanel x:Name="TempPanel" />
+                <StackPanel>
+                    <WrapPanel x:Name="TempPanel" />
+                    <ui:TextBlock x:Name="TempSummary" FontTypography="Caption" Margin="0,6,0,0"
+                                  TextWrapping="Wrap"
+                                  Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                </StackPanel>
             </ui:Card>
 
             <ui:TextBlock FontTypography="Caption" Margin="2,4,0,0" TextWrapping="Wrap"

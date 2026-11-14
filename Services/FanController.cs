@@ -44,6 +44,14 @@ public sealed class FanController : IDisposable
     private readonly object _gate = new();
     private bool _opened;
     private bool _disposed;
+    private VoltageSample[] _voltages = Array.Empty<VoltageSample>();
+
+    /// <summary>
+    /// 最近一次 <see cref="Snapshot"/> 读到的全部电压传感器（**原始 ADC 值**）。
+    /// 返回的是不可变快照：采集在后台线程跑，界面线程直接读不会踩到集合被改。
+    /// 轨道归类、板型系数与用户校准都在 <see cref="VoltageMonitor"/> 里做。
+    /// </summary>
+    public IReadOnlyList<VoltageSample> Voltages => _voltages;
 
     public string? LastError { get; private set; }
     public bool Opened => _opened;
@@ -261,26 +269,33 @@ public sealed class FanController : IDisposable
         }
     }
 
-    /// <summary>刷新并返回当前所有风扇通道与温度。</summary>
+    /// <summary>刷新并返回当前所有风扇通道与温度；电压从 <see cref="Voltages"/> 取。</summary>
     public (List<FanChannel> Fans, List<TempReading> Temps) Snapshot()
     {
         lock (_gate)
         {
             var fans = new List<FanChannel>();
             var temps = new List<TempReading>();
-            if (!Open()) return (fans, temps);
+            var voltages = new List<VoltageSample>();
+            if (!Open())
+            {
+                _voltages = Array.Empty<VoltageSample>();
+                return (fans, temps);
+            }
 
             SuperIoDetected = false;
             CpuTempAvailable = false;
 
             foreach (var root in _computer.Hardware)
-                Visit(root, fans, temps);
+                Visit(root, fans, temps, voltages);
 
+            _voltages = voltages.ToArray();
             return (fans, temps);
         }
     }
 
-    private void Visit(IHardware hw, List<FanChannel> fans, List<TempReading> temps)
+    private void Visit(IHardware hw, List<FanChannel> fans, List<TempReading> temps,
+                       List<VoltageSample> voltages)
     {
         try { hw.Update(); }
         catch { /* 单个硬件刷新失败不影响其它 */ }
@@ -332,6 +347,10 @@ public sealed class FanController : IDisposable
                 case SensorType.Temperature:
                     temps.Add(new TempReading(hw.Name, sensor.Name, sensor.Value ?? 0));
                     break;
+                case SensorType.Voltage:
+                    voltages.Add(new VoltageSample(
+                        hw.Name, sensor.Name, sensor.Identifier.ToString(), sensor.Value ?? 0));
+                    break;
             }
         }
 
@@ -342,7 +361,7 @@ public sealed class FanController : IDisposable
         }
 
         foreach (var sub in hw.SubHardware)
-            Visit(sub, fans, temps);
+            Visit(sub, fans, temps, voltages);
     }
 
     private static void AttachControl(FanChannel channel, ISensor sensor)

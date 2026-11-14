@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using Win11Toolbox.Services.Localization;
 
 namespace Win11Toolbox.Pages;
 
@@ -10,7 +11,7 @@ public partial class AboutPage : Page
     public AboutPage()
     {
         InitializeComponent();
-        VersionLine.Text = "Win11 工具箱 " + Services.AppInfo.Version;
+        VersionLine.Text = Localizer.T("Win11 工具箱") + " " + Services.AppInfo.Version;
     }
 
     private static void Open(string url)

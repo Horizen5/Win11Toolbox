@@ -33,6 +33,9 @@ internal sealed class AppConfig
     /// <summary>auto / light / dark。</summary>
     public string Theme { get; set; } = "auto";
 
+    /// <summary>界面语言：auto（跟随系统）或 zh-CN / en-US / zh-TW / ja-JP …。</summary>
+    public string Language { get; set; } = "auto";
+
     public double Width { get; set; } = 1240;
     public double Height { get; set; } = 820;
     public double? Left { get; set; }
@@ -60,6 +63,17 @@ internal sealed class AppConfig
     /// 主板丝印上的 CPU_FAN / CHA_FAN 读不到，只能让用户自己标一次，之后记住。
     /// </summary>
     public Dictionary<string, string> FanNames { get; set; } = new();
+
+    // ------------------------------------------------------------------ 电压校准
+    /// <summary>
+    /// 电压传感器的用户校准倍率（乘性系数）。键是 LHM 的传感器 Identifier，
+    /// 值覆盖内置的板型系数 —— 等价硬件监控软件的 Customize values → Multiply。
+    /// 例如用万用表量到 12.20 V、软件显示 12.096 V，就把倍率改成 12.20 / 12.096。
+    /// </summary>
+    public Dictionary<string, double> VoltageGains { get; set; } = new();
+
+    /// <summary>电压传感器的用户校准偏移（加性，单位 V）。万用表两点校准时用得到。</summary>
+    public Dictionary<string, double> VoltageOffsets { get; set; } = new();
 
     // ------------------------------------------------------------------ 页面键
     public static string KeyOf(Type pageType)
@@ -122,6 +136,7 @@ internal sealed class AppConfig
     private void Sanitize()
     {
         if (Theme is not ("auto" or "light" or "dark")) Theme = "auto";
+        if (string.IsNullOrWhiteSpace(Language) || Language.Length > 12) Language = "auto";
 
         if (double.IsNaN(Width) || Width < 900) Width = 1240;
         if (double.IsNaN(Height) || Height < 600) Height = 820;
@@ -136,6 +151,22 @@ internal sealed class AppConfig
         FanCurveFull = Math.Clamp(FanCurveFull, 55, 95);
         if (FanCurveFull <= FanCurveStart) FanCurveFull = Math.Min(95, FanCurveStart + 10);
         FanCurveMin = Math.Clamp(FanCurveMin, 0, 70);
+
+        // 手改坏配置时别把电压显示成天文数字；坏条目直接丢掉，回到板型系数
+        VoltageGains ??= new();
+        VoltageOffsets ??= new();
+        foreach (var key in new List<string>(VoltageGains.Keys))
+        {
+            var gain = VoltageGains[key];
+            if (double.IsNaN(gain) || double.IsInfinity(gain) || gain < 0.01 || gain > 100)
+                VoltageGains.Remove(key);
+        }
+        foreach (var key in new List<string>(VoltageOffsets.Keys))
+        {
+            var offset = VoltageOffsets[key];
+            if (double.IsNaN(offset) || double.IsInfinity(offset) || Math.Abs(offset) > 10)
+                VoltageOffsets.Remove(key);
+        }
     }
 
     public void Save()

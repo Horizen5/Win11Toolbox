@@ -53,7 +53,12 @@ public static class SystemInfo
         { 26, "DDR4" }, { 27, "DDR4" }, { 34, "DDR5" }, { 35, "DDR5" },
     };
 
-    public static HardwareReport Build()
+    /// <summary>
+    /// includeStorage=false 时跳过 Win32_DiskDrive / MSFT_PhysicalDisk / 全盘符枚举。
+    /// 这三条会挨个访问物理磁盘（本机 Win32_DiskDrive 实测 741ms），而启动首页只需要
+    /// CPU / 内存 / 显卡 / 主板，完全用不到它们；等用户真的打开「硬件信息」页再全量采集。
+    /// </summary>
+    public static HardwareReport Build(bool includeStorage = true)
     {
         var report = new HardwareReport();
         var os = First("SELECT * FROM Win32_OperatingSystem");
@@ -63,8 +68,8 @@ public static class SystemInfo
         var bios = First("SELECT * FROM Win32_BIOS");
         var modules = All("SELECT * FROM Win32_PhysicalMemory");
         var gpus = All("SELECT * FROM Win32_VideoController");
-        var disks = All("SELECT * FROM Win32_DiskDrive");
-        var physical = All("SELECT * FROM MSFT_PhysicalDisk", @"root\Microsoft\Windows\Storage");
+        var disks = includeStorage ? All("SELECT * FROM Win32_DiskDrive") : new List<ManagementObject>();
+        var physical = includeStorage ? All("SELECT * FROM MSFT_PhysicalDisk", @"root\Microsoft\Windows\Storage") : new List<ManagementObject>();
         var nets = All("SELECT * FROM Win32_NetworkAdapterConfiguration WHERE IPEnabled = TRUE");
         var batteries = All("SELECT * FROM Win32_Battery");
         var sounds = All("SELECT * FROM Win32_SoundDevice");
@@ -206,7 +211,12 @@ public static class SystemInfo
             report.Disks.Add(info);
         }
 
-        foreach (var drive in DriveInfo.GetDrives().Where(d => d.IsReady && d.DriveType == DriveType.Fixed))
+        // DriveType 是纯元数据；IsReady 会探测介质，遇到空光驱 / 读卡器 / 休眠盘可能等几秒，
+        // 所以先判类型再判就绪。轻量刷新时整个枚举都跳过。
+        IEnumerable<DriveInfo> fixedDrives = includeStorage
+            ? DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed && d.IsReady)
+            : Array.Empty<DriveInfo>();
+        foreach (var drive in fixedDrives)
         {
             var percent = drive.TotalSize == 0 ? 0 : (double)(drive.TotalSize - drive.AvailableFreeSpace) / drive.TotalSize * 100;
             report.Volumes.Add(new VolumeInfo

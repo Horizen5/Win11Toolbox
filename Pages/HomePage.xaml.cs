@@ -10,6 +10,7 @@ using Wpf.Ui.Controls;
 using Win11Toolbox.Controls;
 using Win11Toolbox.Services;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
+using Win11Toolbox.Services.Localization;
 
 namespace Win11Toolbox.Pages;
 
@@ -51,8 +52,14 @@ public partial class HomePage : Page
         using (StartupTrace.Scope("HomePage.BuildQuickEntries"))
             BuildQuickEntries();
 
-        using (StartupTrace.Scope("HomePage.LoadHeroShot"))
-            LoadHeroShot();
+        // 设备缩略图要解码一张 Windows 壁纸（实测约 37ms），放在构造函数里
+        // 会直接压在首帧之前。挪到 UI 空闲时段再解码，窗口先出来。
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
+            new Action(() =>
+            {
+                using (StartupTrace.Scope("HomePage.LoadHeroShot"))
+                    LoadHeroShot();
+            }));
 
         _monitor.Snapshot += OnSnapshot;
 
@@ -108,9 +115,11 @@ public partial class HomePage : Page
                 ApplyReport(cached);
         }
         else
-            HeroName.Text = "正在读取设备信息…";
+            HeroName.Text = Localizer.T("正在读取设备信息…");
 
-        var fresh = await AppCache.RefreshAsync(TimeSpan.FromMinutes(10));
+        // 硬件信息几小时内不会变，缓存有效期从 10 分钟放宽到 6 小时；
+        // 且首页刷新走轻量采集，完全不查磁盘类 WMI（磁盘详情留给「硬件信息」页）。
+        var fresh = await AppCache.RefreshAsync(TimeSpan.FromHours(6), light: true);
         StartupTrace.Mark("硬件信息后台刷新返回：" + (fresh is null ? "无" : "有"));
         if (fresh is not null)
         {
@@ -177,7 +186,7 @@ public partial class HomePage : Page
             return;
 
         var result = ComputerRename.Apply(name);
-        await ShowInfoAsync(result.Ok ? "已提交改名" : "没有改成", result.Message);
+        await ShowInfoAsync(result.Ok ? Localizer.T("已提交改名") : Localizer.T("没有改成"), result.Message);
     }
 
     private static async Task ShowInfoAsync(string title, string message)
@@ -188,7 +197,7 @@ public partial class HomePage : Page
             {
                 Title = title,
                 Content = message,
-                CloseButtonText = "知道了",
+                CloseButtonText = Localizer.T("知道了"),
             };
             await dialog.ShowDialogAsync();
         }
@@ -237,6 +246,9 @@ public partial class HomePage : Page
     /// 必须扔到后台，算完再补上那一行。
     /// </para>
     /// </summary>
+    /// <summary>回收站统计的进程内快照：启动不扫盘，只有用户主动点「重新检测」才更新。</summary>
+    private static (long Size, long Count)? _recycleSnapshot;
+
     private async Task RunChecksAsync(bool force = false)
     {
         if (_checking)
@@ -249,26 +261,41 @@ public partial class HomePage : Page
 
         var report = _report;
 
-        // 缓存和新数据往往是同一个对象（AppCache 在缓存新鲜时直接返回它），
-        // 那就没必要把同样的体检再跑一遍 —— 之前一次启动会算两遍。
-        // 用户手点"重新检测"时不走这条捷径，他就是想看最新的。
-        if (!force && ReferenceEquals(report, _checksFor) && _checks.Count > 0)
+        // 启动时 ApplyReport 会被调两次（缓存数据 + 后台刷新数据），report 是两个不同对象，
+        // 但体检项（内存 / 系统盘 / 启动项 / 磁盘健康）在几秒内不会变，没必要算两遍。
+        // 尤其回收站统计要逐盘扫 $Recycle.Bin，重复一次就是数秒的磁盘忙。
+        // 用户点「重新检测」走 force=true，仍然全量重算。
+        if (!force && _checks.Count > 0)
             return;
 
         _checking = true;
         try
         {
-            var quick = CollectChecks(report);
+            // 体检里要读系统盘剩余空间、三个注册表 Run 键（启动项），
+            // 这些同步 I/O 以前全压在 UI 线程上（实测约 108ms 的空档）。
+            // 先扔后台算数据，回来只做 RenderChecks 的界面拼接。
+            var quick = await Task.Run(() => CollectChecks(report));
             _checks = quick;
             RenderChecks();
 
-            var (size, count) = await Task.Run(ShellTools.RecycleBin);
-            _checks = new List<(string Level, string Title, string Detail)>(quick)
+            // SHQueryRecycleBin(null) 会逐盘枚举 $Recycle.Bin：本机 D 盘回收站就有 2800 个文件，
+            // 一次要读近 3000 个文件元数据（实测 1.8 秒以上），启动跑两遍就是明显的硬盘卡死。
+            // 改成启动完全不扫，只用进程内快照；只有用户点「重新检测」才真的扫一次。
+            if (force)
+                _recycleSnapshot = await Task.Run(ShellTools.RecycleBin);
+
+            var rows = new List<(string Level, string Title, string Detail)>(quick);
+            if (_recycleSnapshot is { } snap)
             {
-                size > 2L * 1024 * 1024 * 1024
-                    ? ("warn", "回收站占用较大", $"{count} 个文件，共 {ByteFormatter.Format((ulong)size)}")
-                    : ("ok", "回收站占用正常", $"{count} 个文件，共 {ByteFormatter.Format((ulong)size)}"),
-            };
+                rows.Add(snap.Size > 2L * 1024 * 1024 * 1024
+                    ? ("warn", "回收站占用较大", $"{snap.Count} 个文件，共 {ByteFormatter.Format((ulong)snap.Size)}")
+                    : ("ok", "回收站占用正常", $"{snap.Count} 个文件，共 {ByteFormatter.Format((ulong)snap.Size)}"));
+            }
+            else
+            {
+                rows.Add(("ok", "回收站占用", "点「重新检测」查看（启动时跳过全盘扫描）"));
+            }
+            _checks = rows;
             _checksFor = report;
             RenderChecks();
         }
@@ -297,7 +324,7 @@ public partial class HomePage : Page
             CheckList.Children.Add(BuildCheckRow(level, title, detail));
 
         var ok = _checks.Count(r => r.Level == "ok");
-        CheckSummary.Text = $"{ok}/{_checks.Count} 项正常";
+        CheckSummary.Text = Localizer.T($"{ok}/{_checks.Count} 项正常");
     }
 
     /// <summary>
@@ -418,7 +445,12 @@ public partial class HomePage : Page
             var item = all.FirstOrDefault(i => i.Name == name);
             if (item is null) continue;
 
-            var tile = new ToolTile(item.Name, item.Description, ToolCatalog.Icon(item), ToolCatalog.Glyph(item))
+            // ToolTile 是「字形优先」：有 Fluent 字形时图片图标根本不会显示。
+            // 清单里 47 个工具全配了字形，之前每次建首页都要白跑 8 次 SHGetFileInfo（≈99ms）。
+            // 只在某个工具真没配字形时才回退去取图标，且走缓存。
+            var glyph = ToolCatalog.Glyph(item);
+            var icon = glyph is null ? AppCache.Icon(item) : null;
+            var tile = new ToolTile(item.Name, item.Description, icon, glyph)
             {
                 Margin = new Thickness(2),
             };
@@ -434,11 +466,11 @@ public partial class HomePage : Page
             // 非 null 表示「没能按原样启动，但有话要说」（如 Windows 终端没装 → 已退回命令提示符）
             var notice = ToolCatalog.Launch(item);
             if (notice is not null)
-                ShowMessage("提示", notice);
+                ShowMessage(Localizer.T("提示"), notice);
         }
         catch (Exception ex)
         {
-            ShowMessage("启动失败", ex.Message);
+            ShowMessage(Localizer.T("启动失败"), ex.Message);
         }
     }
 
@@ -450,7 +482,7 @@ public partial class HomePage : Page
             {
                 Title = title,
                 Content = message,
-                CloseButtonText = "好的",
+                CloseButtonText = Localizer.T("好的"),
                 ShowTitle = true,
             };
             _ = dialog.ShowDialogAsync();

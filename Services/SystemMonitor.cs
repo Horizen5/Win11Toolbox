@@ -48,6 +48,11 @@ public sealed class SystemMonitor
     private DateTime _lastTick = DateTime.UtcNow;
     private int _busy;
 
+    // 磁盘容量 30 秒查一次就够，别每秒都去问一遍系统盘
+    private ulong _cachedFree;
+    private ulong _cachedTotal;
+    private DateTime _diskCheckedAt = DateTime.MinValue;
+
     /// <summary>每次采样完成触发，**在 UI 线程上**回调，可以直接改控件。</summary>
     public event Action<MonitorSnapshot>? Snapshot;
 
@@ -95,21 +100,30 @@ public sealed class SystemMonitor
         var (used, total, memPercent) = NativeMethods.Memory();
 
         double diskPercent = 0;
-        ulong free = 0, diskTotal = 0;
-        try
+        ulong free = _cachedFree, diskTotal = _cachedTotal;
+        var now = DateTime.UtcNow;
+
+        // 每秒 new DriveInfo 只是元数据查询，但启动时它和解包、WMI、回收站扫描挤在一起，
+        // 会把磁盘队列一起顶满。容量/剩余空间 30 秒刷新一次完全够用。
+        if ((now - _diskCheckedAt).TotalSeconds >= 30 || diskTotal == 0)
         {
-            var drive = new DriveInfo(_systemDrive);
-            diskTotal = (ulong)drive.TotalSize;
-            free = (ulong)drive.AvailableFreeSpace;
-            diskPercent = diskTotal == 0 ? 0 : Math.Round((double)(diskTotal - free) / diskTotal * 100, 1);
+            try
+            {
+                var drive = new DriveInfo(_systemDrive);
+                diskTotal = (ulong)drive.TotalSize;
+                free = (ulong)drive.AvailableFreeSpace;
+                _cachedTotal = diskTotal;
+                _cachedFree = free;
+                _diskCheckedAt = now;
+            }
+            catch
+            {
+                // 忽略：个别环境拿不到磁盘信息
+            }
         }
-        catch
-        {
-            // 忽略：个别环境拿不到磁盘信息
-        }
+        diskPercent = diskTotal == 0 ? 0 : Math.Round((double)(diskTotal - free) / diskTotal * 100, 1);
 
         ReadNetwork(out var received, out var sent);
-        var now = DateTime.UtcNow;
         var seconds = Math.Max((now - _lastTick).TotalSeconds, 0.001);
         var down = Math.Max((received - _lastReceived) / seconds, 0);
         var up = Math.Max((sent - _lastSent) / seconds, 0);

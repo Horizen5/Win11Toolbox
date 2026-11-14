@@ -12,6 +12,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Win11Toolbox.Tray;
 using TextBlock = System.Windows.Controls.TextBlock;
+using Win11Toolbox.Services.Localization;
 
 namespace Win11Toolbox.Pages;
 
@@ -122,7 +123,7 @@ public partial class TrayIconsPage : Page, IRefreshablePage
     private async void ShowLog_Click(object sender, RoutedEventArgs e)
     {
         var text = _log.Count == 0 ? "（还没有操作记录）" : string.Join(Environment.NewLine, _log);
-        await ShowAsync("操作日志", text);
+        await ShowAsync(Localizer.T("操作日志"), text);
     }
 
     /// <summary>UI Automation 在 STA 线程上最稳，这里单独开一个。</summary>
@@ -160,7 +161,7 @@ public partial class TrayIconsPage : Page, IRefreshablePage
         if (_busy) return;
         _busy = true;
         RefreshButton.IsEnabled = false;
-        StatusLine.Text = "正在读取托盘图标清单…";
+        StatusLine.Text = Localizer.T("正在读取托盘图标清单…");
         Log("开始读取：直接读注册表 NotifyIconSettings，不打开任何窗口。");
 
         try
@@ -250,7 +251,7 @@ public partial class TrayIconsPage : Page, IRefreshablePage
         var targets = explicitTargets ?? _rows.Where(r => r.Checked).Select(r => r.Model).ToList();
         if (targets.Count == 0)
         {
-            await ShowAsync("没有勾选项目", "请先勾选要操作的系统托盘图标。");
+            await ShowAsync(Localizer.T("没有勾选项目"), Localizer.T("请先勾选要操作的系统托盘图标。"));
             return;
         }
 
@@ -305,7 +306,7 @@ public partial class TrayIconsPage : Page, IRefreshablePage
     {
         if (_changed.Count == 0)
         {
-            await ShowAsync("没有可撤销的改动", "本次会话还没有改过任何托盘图标。");
+            await ShowAsync(Localizer.T("没有可撤销的改动"), Localizer.T("本次会话还没有改过任何托盘图标。"));
             return;
         }
 
@@ -358,7 +359,7 @@ public partial class TrayIconsPage : Page, IRefreshablePage
                 Title = title,
                 Content = message,
                 ShowTitle = true,
-                CloseButtonText = "关闭",
+                CloseButtonText = Localizer.T("关闭"),
             };
             await dialog.ShowDialogAsync();
         }

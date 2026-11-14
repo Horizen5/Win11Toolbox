@@ -12,6 +12,7 @@ using System.Windows.Media;
 using Win11Toolbox.RightMenu;
 using Wpf.Ui.Controls;
 using TextBlock = System.Windows.Controls.TextBlock;
+using Win11Toolbox.Services.Localization;
 
 namespace Win11Toolbox.Pages;
 
@@ -166,7 +167,7 @@ public partial class RightMenuPage : Page, IRefreshablePage
     private async void ShowLog_Click(object sender, RoutedEventArgs e)
     {
         var text = _log.Count == 0 ? "（还没有操作记录）" : string.Join(Environment.NewLine, _log);
-        await ShowAsync("操作日志", text);
+        await ShowAsync(Localizer.T("操作日志"), text);
     }
 
     // ------------------------------------------------------------------ 扫描
@@ -185,7 +186,7 @@ public partial class RightMenuPage : Page, IRefreshablePage
 
     private async Task RescanAsync()
     {
-        StatusLine.Text = "正在扫描注册表…";
+        StatusLine.Text = Localizer.T("正在扫描注册表…");
         try
         {
             var (list, logs) = await Task.Run(() =>
@@ -329,7 +330,7 @@ public partial class RightMenuPage : Page, IRefreshablePage
         foreach (var row in rows) _rows.Add(row);
 
         EmptyHint.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        CountHint.Text = $"显示 {rows.Count} / 共 {_all.Count} 项（第三方 {third} 项）";
+        CountHint.Text = Localizer.T($"显示 {rows.Count} / 共 {_all.Count} 项（第三方 {third} 项）");
     }
 
     /// <summary>图标解析要读 DLL 资源，放到后台算，算完再一次性填回列表。</summary>
@@ -388,14 +389,14 @@ public partial class RightMenuPage : Page, IRefreshablePage
         var sel = CheckedItems();
         if (sel.Count == 0)
         {
-            await ShowAsync("没有勾选项目", "请先在列表里勾选要隐藏的右键菜单项。");
+            await ShowAsync(Localizer.T("没有勾选项目"), Localizer.T("请先在列表里勾选要隐藏的右键菜单项。"));
             return;
         }
 
         int needAdmin = sel.Count(m => m.Root == "HKLM" && !m.IsBlocked && !m.IsHistory);
         if (needAdmin > 0 && !RightMenuActions.IsAdmin())
         {
-            bool go = await ConfirmAsync("需要管理员权限",
+            bool go = await ConfirmAsync(Localizer.T("需要管理员权限"),
                 $"选中的项目中有 {needAdmin} 项位于 HKLM，需要管理员权限。\n是否以管理员身份重新启动？");
             if (go && RightMenuActions.Elevate()) Application.Current.Shutdown();
             return;
@@ -403,11 +404,11 @@ public partial class RightMenuPage : Page, IRefreshablePage
 
         var preview = string.Join("\n", sel.Take(12).Select(m => $"  · [{m.Category}] {m.DisplayName}"));
         if (sel.Count > 12) preview += $"\n  … 其余 {sel.Count - 12} 项";
-        if (!await ConfirmAsync("确认禁用",
+        if (!await ConfirmAsync(Localizer.T("确认禁用"),
                 $"即将禁用以下 {sel.Count} 项：\n\n{preview}\n\n会先自动生成 .reg 备份，可随时还原。是否继续？"))
             return;
 
-        StatusLine.Text = "正在备份并禁用…";
+        StatusLine.Text = Localizer.T("正在备份并禁用…");
 
         ActionReport? report = null;
         try
@@ -427,7 +428,7 @@ public partial class RightMenuPage : Page, IRefreshablePage
 
         if (report == null)
         {
-            await ShowAsync("操作没有完成",
+            await ShowAsync(Localizer.T("操作没有完成"),
                 "处理过程中出错，列表已经按注册表的真实状态重新读取。\n\n" +
                 "已经改动的项会以「已禁用」出现在列表里，勾选后点「恢复选中项」即可还原。\n\n" +
                 "详细原因见「日志」。");
@@ -436,7 +437,7 @@ public partial class RightMenuPage : Page, IRefreshablePage
 
         Log("完成：" + report.Summary + "　备份：" + report.BackupDir);
 
-        if (report.Ok > 0 && await ConfirmAsync("完成",
+        if (report.Ok > 0 && await ConfirmAsync(Localizer.T("完成"),
                 $"成功 {report.Ok} 项，失败 {report.Fail} 项。\n\n备份目录：\n{report.BackupDir}\n\n是否现在重启资源管理器让改动立即生效？"))
         {
             await Task.Run(RightMenuActions.RestartExplorer);
@@ -452,7 +453,7 @@ public partial class RightMenuPage : Page, IRefreshablePage
 
         if (blocked.Count == 0 && history.Count == 0)
         {
-            await ShowAsync("没有可恢复的项",
+            await ShowAsync(Localizer.T("没有可恢复的项"),
                 "请勾选状态为「已屏蔽」或「已禁用」的项目。\n\n" +
                 "· 已屏蔽 = 被 Windows 官方屏蔽列表挡住的外壳扩展（蓝色）\n" +
                 "· 已禁用 = 以前被禁用、记录在 disabled.tsv 里的传统菜单项（棕橙色）");
@@ -463,7 +464,7 @@ public partial class RightMenuPage : Page, IRefreshablePage
         if (blocked.Count > 0) question += $"  解除屏蔽　　{blocked.Count} 项\n";
         if (history.Count > 0) question += $"  按备份还原　{history.Count} 项\n";
         question += "\n确定继续？";
-        if (!await ConfirmAsync("确认恢复", question)) return;
+        if (!await ConfirmAsync(Localizer.T("确认恢复"), question)) return;
 
         var report = await Task.Run(() => RightMenuActions.Restore(sel, Log));
         Log("恢复完成：" + report.Summary);
@@ -474,13 +475,13 @@ public partial class RightMenuPage : Page, IRefreshablePage
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "选择备份的 .reg 文件",
+            Title = Localizer.T("选择备份的 .reg 文件"),
             Filter = "注册表备份 (*.reg)|*.reg|所有文件 (*.*)|*.*",
             InitialDirectory = Directory.Exists(AppPaths.BackupRoot) ? AppPaths.BackupRoot : AppPaths.ExeDir,
         };
         if (dialog.ShowDialog() != true) return;
 
-        if (!await ConfirmAsync("确认恢复", $"即将导入：\n{dialog.FileName}\n\n确定继续？")) return;
+        if (!await ConfirmAsync(Localizer.T("确认恢复"), Localizer.T($"即将导入：\n{dialog.FileName}\n\n确定继续？"))) return;
 
         var (applied, fail) = await Task.Run(() =>
         {
@@ -488,12 +489,12 @@ public partial class RightMenuPage : Page, IRefreshablePage
             return (n, bad);
         });
         await RescanAsync();
-        await ShowAsync("恢复完成", $"应用 {applied} 处改动，失败 {fail} 处。");
+        await ShowAsync(Localizer.T("恢复完成"), Localizer.T($"应用 {applied} 处改动，失败 {fail} 处。"));
     }
 
     private async void RestartExplorer_Click(object sender, RoutedEventArgs e)
     {
-        if (!await ConfirmAsync("重启资源管理器", "桌面和任务栏会消失两三秒后自动恢复，是否继续？")) return;
+        if (!await ConfirmAsync(Localizer.T("重启资源管理器"), Localizer.T("桌面和任务栏会消失两三秒后自动恢复，是否继续？"))) return;
         await Task.Run(RightMenuActions.RestartExplorer);
         Log("资源管理器已重启。");
     }
@@ -527,7 +528,7 @@ public partial class RightMenuPage : Page, IRefreshablePage
         string file = RightMenuActions.FileOf(_menuTarget);
         if (file.Length == 0)
         {
-            await ShowAsync("没有关联文件", "这一项没有关联到具体文件。\n可以改用「在注册表编辑器中定位」看它注册在哪。");
+            await ShowAsync(Localizer.T("没有关联文件"), Localizer.T("这一项没有关联到具体文件。\n可以改用「在注册表编辑器中定位」看它注册在哪。"));
             return;
         }
         try { RightMenuActions.OpenFileLocation(file); Log("已定位：" + file); }
@@ -620,7 +621,7 @@ public partial class RightMenuPage : Page, IRefreshablePage
     private async void RestoreOne_Click(object sender, RoutedEventArgs e)
     {
         if (_menuTarget is null || !_menuTarget.IsHistory) return;
-        if (!await ConfirmAsync("确认恢复",
+        if (!await ConfirmAsync(Localizer.T("确认恢复"),
                 $"确定把「{_menuTarget.DisplayName}」恢复回右键菜单吗？\n\n" +
                 (_menuTarget.BackupItemReg.Length > 0
                     ? "将导入当时的备份：\n" + _menuTarget.BackupItemReg
@@ -637,7 +638,7 @@ public partial class RightMenuPage : Page, IRefreshablePage
         if (_menuTarget is null) return;
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Title = "单独备份这一项为 .reg",
+            Title = Localizer.T("单独备份这一项为 .reg"),
             Filter = "注册表备份 (*.reg)|*.reg|所有文件 (*.*)|*.*",
             FileName = RightMenuActions.MakeSafeName(_menuTarget.DisplayName) + ".reg",
             InitialDirectory = Directory.Exists(AppPaths.BackupRoot) ? AppPaths.BackupRoot : AppPaths.ExeDir,
@@ -677,7 +678,7 @@ public partial class RightMenuPage : Page, IRefreshablePage
         }
         sb.Append("详细信息　" + mi.Detail);
 
-        await ShowAsync("完整信息 — " + mi.DisplayName, sb.ToString());
+        await ShowAsync(Localizer.T("完整信息 — ") + mi.DisplayName, sb.ToString());
     }
 
     // ------------------------------------------------------------------ 对话框
@@ -690,8 +691,8 @@ public partial class RightMenuPage : Page, IRefreshablePage
                 Title = title,
                 Content = message,
                 ShowTitle = true,
-                PrimaryButtonText = "确定",
-                CloseButtonText = "取消",
+                PrimaryButtonText = Localizer.T("确定"),
+                CloseButtonText = Localizer.T("取消"),
             };
             return await dialog.ShowDialogAsync() == Wpf.Ui.Controls.MessageBoxResult.Primary;
         }
@@ -707,7 +708,7 @@ public partial class RightMenuPage : Page, IRefreshablePage
                 Title = title,
                 Content = message,
                 ShowTitle = true,
-                CloseButtonText = "关闭",
+                CloseButtonText = Localizer.T("关闭"),
             };
             await dialog.ShowDialogAsync();
         }

@@ -7,6 +7,7 @@ using System.Windows.Threading;
 using Win11Toolbox.Controls;
 using Microsoft.Win32;
 using Win11Toolbox.Services;
+using Win11Toolbox.Services.Localization;
 
 namespace Win11Toolbox.Pages;
 
@@ -19,7 +20,7 @@ public partial class UtilitiesPage : Page
     public UtilitiesPage()
     {
         InitializeComponent();
-        LocalIpText.Text = $"内网 IP：{ShellTools.LocalIp()}";
+        LocalIpText.Text = Localizer.T($"内网 IP：{ShellTools.LocalIp()}");
 
         TotpList.ItemsSource = _totp;
         Loaded += (_, _) => StartTotpTimer();
@@ -39,19 +40,19 @@ public partial class UtilitiesPage : Page
         var path = HashPath.Text;
         if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
         {
-            HashResult.Text = "请先选择文件";
+            HashResult.Text = Localizer.T("请先选择文件");
             return;
         }
 
         var algorithm = (HashAlgorithm.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "SHA-256";
-        HashResult.Text = "计算中…";
+        HashResult.Text = Localizer.T("计算中…");
         try
         {
             HashResult.Text = await Task.Run(() => ShellTools.HashFile(path, algorithm));
         }
         catch (Exception ex)
         {
-            HashResult.Text = $"计算失败：{ex.Message}";
+            HashResult.Text = Localizer.T($"计算失败：{ex.Message}");
         }
     }
 
@@ -75,7 +76,7 @@ public partial class UtilitiesPage : Page
         var password = ShellTools.GeneratePassword(length, true, true, true, true);
         PasswordResult.Text = password;
         var (_, label) = ShellTools.PasswordStrength(password);
-        PasswordStrength.Text = $"强度 {label}（{password.Length} 位）";
+        PasswordStrength.Text = Localizer.T($"强度 {label}（{password.Length} 位）");
         try
         {
             Clipboard.SetText(password);
@@ -176,12 +177,12 @@ public partial class UtilitiesPage : Page
 
         if (sender is Button button)
         {
-            button.Content = "已复制";
+            button.Content = Localizer.T("已复制");
             var restore = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.2) };
             restore.Tick += (_, _) =>
             {
                 restore.Stop();
-                button.Content = "复制";
+                button.Content = Localizer.T("复制");
             };
             restore.Start();
         }
@@ -271,7 +272,7 @@ public partial class UtilitiesPage : Page
     private async void CheckPort_Click(object sender, RoutedEventArgs e)
     {
         var port = (int)Math.Clamp(PortNumber.Value ?? 443, 1, 65535);
-        PortResult.Text = "检测中…";
+        PortResult.Text = Localizer.T("检测中…");
         var (ok, message) = await ShellTools.CheckPortAsync(PortHost.Text.Trim(), port);
         PortResult.Text = (ok ? "✓ " : "✗ ") + message;
         PortResult.Foreground = ok ? UiTheme.Success : UiTheme.Critical;
@@ -282,7 +283,7 @@ public partial class UtilitiesPage : Page
         var host = PingHost.Text.Trim();
         if (host.Length == 0) return;
 
-        PingOutput.Text = $"正在 Ping {host}…";
+        PingOutput.Text = Localizer.T($"正在 Ping {host}…");
         PingOutput.Text = await ShellTools.PingAsync(host, 4);
     }
 }

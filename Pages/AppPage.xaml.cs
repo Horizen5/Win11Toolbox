@@ -11,6 +11,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Win11Toolbox.Controls;
 using Win11Toolbox.Services;
+using Win11Toolbox.Services.Localization;
 
 namespace Win11Toolbox.Pages;
 
@@ -166,7 +167,7 @@ public partial class AppPage : Page, IRefreshablePage
     // ------------------------------------------------------------------ 装机清单
     private async Task LoadCatalogAsync()
     {
-        StatusLine.Text = "正在检查 winget…";
+        StatusLine.Text = Localizer.T("正在检查 winget…");
         _wingetOk = await AppManager.HasWingetAsync();
 
         _installRows.Clear();
@@ -179,14 +180,14 @@ public partial class AppPage : Page, IRefreshablePage
         if (!_wingetOk)
         {
             foreach (var row in _installRows) row.StateText = "—";
-            StatusLine.Text = "没找到 winget，装机清单不可用";
-            ShowToast(Wpf.Ui.Controls.InfoBarSeverity.Warning, "没有 winget",
+            StatusLine.Text = Localizer.T("没找到 winget，装机清单不可用");
+            ShowToast(Wpf.Ui.Controls.InfoBarSeverity.Warning, Localizer.T("没有 winget"),
                 "系统里没有 App Installer，装机清单装不了软件。到 Microsoft Store 搜索「应用安装程序」装一下即可。");
             return;
         }
 
         // 一次 winget list 把全部状态取回来（约 2 秒），比逐个包问快一个数量级
-        StatusLine.Text = $"共 {_installRows.Count} 款软件，正在检查已装状态…";
+        StatusLine.Text = Localizer.T($"共 {_installRows.Count} 款软件，正在检查已装状态…");
         try
         {
             var installed = await AppManager.InstalledIdsAsync(_installRows.Select(r => r.Id), _cts.Token);
@@ -210,7 +211,7 @@ public partial class AppPage : Page, IRefreshablePage
 
         int installedCount = _installRows.Count(r => r.StateText == "已安装");
         RefreshInstallView();
-        StatusLine.Text = $"共 {_installRows.Count} 款，已安装 {installedCount} 款";
+        StatusLine.Text = Localizer.T($"共 {_installRows.Count} 款，已安装 {installedCount} 款");
         Log($"装机清单已载入：{_installRows.Count} 款，本机已装 {installedCount} 款。");
     }
 
@@ -246,7 +247,7 @@ public partial class AppPage : Page, IRefreshablePage
             _installView.Add(row);
         }
 
-        InstallCount.Text = $"显示 {_installView.Count} / {_installRows.Count}";
+        InstallCount.Text = Localizer.T($"显示 {_installView.Count} / {_installRows.Count}");
     }
 
     private async void Install_Click(object sender, RoutedEventArgs e)
@@ -256,13 +257,13 @@ public partial class AppPage : Page, IRefreshablePage
         var picked = _installRows.Where(r => r.IsChecked).ToList();
         if (picked.Count == 0)
         {
-            ShowToast(Wpf.Ui.Controls.InfoBarSeverity.Informational, "还没勾选", "先勾选要安装的软件，再点「安装选中」。");
+            ShowToast(Wpf.Ui.Controls.InfoBarSeverity.Informational, Localizer.T("还没勾选"), Localizer.T("先勾选要安装的软件，再点「安装选中」。"));
             return;
         }
 
         if (!_wingetOk)
         {
-            ShowToast(Wpf.Ui.Controls.InfoBarSeverity.Error, "winget 不可用", "装不了，先装「应用安装程序」。");
+            ShowToast(Wpf.Ui.Controls.InfoBarSeverity.Error, Localizer.T("winget 不可用"), Localizer.T("装不了，先装「应用安装程序」。"));
             return;
         }
 
@@ -270,7 +271,7 @@ public partial class AppPage : Page, IRefreshablePage
         string names = string.Join("、", picked.Take(5).Select(r => r.Name))
                        + (picked.Count > 5 ? $" 等 {picked.Count} 款" : "");
 
-        if (!await ConfirmAsync("确认安装",
+        if (!await ConfirmAsync(Localizer.T("确认安装"),
                 $"将安装：{names}。\n\n"
                 + (silent ? "已勾选「静默安装」，能静默的安装包不会弹窗。\n" : "未勾选静默安装，安装过程可能会弹窗。\n")
                 + "耗时取决于网速和包大小，中途可以看底部状态。",
@@ -295,7 +296,7 @@ public partial class AppPage : Page, IRefreshablePage
                 }
 
                 row.StateText = "安装中…";
-                StatusLine.Text = $"正在安装 {row.Name}…";
+                StatusLine.Text = Localizer.T($"正在安装 {row.Name}…");
 
                 var progress = new Progress<string>(line =>
                 {
@@ -338,14 +339,14 @@ public partial class AppPage : Page, IRefreshablePage
                 }
             }
 
-            StatusLine.Text = $"安装完成：成功 {ok}，失败 {fail}，跳过 {skip}";
+            StatusLine.Text = Localizer.T($"安装完成：成功 {ok}，失败 {fail}，跳过 {skip}");
             Log($"本轮结束：成功 {ok}，失败 {fail}，已装跳过 {skip}。");
 
             if (fail > 0)
-                ShowToast(Wpf.Ui.Controls.InfoBarSeverity.Warning, "有软件没装上",
+                ShowToast(Wpf.Ui.Controls.InfoBarSeverity.Warning, Localizer.T("有软件没装上"),
                     $"{fail} 款失败，点「日志」看 winget 的具体报错。");
             else if (ok > 0)
-                ShowToast(Wpf.Ui.Controls.InfoBarSeverity.Success, "装完了", $"{ok} 款软件安装完成。");
+                ShowToast(Wpf.Ui.Controls.InfoBarSeverity.Success, Localizer.T("装完了"), Localizer.T($"{ok} 款软件安装完成。"));
         }
         finally
         {
@@ -360,9 +361,9 @@ public partial class AppPage : Page, IRefreshablePage
         if (_busy) return;
         _appsLoaded = true;
 
-        AppEmptyHint.Text = "正在读取已安装应用…";
+        AppEmptyHint.Text = Localizer.T("正在读取已安装应用…");
         AppEmptyHint.Visibility = Visibility.Visible;
-        StatusLine.Text = "正在读取已安装应用…";
+        StatusLine.Text = Localizer.T("正在读取已安装应用…");
 
         try
         {
@@ -374,21 +375,21 @@ public partial class AppPage : Page, IRefreshablePage
                 _appRows.Add(new AppxRow(app));
 
             RefreshAppView();
-            StatusLine.Text = $"已安装 {_appRows.Count} 个应用";
+            StatusLine.Text = Localizer.T($"已安装 {_appRows.Count} 个应用");
             Log($"已装应用：{_appRows.Count} 个（含系统预装）。");
         }
         catch (OperationCanceledException)
         {
-            StatusLine.Text = "读取已取消";
+            StatusLine.Text = Localizer.T("读取已取消");
         }
         catch (Exception ex)
         {
-            StatusLine.Text = "读取失败：" + ex.Message;
+            StatusLine.Text = Localizer.T("读取失败：") + ex.Message;
             Log("读取已装应用失败：" + ex.Message);
         }
         finally
         {
-            AppEmptyHint.Text = "没有匹配的应用";
+            AppEmptyHint.Text = Localizer.T("没有匹配的应用");
             AppEmptyHint.Visibility = _appView.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         }
     }
@@ -412,7 +413,7 @@ public partial class AppPage : Page, IRefreshablePage
             _appView.Add(row);
         }
 
-        AppCount.Text = $"显示 {_appView.Count} / {_appRows.Count}";
+        AppCount.Text = Localizer.T($"显示 {_appView.Count} / {_appRows.Count}");
         AppEmptyHint.Visibility = _appView.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -424,7 +425,7 @@ public partial class AppPage : Page, IRefreshablePage
         var picked = _appRows.Where(r => r.IsChecked && !r.IsProtected).ToList();
         if (picked.Count == 0)
         {
-            ShowToast(Wpf.Ui.Controls.InfoBarSeverity.Informational, "还没勾选",
+            ShowToast(Wpf.Ui.Controls.InfoBarSeverity.Informational, Localizer.T("还没勾选"),
                 "先勾选要卸载的应用，再点「卸载选中」。带「系统组件」标记的不能卸。");
             return;
         }
@@ -432,7 +433,7 @@ public partial class AppPage : Page, IRefreshablePage
         string names = string.Join("、", picked.Take(5).Select(r => r.Name))
                        + (picked.Count > 5 ? $" 等 {picked.Count} 个" : "");
 
-        if (!await ConfirmAsync("确认卸载",
+        if (!await ConfirmAsync(Localizer.T("确认卸载"),
                 $"将卸载：{names}。\n\n"
                 + "当前用户的应用只影响这个账户；「系统预装」的包卸载后，新建用户也不会再自动装上。\n"
                 + "卸掉的商店应用以后可以在 Microsoft Store 里重新装回来。",
@@ -448,7 +449,7 @@ public partial class AppPage : Page, IRefreshablePage
             {
                 if (_cts.IsCancellationRequested) break;
 
-                StatusLine.Text = $"正在卸载 {row.Name}…";
+                StatusLine.Text = Localizer.T($"正在卸载 {row.Name}…");
                 try
                 {
                     var (success, output) = await AppManager.RemoveAppAsync(row.App, null, _cts.Token);
@@ -472,7 +473,7 @@ public partial class AppPage : Page, IRefreshablePage
             }
 
             RefreshAppView();
-            StatusLine.Text = $"卸载完成：成功 {ok}，失败 {fail}";
+            StatusLine.Text = Localizer.T($"卸载完成：成功 {ok}，失败 {fail}");
             ShowToast(fail > 0 ? Wpf.Ui.Controls.InfoBarSeverity.Warning : Wpf.Ui.Controls.InfoBarSeverity.Success,
                 "卸载结束", $"成功 {ok} 个，失败 {fail} 个。");
         }
@@ -487,14 +488,14 @@ public partial class AppPage : Page, IRefreshablePage
     private async void RestorePoint_Click(object sender, RoutedEventArgs e)
     {
         if (_busy) return;
-        if (!await ConfirmAsync("创建系统还原点",
+        if (!await ConfirmAsync(Localizer.T("创建系统还原点"),
                 "会在当前系统状态上打一个还原点，之后装坏了可以整体回滚。\n\n"
                 + "注意：Windows 限制 24 小时内只建一个还原点；系统还原被关掉的话，这一步会自动帮你打开。",
                 primaryText: "创建"))
             return;
 
         _busy = true;
-        StatusLine.Text = "正在创建还原点，可能要几十秒…";
+        StatusLine.Text = Localizer.T("正在创建还原点，可能要几十秒…");
         try
         {
             var (success, message) = await AppManager.CreateRestorePointAsync("Win11 工具箱 - 应用管理前");
@@ -556,10 +557,10 @@ public partial class AppPage : Page, IRefreshablePage
         {
             var dialog = new Wpf.Ui.Controls.MessageBox
             {
-                Title = "操作日志",
+                Title = Localizer.T("操作日志"),
                 Content = text,
                 ShowTitle = true,
-                CloseButtonText = "关闭",
+                CloseButtonText = Localizer.T("关闭"),
             };
             await dialog.ShowDialogAsync();
         }
@@ -588,6 +589,7 @@ public partial class AppPage : Page, IRefreshablePage
 
     private static async Task<bool> ConfirmAsync(string title, string message, string primaryText = "确定")
     {
+        primaryText = Localizer.T(primaryText);
         try
         {
             var dialog = new Wpf.Ui.Controls.MessageBox
@@ -596,7 +598,7 @@ public partial class AppPage : Page, IRefreshablePage
                 Content = message,
                 ShowTitle = true,
                 PrimaryButtonText = primaryText,
-                CloseButtonText = "取消",
+                CloseButtonText = Localizer.T("取消"),
             };
             return await dialog.ShowDialogAsync() == Wpf.Ui.Controls.MessageBoxResult.Primary;
         }

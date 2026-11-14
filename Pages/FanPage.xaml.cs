@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -10,6 +11,7 @@ using System.Windows.Threading;
 using Win11Toolbox.Controls;
 using Win11Toolbox.RightMenu;
 using Win11Toolbox.Services;
+using Win11Toolbox.Services.Localization;
 
 namespace Win11Toolbox.Pages;
 
@@ -41,6 +43,37 @@ public partial class FanPage : Page
     private DispatcherTimer? _saveTimer;  // 拖滑块时别每个像素都落盘
     private DateTime _verifyHold;         // 校验警告在这之前不被定时刷新覆盖
     private readonly HashSet<string> _ineffective = new(StringComparer.Ordinal);  // 实测写不动的风扇
+
+    // ---- 电压 / 温度统计 ----
+    private readonly VoltageMonitor _voltageMonitor = new();
+    private readonly Dictionary<VoltageRail, RailCard> _railCards = new();
+    private readonly Dictionary<string, Wpf.Ui.Controls.TextBlock> _otherValues = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, float> _tempMax = new(StringComparer.OrdinalIgnoreCase);
+    private bool _railCardsBuilt;
+    private string _otherSignature = "\u0001";   // 保证首轮一定重建
+    private bool _otherExpanded;
+
+    private static readonly (VoltageRail Rail, string Label, float Nominal)[] RailDefinitions =
+    {
+        (VoltageRail.V12, "+12V", 12f),
+        (VoltageRail.V5, "+5V", 5f),
+        (VoltageRail.V33, "+3.3V", 3.3f),
+    };
+
+    /// <summary>一张主轨道电压卡的可变部分。卡片只建一次，之后只改文本，避免每 2 秒把校准输入框清掉。</summary>
+    private sealed class RailCard
+    {
+        public required Border Card { get; init; }
+        public required Wpf.Ui.Controls.TextBlock Value { get; init; }
+        public required Wpf.Ui.Controls.TextBlock Detail { get; init; }
+        public required Wpf.Ui.Controls.TextBlock State { get; init; }
+        public required Wpf.Ui.Controls.Button Edit { get; init; }
+        public required StackPanel CalibRow { get; init; }
+        public required TextBox GainBox { get; init; }
+        public VoltageReading? Reading { get; set; }
+    }
+
+    private static string L(string text) => Localizer.T(text);
 
     public FanPage()
     {
@@ -123,6 +156,7 @@ public partial class FanPage : Page
 
             _lastApplied = last;
             _maxTemp = temps.Where(x => x.Value > 0).Select(x => x.Value).DefaultIfEmpty(0).Max();
+            _voltageMonitor.Update(_controller.Voltages);
             Render(fans, temps);
             RedrawCurve();
         }
@@ -157,6 +191,7 @@ public partial class FanPage : Page
         // 两组都要同步：空接口的 PWM 读数也会变
         SyncTiles(fans);
         RenderTemps(temps);
+        RenderVoltages();
         UpdateStatus(fans, active.Count, idle.Count);
     }
 
@@ -276,7 +311,7 @@ public partial class FanPage : Page
         _idleRows.Clear();
 
         IdleCard.Visibility = idle.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        IdleHeader.Text = $"未接风扇的接口（{idle.Count} 个）";
+        IdleHeader.Text = Localizer.T($"未接风扇的接口（{idle.Count} 个）");
 
         foreach (var fan in idle)
         {
@@ -477,7 +512,7 @@ public partial class FanPage : Page
 
             var auto = new Wpf.Ui.Controls.Button
             {
-                Content = "自动",
+                Content = Localizer.T("自动"),
                 Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary,
                 Padding = new Thickness(12, 3, 12, 4),
                 FontSize = 12,
@@ -492,7 +527,7 @@ public partial class FanPage : Page
 
             var apply = new Wpf.Ui.Controls.Button
             {
-                Content = "应用",
+                Content = Localizer.T("应用"),
                 Padding = new Thickness(12, 3, 12, 4),
                 FontSize = 12,
                 Margin = new Thickness(6, 0, 0, 0),
@@ -776,6 +811,13 @@ public partial class FanPage : Page
         var shown = 0;
         foreach (var temp in temps.Where(t => t.Value > 0).OrderByDescending(t => t.Value))
         {
+            var key = temp.Hardware + "|" + temp.Name;
+            if (!_tempMax.TryGetValue(key, out var max) || temp.Value > max)
+            {
+                max = temp.Value;
+                _tempMax[key] = max;
+            }
+
             var panel = new StackPanel { Orientation = Orientation.Horizontal };
             panel.Children.Add(new Wpf.Ui.Controls.SymbolIcon
             {
@@ -790,11 +832,16 @@ public partial class FanPage : Page
             label.VerticalAlignment = VerticalAlignment.Center;
             panel.Children.Add(label);
 
-            var value = UiTheme.BodyStrong($"{temp.Value:0} °C");
+            var value = UiTheme.BodyStrong($"{temp.Value:0.#} °C");
             value.Margin = new Thickness(8, 0, 0, 0);
             value.VerticalAlignment = VerticalAlignment.Center;
             value.Foreground = HeatBrush(temp.Value);
             panel.Children.Add(value);
+
+            var peak = UiTheme.Caption($"{L("最高")} {max:0.#} °C");
+            peak.Margin = new Thickness(8, 0, 0, 0);
+            peak.VerticalAlignment = VerticalAlignment.Center;
+            panel.Children.Add(peak);
 
             TempPanel.Children.Add(new Border
             {
@@ -808,7 +855,265 @@ public partial class FanPage : Page
         }
 
         if (shown == 0)
-            TempPanel.Children.Add(UiTheme.Caption("温度传感器不可用（通常需要 PawnIO 驱动）。"));
+            TempPanel.Children.Add(UiTheme.Caption(L("温度传感器不可用（通常需要 PawnIO 驱动）。")));
+
+        var hottest = temps.Where(t => t.Value > 0).Select(t => t.Value).DefaultIfEmpty(0).Max();
+        TempSummary.Text = hottest <= 0
+            ? ""
+            : $"{L("传感器")} {temps.Count} · {L("当前最高")} {hottest:0.#} °C · "
+              + $"{L("本次运行最高")} {_tempMax.Values.DefaultIfEmpty(0).Max():0.#} °C";
+    }
+
+    // ------------------------------------------------------------------ 电源电压
+
+    private void RenderVoltages()
+    {
+        BuildRailCards();
+        SyncRailCards();
+        SyncOtherVoltages();
+
+        VoltageSummary.Text = _voltageMonitor.Count == 0
+            ? L("没有读到电压传感器，通常需要管理员权限和 PawnIO 驱动。")
+            : L("读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。");
+    }
+
+    /// <summary>
+    /// 三张主轨道卡只建一次。页面每 2 秒刷新一次，如果每轮重建，用户刚点开的校准输入框
+    /// 会被立刻清掉 —— 所以这里只更新已有控件的文本。
+    /// </summary>
+    private void BuildRailCards()
+    {
+        if (_railCardsBuilt) return;
+        _railCardsBuilt = true;
+        RailPanel.Children.Clear();
+        _railCards.Clear();
+
+        foreach (var (rail, label, nominal) in RailDefinitions)
+        {
+            var value = UiTheme.Title("—");
+            value.FontSize = 26;
+            value.Margin = new Thickness(0, 4, 0, 0);
+
+            var detail = UiTheme.Caption(
+                $"{L("标称")} {nominal:0.00} V · {L("允许")} {nominal * 0.95f:0.00}–{nominal * 1.05f:0.00} V");
+            detail.Margin = new Thickness(0, 2, 0, 0);
+
+            var state = UiTheme.Caption(L("等待读数…"));
+            state.Margin = new Thickness(0, 4, 0, 0);
+            state.TextWrapping = TextWrapping.Wrap;
+
+            var edit = new Wpf.Ui.Controls.Button
+            {
+                Content = L("校准"),
+                Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary,
+                FontSize = 12,
+                Padding = new Thickness(10, 2, 10, 3),
+                Margin = new Thickness(0, 8, 6, 0),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                IsEnabled = false,
+            };
+            var gainBox = new TextBox
+            {
+                Width = 76,
+                FontSize = 12,
+                Text = "1",
+                VerticalContentAlignment = VerticalAlignment.Center,
+                ToolTip = L("倍率 = 万用表实测值 ÷ 软件读数"),
+                Margin = new Thickness(0, 8, 6, 0),
+            };
+            var apply = new Wpf.Ui.Controls.Button
+            {
+                Content = L("确定"),
+                Appearance = Wpf.Ui.Controls.ControlAppearance.Primary,
+                FontSize = 12,
+                Padding = new Thickness(10, 2, 10, 3),
+                Margin = new Thickness(0, 8, 6, 0),
+            };
+            var reset = new Wpf.Ui.Controls.Button
+            {
+                Content = L("默认"),
+                Appearance = Wpf.Ui.Controls.ControlAppearance.Transparent,
+                FontSize = 12,
+                Padding = new Thickness(8, 2, 8, 3),
+                Margin = new Thickness(0, 8, 0, 0),
+            };
+
+            var calibRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Visibility = Visibility.Collapsed,
+            };
+            calibRow.Children.Add(gainBox);
+            calibRow.Children.Add(apply);
+            calibRow.Children.Add(reset);
+
+            var body = new StackPanel();
+            body.Children.Add(UiTheme.BodyStrong(label));
+            body.Children.Add(value);
+            body.Children.Add(detail);
+            body.Children.Add(state);
+            body.Children.Add(edit);
+            body.Children.Add(calibRow);
+
+            var border = new Border
+            {
+                Width = 244,
+                Padding = new Thickness(14, 12, 14, 12),
+                Margin = new Thickness(0, 0, 10, 10),
+                CornerRadius = new CornerRadius(8),
+                Background = UiTheme.Brush("SubtleFillColorSecondaryBrush", Brushes.Transparent),
+                Child = body,
+            };
+
+            var card = new RailCard
+            {
+                Card = border,
+                Value = value,
+                Detail = detail,
+                State = state,
+                Edit = edit,
+                CalibRow = calibRow,
+                GainBox = gainBox,
+            };
+
+            var captured = rail;
+            edit.Click += (_, _) => BeginCalibration(captured);
+            apply.Click += (_, _) => ApplyCalibration(captured);
+            reset.Click += (_, _) => ResetCalibration(captured);
+
+            _railCards[rail] = card;
+            RailPanel.Children.Add(border);
+        }
+    }
+
+    private void SyncRailCards()
+    {
+        foreach (var (rail, _, _) in RailDefinitions)
+        {
+            if (!_railCards.TryGetValue(rail, out var card)) continue;
+
+            var reading = _voltageMonitor.Find(rail);
+            card.Reading = reading;
+            card.Edit.IsEnabled = reading is not null;
+
+            if (reading is null || !reading.HasBaseline)
+            {
+                card.Value.Text = "—";
+                card.Value.Foreground = UiTheme.Neutral;
+                card.State.Text = L("未检测到该轨道的传感器");
+                card.State.Foreground = UiTheme.Neutral;
+                card.Card.ToolTip = null;
+                continue;
+            }
+
+            card.Value.Text = $"{reading.Value:0.000} V";
+            card.Value.Foreground = reading.InTolerance ? UiTheme.Success : UiTheme.Caution;
+
+            var status = reading.InTolerance ? L("正常") : L("超出 ±5%");
+            card.State.Text = $"{status} · {L("最低")} {reading.Min:0.000} · {L("最高")} {reading.Max:0.000} · "
+                            + $"{L("压降")} {reading.DropPercent:0.0}%";
+            card.State.Foreground = reading.InTolerance ? UiTheme.TextSecondary : UiTheme.Caution;
+
+            var source = reading.UserCalibrated ? L("用户校准")
+                       : reading.BoardCalibrated ? L("板型系数")
+                       : L("原始值");
+            card.Card.ToolTip = $"{L("原始")} {reading.Raw:0.000} V × {reading.Gain:0.##} "
+                              + $"= {reading.Value:0.000} V · {source}\n{reading.Identifier}";
+        }
+    }
+
+    // ------------------------------------------------------------------ 校准倍率
+
+    private void BeginCalibration(VoltageRail rail)
+    {
+        if (!_railCards.TryGetValue(rail, out var card) || card.Reading is null) return;
+        card.GainBox.Text = card.Reading.Gain.ToString("0.####", CultureInfo.InvariantCulture);
+        card.CalibRow.Visibility = Visibility.Visible;
+        card.GainBox.Focus();
+        card.GainBox.SelectAll();
+    }
+
+    private void ApplyCalibration(VoltageRail rail)
+    {
+        if (!_railCards.TryGetValue(rail, out var card) || card.Reading is null) return;
+
+        var text = card.GainBox.Text.Trim().Replace(',', '.');
+        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var gain)
+            || gain < 0.01 || gain > 100)
+        {
+            card.State.Text = L("倍率无效，请输入 0.01–100 之间的数字。");
+            card.State.Foreground = UiTheme.Caution;
+            return;
+        }
+
+        VoltageMonitor.SetCalibration(card.Reading.Identifier, gain, card.Reading.Offset);
+        card.CalibRow.Visibility = Visibility.Collapsed;
+        _ = RefreshAsync();
+    }
+
+    private void ResetCalibration(VoltageRail rail)
+    {
+        if (!_railCards.TryGetValue(rail, out var card) || card.Reading is null) return;
+        VoltageMonitor.ClearCalibration(card.Reading.Identifier);
+        card.CalibRow.Visibility = Visibility.Collapsed;
+        _ = RefreshAsync();
+    }
+
+    // ------------------------------------------------------------------ 其他电压
+
+    private void SyncOtherVoltages()
+    {
+        var others = _voltageMonitor.Others;
+        var signature = string.Join("|", others.Select(v => v.Identifier));
+
+        if (signature != _otherSignature)
+        {
+            _otherSignature = signature;
+            _otherValues.Clear();
+            OtherPanel.Children.Clear();
+
+            foreach (var v in others.Take(30))
+            {
+                var text = UiTheme.BodyStrong($"{v.Value:0.000} V");
+                text.FontSize = 13;
+                text.VerticalAlignment = VerticalAlignment.Center;
+
+                var row = new StackPanel { Orientation = Orientation.Horizontal };
+                row.Children.Add(UiTheme.Caption(v.Name));
+                row.Children.Add(text);
+
+                OtherPanel.Children.Add(new Border
+                {
+                    Background = UiTheme.Brush("SubtleFillColorSecondaryBrush", Brushes.Transparent),
+                    CornerRadius = new CornerRadius(6),
+                    Padding = new Thickness(10, 5, 10, 5),
+                    Margin = new Thickness(0, 0, 8, 8),
+                    Child = row,
+                    ToolTip = v.Identifier,
+                });
+                _otherValues[v.Identifier] = text;
+            }
+
+            OtherHeader.Text = L("其他电压") + $" ({others.Count})";
+            OtherHead.Visibility = others.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+        else
+        {
+            foreach (var v in others)
+            {
+                if (_otherValues.TryGetValue(v.Identifier, out var text))
+                    text.Text = $"{v.Value:0.000} V";
+            }
+        }
+    }
+
+    private void OtherHead_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        _otherExpanded = !_otherExpanded;
+        OtherPanel.Visibility = _otherExpanded ? Visibility.Visible : Visibility.Collapsed;
+        OtherChevron.Symbol = _otherExpanded
+            ? Wpf.Ui.Controls.SymbolRegular.ChevronUp24
+            : Wpf.Ui.Controls.SymbolRegular.ChevronDown24;
     }
 
     private static Brush HeatBrush(float celsius)
@@ -1122,9 +1427,9 @@ public partial class FanPage : Page
 
     private void UpdateCurveLabels()
     {
-        StartLabel.Text = $"起转温度 {StartSlider.Value:0} °C";
-        FullLabel.Text = $"满载温度 {FullSlider.Value:0} °C";
-        MinLabel.Text = $"最低转速 {MinSlider.Value:0} %";
+        StartLabel.Text = Localizer.T($"起转温度 {StartSlider.Value:0} °C");
+        FullLabel.Text = Localizer.T($"满载温度 {FullSlider.Value:0} °C");
+        MinLabel.Text = Localizer.T($"最低转速 {MinSlider.Value:0} %");
 
         CurveSummary.Text = _curveEnabled
             ? $"已启用：{StartSlider.Value:0} °C 以下 {MinSlider.Value:0}% · "

@@ -8,6 +8,7 @@ using Wpf.Ui.Controls;
 using Win11Toolbox.Controls;
 using Win11Toolbox.Services;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
+using Win11Toolbox.Services.Localization;
 
 namespace Win11Toolbox.Pages;
 
@@ -27,7 +28,7 @@ public partial class ToolsPage : Page, IRefreshablePage
     public ToolsPage()
     {
         InitializeComponent();
-        Subtitle.Text = $"集成了 {ToolCatalog.TotalCount} 个 Windows 常用工具，点击磁贴即可启动";
+        Subtitle.Text = Localizer.T($"集成了 {ToolCatalog.TotalCount} 个 Windows 常用工具，点击磁贴即可启动");
         BuildAll();
         ApplyFilter(string.Empty);
     }
@@ -48,7 +49,11 @@ public partial class ToolsPage : Page, IRefreshablePage
 
             foreach (var item in category.Items)
             {
-                var tile = new ToolTile(item.Name, item.Description, AppCache.Icon(item), ToolCatalog.Glyph(item))
+                // 字形优先，47 个工具都配了字形；有字形时图片图标不会显示，
+                // 别再为每个磁贴同步调一次 SHGetFileInfo（首次进本页会白卡几百毫秒）。
+                var glyph = ToolCatalog.Glyph(item);
+                var icon = glyph is null ? AppCache.Icon(item) : null;
+                var tile = new ToolTile(item.Name, item.Description, icon, glyph)
                 {
                     Margin = new Thickness(2),
                 };
@@ -113,11 +118,11 @@ public partial class ToolsPage : Page, IRefreshablePage
             // Launch 返回非 null 表示「没能按原样启动，但有话要说」（如 Windows 终端没装 → 已退回命令提示符）
             var notice = ToolCatalog.Launch(item);
             if (notice is not null)
-                ShowMessage("提示", notice);
+                ShowMessage(Localizer.T("提示"), notice);
         }
         catch (Exception ex)
         {
-            ShowMessage("启动失败", $"{item.Name}：{ex.Message}");
+            ShowMessage(Localizer.T("启动失败"), $"{item.Name}：{ex.Message}");
         }
     }
 
@@ -129,7 +134,7 @@ public partial class ToolsPage : Page, IRefreshablePage
             {
                 Title = title,
                 Content = message,
-                CloseButtonText = "好的",
+                CloseButtonText = Localizer.T("好的"),
                 ShowTitle = true,
             };
             _ = dialog.ShowDialogAsync();

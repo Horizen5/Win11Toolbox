@@ -10,6 +10,7 @@ using System.Windows.Shapes;
 using Wpf.Ui.Controls;
 using Win11Toolbox.Controls;
 using Win11Toolbox.Services;
+using Win11Toolbox.Services.Localization;
 
 namespace Win11Toolbox.Pages;
 
@@ -47,7 +48,7 @@ public partial class OptimizePage : Page
     // ------------------------------------------------------------------ 清理
     private async Task ScanAsync()
     {
-        TempInfo.Text = "正在扫描临时文件…";
+        TempInfo.Text = Localizer.T("正在扫描临时文件…");
         try
         {
             var (size, count) = await Task.Run(() => ShellTools.TempSize(false));
@@ -62,7 +63,7 @@ public partial class OptimizePage : Page
         }
         catch (Exception ex)
         {
-            TempInfo.Text = $"扫描失败：{ex.Message}";
+            TempInfo.Text = Localizer.T($"扫描失败：{ex.Message}");
         }
     }
 
@@ -70,18 +71,18 @@ public partial class OptimizePage : Page
 
     private async void Clean_Click(object sender, RoutedEventArgs e)
     {
-        if (!await ConfirmAsync("清理临时文件",
+        if (!await ConfirmAsync(Localizer.T("清理临时文件"),
                 $"即将删除临时目录中的文件，预计释放 {ByteFormatter.Format((ulong)_tempSize)}。\n正在被占用的文件会被跳过，是否继续？"))
             return;
 
         var (freed, deleted, skipped) = await Task.Run(() => ShellTools.CleanTemp(false));
-        TempInfo.Text = $"已删除 {deleted} 个文件，释放 {ByteFormatter.Format((ulong)freed)}（跳过 {skipped} 个占用中的文件）";
+        TempInfo.Text = Localizer.T($"已删除 {deleted} 个文件，释放 {ByteFormatter.Format((ulong)freed)}（跳过 {skipped} 个占用中的文件）");
         await ScanAsync();
     }
 
     private async void EmptyRecycle_Click(object sender, RoutedEventArgs e)
     {
-        if (!await ConfirmAsync("清空回收站", "回收站中的文件将被永久删除，是否继续？"))
+        if (!await ConfirmAsync(Localizer.T("清空回收站"), Localizer.T("回收站中的文件将被永久删除，是否继续？")))
             return;
 
         var ok = await Task.Run(ShellTools.EmptyRecycleBin);
@@ -96,25 +97,25 @@ public partial class OptimizePage : Page
     private void IconCache_Click(object sender, RoutedEventArgs e)
     {
         ShellTools.RefreshIconCache();
-        MaintainInfo.Text = "已重建图标缓存，若图标未刷新可重启资源管理器";
+        MaintainInfo.Text = Localizer.T("已重建图标缓存，若图标未刷新可重启资源管理器");
     }
 
     private async void RestartExplorer_Click(object sender, RoutedEventArgs e)
     {
-        if (!await ConfirmAsync("重启资源管理器", "桌面和任务栏会短暂闪烁，是否继续？"))
+        if (!await ConfirmAsync(Localizer.T("重启资源管理器"), Localizer.T("桌面和任务栏会短暂闪烁，是否继续？")))
             return;
 
         ShellTools.RestartExplorer();
-        MaintainInfo.Text = "已重启资源管理器";
+        MaintainInfo.Text = Localizer.T("已重启资源管理器");
     }
 
     private async void Sfc_Click(object sender, RoutedEventArgs e)
     {
-        if (!await ConfirmAsync("系统文件检查", "将以管理员身份运行 sfc /scannow，扫描可能需要 10 分钟以上，是否继续？"))
+        if (!await ConfirmAsync(Localizer.T("系统文件检查"), Localizer.T("将以管理员身份运行 sfc /scannow，扫描可能需要 10 分钟以上，是否继续？")))
             return;
 
         ShellTools.RunElevated("sfc /scannow");
-        MaintainInfo.Text = "已在新的管理员窗口中开始扫描";
+        MaintainInfo.Text = Localizer.T("已在新的管理员窗口中开始扫描");
     }
 
     private void CleanMgr_Click(object sender, RoutedEventArgs e)
@@ -136,7 +137,7 @@ public partial class OptimizePage : Page
     {
         StartupList.Children.Clear();
         var items = ShellTools.StartupItems();
-        StartupCount.Text = $"启动项（{items.Count}）";
+        StartupCount.Text = Localizer.T($"启动项（{items.Count}）");
 
         foreach (var item in items.Take(12))
         {
@@ -243,8 +244,8 @@ public partial class OptimizePage : Page
                 Title = title,
                 Content = message,
                 ShowTitle = true,
-                PrimaryButtonText = "确定",
-                CloseButtonText = "取消",
+                PrimaryButtonText = Localizer.T("确定"),
+                CloseButtonText = Localizer.T("取消"),
             };
             return await dialog.ShowDialogAsync() == Wpf.Ui.Controls.MessageBoxResult.Primary;
         }

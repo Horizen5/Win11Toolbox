@@ -8,7 +8,7 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>Win11Toolbox</AssemblyName>
     <RootNamespace>Win11Toolbox</RootNamespace>
-    <Version>1.2.1</Version>
+    <Version>1.3.0</Version>
     <AssemblyTitle>Win11 工具箱</AssemblyTitle>
     <Product>Win11 工具箱</Product>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
@@ -42,6 +42,8 @@
 
   <ItemGroup>
     <Resource Include="Assets\app.ico" />
+    <!-- 多语言词典内嵌进单文件 exe；用户可在 %APPDATA%\Win11Toolbox\locales-override.json 补词条 -->
+    <EmbeddedResource Include="Localization\locales.json" LogicalName="Win11Toolbox.Localization.locales.json" />
   </ItemGroup>
 
   <!--

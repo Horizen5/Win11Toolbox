@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:controls="clr-namespace:Win11Toolbox.Controls"
+    xmlns:loc="clr-namespace:Win11Toolbox.Services.Localization"
     Title="设置">
 
     <ScrollViewer Padding="24,18,24,36" VerticalScrollBarVisibility="Auto">
@@ -16,6 +17,29 @@
                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                               Text="个性化外观与应用信息" />
             </StackPanel>
+
+            <ui:TextBlock FontTypography="BodyStrong" Text="语言" Margin="2,6,0,0" />
+            <ui:Card Padding="16">
+                <StackPanel>
+                    <Grid>
+                        <StackPanel Margin="0,0,220,0">
+                            <ui:TextBlock FontTypography="Body" Text="界面语言" />
+                            <ui:TextBlock FontTypography="Caption" Margin="0,2,0,0" TextWrapping="Wrap"
+                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                          Text="切换后立即生效，部分系统专有名称保留原语言" />
+                        </StackPanel>
+                        <!-- Skip：下拉项显示的是各语言自己的写法，不能被翻译 -->
+                        <ComboBox x:Name="LangCombo" Width="200" HorizontalAlignment="Right"
+                                  VerticalAlignment="Center" DisplayMemberPath="Native"
+                                  SelectedValuePath="Code" SelectionChanged="Lang_Changed"
+                                  loc:Localizer.Skip="True" />
+                    </Grid>
+                    <Border Height="1" Margin="0,12" Background="{DynamicResource CardStrokeColorDefaultBrush}" />
+                    <ui:TextBlock x:Name="CoverageText" FontTypography="Caption" TextWrapping="Wrap"
+                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                  loc:Localizer.Skip="True" />
+                </StackPanel>
+            </ui:Card>
 
             <ui:TextBlock FontTypography="BodyStrong" Text="个性化" Margin="2,6,0,0" />
             <ui:Card Padding="16">

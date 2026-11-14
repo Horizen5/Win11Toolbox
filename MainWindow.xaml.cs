@@ -34,6 +34,11 @@ public partial class MainWindow : FluentWindow
         Loaded += OnLoaded;
         Nav.SelectionChanged += Nav_SelectionChanged;
 
+        // 语言切换后重扫整棵可视化树：已缓存的页面对象不会重新触发 Loaded，
+        // 光靠全局钩子会把它们漏成旧语言。
+        Services.Localization.Localizer.LanguageChanged += OnLanguageChanged;
+        Closing += (_, _) => Services.Localization.Localizer.LanguageChanged -= OnLanguageChanged;
+
         // 导航栏的模板套用完成后清一次（窗口 Loaded 里还会再兜一次）
         Nav.Loaded += (_, _) => RemoveScrollFocusVisuals(Nav);
 
@@ -258,6 +263,17 @@ public partial class MainWindow : FluentWindow
         }
     }
 
+    private void OnLanguageChanged()
+    {
+        // 等布局把新页面挂好再扫，DispatcherPriority.Loaded 比 BeginInvoke 默认优先级晚一点
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            Title = Services.Localization.Localizer.T("Win11 工具箱") + " v" + AppInfo.Version;
+            Bar.Title = Title;
+            Services.Localization.Localizer.Apply(this);
+        }), DispatcherPriority.Loaded);
+    }
+
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         Loaded -= OnLoaded;
@@ -269,13 +285,13 @@ public partial class MainWindow : FluentWindow
         Dispatcher.BeginInvoke(new Action(() => RemoveScrollFocusVisuals(Nav)),
                                System.Windows.Threading.DispatcherPriority.Loaded);
 
-        if (Environment.GetCommandLineArgs().Contains("--bench"))
+        if (App.Args.Contains("--bench"))
         {
             RunBench();
             return;
         }
 
-        if (Environment.GetCommandLineArgs().Contains("--scrolldebug"))
+        if (App.Args.Contains("--scrolldebug"))
         {
             Navigate(PageFromArgs() ?? typeof(HomePage));
             await Task.Delay(1200);
@@ -283,14 +299,14 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
-        if (Environment.GetCommandLineArgs().Contains("--selftest"))
+        if (App.Args.Contains("--selftest"))
         {
             await RunSelfTestAsync();
             return;
         }
 
         // --uistall：量 UI 线程卡顿（可选 --withtaskmgr 自动复现「关任务管理器那一瞬卡」）
-        if (Environment.GetCommandLineArgs().Contains("--uistall"))
+        if (App.Args.Contains("--uistall"))
         {
             Navigate(PageFromArgs() ?? typeof(ToolsPage));
             await Task.Delay(800);
@@ -299,7 +315,7 @@ public partial class MainWindow : FluentWindow
         }
 
         // 无界面自检：设置项能不能探测（托盘模块改用 --probe，不建窗口）
-        if (Environment.GetCommandLineArgs().Contains("--easytest"))
+        if (App.Args.Contains("--easytest"))
         {
             RunEasyTest();
             return;
@@ -510,7 +526,7 @@ public partial class MainWindow : FluentWindow
 
         // 允许 --easytest <路径> 指定输出位置，默认还是 exe 旁边的 easytest.log
         string outPath = Path.Combine(AppContext.BaseDirectory, "easytest.log");
-        var argv = Environment.GetCommandLineArgs();
+        var argv = App.Args;
         int idx = Array.IndexOf(argv, "--easytest");
         if (idx >= 0 && idx + 1 < argv.Length && !argv[idx + 1].StartsWith("--", StringComparison.Ordinal))
             outPath = argv[idx + 1];
@@ -522,7 +538,7 @@ public partial class MainWindow : FluentWindow
     /// <summary>命令行 --page 参数，方便截图和调试。</summary>
     private static Type? PageFromArgs()
     {
-        var args = Environment.GetCommandLineArgs();
+        var args = App.Args;
         var index = Array.IndexOf(args, "--page");
         if (index < 0 || index + 1 >= args.Length)
             return null;
@@ -564,6 +580,10 @@ public partial class MainWindow : FluentWindow
         {
             _suppressSelection = false;
         }
+
+        // 缓存的页面重新挂回可视树时不一定重新触发 Loaded，导航后兜一次全量扫描
+        Dispatcher.BeginInvoke(new Action(() =>
+            Services.Localization.Localizer.Apply(this)), DispatcherPriority.Loaded);
     }
 
     private void Nav_SelectionChanged(NavigationView sender, RoutedEventArgs args)
@@ -834,7 +854,7 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private async Task RunUiStallAsync()
     {
-        var args = Environment.GetCommandLineArgs();
+        var args = App.Args;
         var index = Array.IndexOf(args, "--uistall");
 
         int seconds = 14;

@@ -389,12 +389,12 @@ public partial class App
                 lines.Add($"  temp {t.Hardware} / {t.Name} = {t.Value:0.#} °C");
 
             // --fanwrite：真写一次 PWM，确认「调速」不是摆设（会短暂转起来，随后交回自动）
-            if (Environment.GetCommandLineArgs()
+            if (Args
                     .Any(x => x.StartsWith("--fanwrite", StringComparison.OrdinalIgnoreCase)))
             {
                 // --fanwrite=70 可以指定测试转速
                 var percent = 55;
-                var spec = Environment.GetCommandLineArgs()
+                var spec = Args
                     .FirstOrDefault(x => x.StartsWith("--fanwrite=", StringComparison.OrdinalIgnoreCase));
                 if (spec is not null && int.TryParse(spec.Split('=')[1], out var parsed))
                     percent = Math.Clamp(parsed, 0, 100);
@@ -679,7 +679,7 @@ public partial class App
     /// </summary>
     private static void ApplyNavFilter(DependencyObject root)
     {
-        var args = Environment.GetCommandLineArgs();
+        var args = Args;
         var index = Array.IndexOf(args, "--navfilter");
         if (index < 0 || index + 1 >= args.Length)
             return;
@@ -2075,7 +2075,7 @@ public partial class App
                     ?.Invoke(mw, new object?[] { pageType });
 
                 // --wait 毫秒：等久一点，让监控攒够历史数据再截图
-                var argv = Environment.GetCommandLineArgs();
+                var argv = Args;
                 int wait = 4000;
                 int waitIndex = Array.IndexOf(argv, "--wait");
                 if (waitIndex >= 0 && waitIndex + 1 < argv.Length && int.TryParse(argv[waitIndex + 1], out int parsed) && parsed > 0)
@@ -2086,7 +2086,7 @@ public partial class App
                 host.UpdateLayout();
 
                 // --uitab：切到实用工具页的 2FA 标签并塞演示账户（看倒计时圆圈长什么样）
-                if (Array.IndexOf(Environment.GetCommandLineArgs(), "--uitab") >= 0
+                if (Array.IndexOf(Args, "--uitab") >= 0
                     && FindChild<Page>(root) is Pages.UtilitiesPage utilities)
                 {
                     utilities.ShowTotpDemo();

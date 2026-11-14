@@ -13,6 +13,7 @@ using Win11Toolbox.RightMenu;
 using Win11Toolbox.Services;
 using Win11Toolbox.SettingsKit;
 using TextBlock = System.Windows.Controls.TextBlock;
+using Win11Toolbox.Services.Localization;
 
 namespace Win11Toolbox.Pages;
 
@@ -162,7 +163,7 @@ public partial class EasySettingsPage : Page, IRefreshablePage
         if (_plansLoaded) return;
         _plansLoaded = true;
 
-        StatusLine.Text = "正在读取电源计划…";
+        StatusLine.Text = Localizer.T("正在读取电源计划…");
         var plans = await Task.Run(() => ShellTools.PowerPlans());
 
         _plans = plans;
@@ -207,7 +208,7 @@ public partial class EasySettingsPage : Page, IRefreshablePage
     private async void ShowLog_Click(object sender, RoutedEventArgs e)
     {
         var text = _log.Count == 0 ? "（还没有操作记录）" : string.Join(Environment.NewLine, _log);
-        await ShowAsync("操作日志", text);
+        await ShowAsync(Localizer.T("操作日志"), text);
     }
 
     // ------------------------------------------------------------------ 载入 + 探测
@@ -222,7 +223,7 @@ public partial class EasySettingsPage : Page, IRefreshablePage
     /// </summary>
     private async Task LoadAsync()
     {
-        StatusLine.Text = "正在读取设置清单…";
+        StatusLine.Text = Localizer.T("正在读取设置清单…");
 
         // 第一段：建清单 + 建行。全部是内存操作，不碰系统。
         var items = EasySettingsData.Build();
@@ -239,7 +240,7 @@ public partial class EasySettingsPage : Page, IRefreshablePage
 
         BuildCategories();
         RefreshList();
-        CountHint.Text = $"共 {_allRows.Count} 项　正在读取当前状态…";
+        CountHint.Text = Localizer.T($"共 {_allRows.Count} 项　正在读取当前状态…");
 
         // 第二段：分批探测并回填。每批 4 项，批与批之间让出 UI 线程。
         const int BatchSize = 4;
@@ -271,11 +272,11 @@ public partial class EasySettingsPage : Page, IRefreshablePage
             for (int i = 0; i < batch.Length; i++)
                 ApplyProbe(_allRows[from + i], batch[i]);
 
-            CountHint.Text = $"共 {total} 项　已读取 {to} 项…";
+            CountHint.Text = Localizer.T($"共 {total} 项　已读取 {to} 项…");
         }
 
         int onCount = _allRows.Count(r => r.IsOn);
-        CountHint.Text = $"显示 {_rows.Count} / 共 {_allRows.Count} 项　已开启 {onCount} 项";
+        CountHint.Text = Localizer.T($"显示 {_rows.Count} / 共 {_allRows.Count} 项　已开启 {onCount} 项");
         Log($"已载入 {_allRows.Count} 项设置，当前开启 {onCount} 项。");
     }
 
@@ -323,7 +324,7 @@ public partial class EasySettingsPage : Page, IRefreshablePage
             _rows.Add(row);
         }
 
-        CountHint.Text = $"显示 {_rows.Count} / 共 {_allRows.Count} 项　已开启 {_allRows.Count(r => r.IsOn)} 项";
+        CountHint.Text = Localizer.T($"显示 {_rows.Count} / 共 {_allRows.Count} 项　已开启 {_allRows.Count(r => r.IsOn)} 项");
     }
 
     // ------------------------------------------------------------------ 应用单项
@@ -359,7 +360,7 @@ public partial class EasySettingsPage : Page, IRefreshablePage
         // 硬写的下场是弹一句「写入失败 / 拒绝访问」，用户既不知道原因也不知道下一步干什么。
         if (want && row.Model.GuideUrl.Length > 0)
         {
-            bool go = await ConfirmAsync("这一项得去系统设置里改",
+            bool go = await ConfirmAsync(Localizer.T("这一项得去系统设置里改"),
                 row.Model.Desc + "\n\n点「打开设置」会跳到「设置 → 个性化 → 任务栏」，"
                 + "在「搜索」那一行选「隐藏」就行。改完回来点「刷新状态」就能对上。",
                 primaryText: "打开设置");
@@ -372,7 +373,7 @@ public partial class EasySettingsPage : Page, IRefreshablePage
         // 危险项在「打开」之前问一句；取消勾选是恢复默认，不打扰
         if (want && row.Model.Danger)
         {
-            bool go = await ConfirmAsync("确认开启：" + row.Name,
+            bool go = await ConfirmAsync(Localizer.T("确认开启：") + row.Name,
                 row.Model.Risk + "\n\n以后想还原，把这一项取消勾选就行。",
                 primaryText: "仍然开启");
             if (!go)
@@ -467,7 +468,7 @@ public partial class EasySettingsPage : Page, IRefreshablePage
     {
         if (_busy) return;
         _busy = true;
-        StatusLine.Text = "正在重新读取状态…";
+        StatusLine.Text = Localizer.T("正在重新读取状态…");
         try
         {
             // 只把"读注册表"放后台；模型上的 StateText / StateOk 会触发 PropertyChanged，
@@ -505,12 +506,12 @@ public partial class EasySettingsPage : Page, IRefreshablePage
     private async void ResetAll_Click(object sender, RoutedEventArgs e)
     {
         if (_busy) return;
-        if (!await ConfirmAsync("全部恢复默认",
+        if (!await ConfirmAsync(Localizer.T("全部恢复默认"),
                 $"将把全部 {_allRows.Count} 项设置恢复为 Windows 默认值。\n确定继续吗？"))
             return;
 
         _busy = true;
-        StatusLine.Text = "正在全部恢复默认…";
+        StatusLine.Text = Localizer.T("正在全部恢复默认…");
         int ok = 0, bad = 0;
         try
         {
@@ -548,7 +549,7 @@ public partial class EasySettingsPage : Page, IRefreshablePage
 
     private async void RestartExplorer_Click(object sender, RoutedEventArgs e)
     {
-        if (!await ConfirmAsync("重启资源管理器", "桌面和任务栏会消失两三秒后自动恢复，是否继续？")) return;
+        if (!await ConfirmAsync(Localizer.T("重启资源管理器"), Localizer.T("桌面和任务栏会消失两三秒后自动恢复，是否继续？"))) return;
         await Task.Run(RightMenuActions.RestartExplorer);
         Log("资源管理器已重启。");
     }
@@ -562,6 +563,7 @@ public partial class EasySettingsPage : Page, IRefreshablePage
     // ------------------------------------------------------------------ 对话框
     private static async Task<bool> ConfirmAsync(string title, string message, string primaryText = "确定")
     {
+        primaryText = Localizer.T(primaryText);
         try
         {
             var dialog = new Wpf.Ui.Controls.MessageBox
@@ -570,7 +572,7 @@ public partial class EasySettingsPage : Page, IRefreshablePage
                 Content = message,
                 ShowTitle = true,
                 PrimaryButtonText = primaryText,
-                CloseButtonText = "取消",
+                CloseButtonText = Localizer.T("取消"),
             };
             return await dialog.ShowDialogAsync() == Wpf.Ui.Controls.MessageBoxResult.Primary;
         }
@@ -620,7 +622,7 @@ public partial class EasySettingsPage : Page, IRefreshablePage
                 Title = title,
                 Content = message,
                 ShowTitle = true,
-                CloseButtonText = "关闭",
+                CloseButtonText = Localizer.T("关闭"),
             };
             await dialog.ShowDialogAsync();
         }

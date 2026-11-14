@@ -33,8 +33,12 @@ public static class AppCache
         }
     }
 
-    /// <summary>数据超过 maxAge 时后台重新采集；force 表示强制刷新。</summary>
-    public static async Task<HardwareReport?> RefreshAsync(TimeSpan maxAge, bool force = false)
+    /// <summary>
+    /// 数据超过 maxAge 时后台重新采集；force 表示强制刷新。
+    /// <para>light=true 走「不碰磁盘」的轻量采集（跳过磁盘类 WMI 与全盘符枚举），
+    /// 并把上一份报告里的磁盘/分区信息原样带过来，避免首页刷新把缓存清干净。</para>
+    /// </summary>
+    public static async Task<HardwareReport?> RefreshAsync(TimeSpan maxAge, bool force = false, bool light = false)
     {
         var current = Hardware;
         if (!force && current is not null && DateTime.Now - current.CollectedAt <= maxAge)
@@ -49,7 +53,20 @@ public static class AppCache
 
         try
         {
-            var fresh = await Task.Run(SystemInfo.Build);
+            // 启动瞬间还有单文件解压、杀软扫描、首帧渲染在抢磁盘；
+            // 有缓存可显示时缓一拍再采集，别和它们叠成一次磁盘风暴。
+            if (!force && current is not null)
+                await Task.Delay(1200);
+
+            var useLight = light && current is not null;
+            var fresh = await Task.Run(() => SystemInfo.Build(includeStorage: !useLight));
+
+            if (useLight && current is not null)
+            {
+                fresh.Disks = current.Disks;
+                fresh.Volumes = current.Volumes;
+            }
+
             lock (Gate)
             {
                 _hardware = fresh;

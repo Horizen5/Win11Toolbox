@@ -1,0 +1,360 @@
+﻿关于|About|バージョン情報|정보|Acerca de|À propos|Info|О программе|Sobre
+Win11 工具箱|Win11 Toolbox|Win11 ツールボックス|Win11 도구 상자|Win11 Toolbox|Boîte à outils Win11|Win11 Toolbox|Набор инструментов Win11|Caixa de ferramentas Win11
+功能一览|Features|主な機能|기능 목록|Características|Fonctionnalités|Funktionen|Возможности|Recursos
+硬件信息 · WMI 读取 CPU、内存逐条插槽、显卡、主板、硬盘与网络|Hardware info: CPU, memory slots, GPU, motherboard, disks and network via WMI|ハードウェア情報 · WMI で CPU、メモリスロット、GPU、マザーボード、ディスク、ネットワークを取得|하드웨어 정보 · WMI로 CPU, 메모리 슬롯, GPU, 메인보드, 디스크, 네트워크 읽기|Información de hardware: CPU, memoria, GPU, placa base, discos y red vía WMI|Infos matérielles : CPU, mémoire, GPU, carte mère, disques et réseau via WMI|Hardwareinfos: CPU, RAM-Riegel, GPU, Mainboard, Laufwerke und Netzwerk per WMI|Сведения об оборудовании: ЦП, модули памяти, GPU, матплата, диски и сеть через WMI|Info de hardware: CPU, memória, GPU, placa-mãe, discos e rede via WMI
+实时监控 · CPU / 内存 / 系统盘 / 网络速率的秒级折线|Live monitoring: per-second charts for CPU, memory, system drive and network|リアルタイム監視 · CPU / メモリ / システムドライブ / ネットワーク速度の秒単位グラフ|실시간 모니터링 · CPU / 메모리 / 시스템 디스크 / 네트워크 속도 초 단위 그래프|Monitorización en vivo: gráficas por segundo de CPU, memoria, disco del sistema y red|Surveillance en direct : courbes par seconde du CPU, de la mémoire, du disque système et du réseau|Echtzeit-Überwachung: Sekunden-Diagramme für CPU, RAM, Systemlaufwerk und Netzwerk|Мониторинг в реальном времени: графики ЦП, памяти, системного диска и сети раз в секунду|Monitoramento ao vivo: gráficos por segundo de CPU, memória, disco do sistema e rede
+系统工具 · 40+ 个 Windows 内置工具的分类启动器|System tools: a categorized launcher for 40+ built-in Windows utilities|システムツール · Windows 標準ツール 40 種以上の分類ランチャー|시스템 도구 · Windows 기본 도구 40여 개 분류 실행기|Herramientas del sistema: lanzador clasificado de más de 40 utilidades de Windows|Outils système : lanceur classé de plus de 40 utilitaires Windows|Systemwerkzeuge:categorized Starter für über 40 Windows-Bordmittel|Системные утилиты: классифицированный запуск 40+ встроенных инструментов Windows|Ferramentas do sistema: lançador categorizado de mais de 40 utilitários do Windows
+实用工具 · 哈希校验、编解码、密码生成、端口检测与 Ping|Utilities: hashing, encoding, password generation, port checks and Ping|ユーティリティ · ハッシュ、エンコード、パスワード生成、ポート確認、Ping|유틸리티 · 해시, 인코딩, 비밀번호 생성, 포트 확인, Ping|Utilidades: hash, codificación, contraseñas, puertos y Ping|Utilitaires : hachage, encodage, mots de passe, ports et Ping|Werkzeuge: Hash, Kodierung, Passwörter, Ports und Ping|Утилиты: хэши, кодирование, пароли, порты и Ping|Utilitários: hash, codificação, senhas, portas e Ping
+系统优化 · 临时文件清理、DNS / 图标缓存修复、启动项与电源计划|Optimization: temp cleanup, DNS/icon cache repair, startup items and power plans|最適化 · 一時ファイル削除、DNS / アイコンキャッシュ修復、スタートアップと電源プラン|시스템 최적화 · 임시 파일 정리, DNS / 아이콘 캐시 복구, 시작 항목 및 전원 계획|Optimización: limpieza temporal, reparación de caché DNS/iconos, inicio y planes de energía|Optimisation : nettoyage temporaire, réparation des caches DNS/icônes, démarrage et plans d'alimentation|Optimierung: Temp-Dateien, DNS-/Icon-Cache, Autostart und Energiepläne|Оптимизация: очистка временных файлов, кэша DNS/значков, автозагрузка и схемы питания|Otimização: limpeza temporária, reparo de cache DNS/ícones, inicialização e planos de energia
+参考的项目与工具|Referenced projects|参考プロジェクト|참고 프로젝트|Proyectos de referencia|Projets de référence|Referenzprojekte|Проекты-ориентиры|Projetos de referência
+界面与实现参考的开源项目：|Open-source projects referenced for the UI and implementation:|UI と実装で参考にしたオープンソースプロジェクト：|UI 및 구현에 참고한 오픈 소스 프로젝트:|Proyectos de código abierto usados como referencia:|Projets open source pris comme référence :|Open-Source-Projekte als Vorbild:|Проекты с открытым кодом, использованные как образец:|Projetos de código aberto usados como referência:
+TubaWinUi3 — 用 WinUI 3 重写的图吧工具箱|TubaWinUi3 — a WinUI 3 rewrite of the Tubа toolbox|TubaWinUi3 — WinUI 3 で書き直した図吧ツールボックス|TubaWinUi3 — WinUI 3으로 다시 만든 툴박스|TubaWinUi3 — reescritura en WinUI 3 de la caja de herramientas Tubа|TubaWinUi3 — réécriture WinUI 3 de la boîte à outils Tubа|TubaWinUi3 — WinUI-3-Neufassung der Tubа-Toolbox|TubaWinUi3 — переработка набора Tubа на WinUI 3|TubaWinUi3 — reescrita em WinUI 3 da caixa de ferramentas Tubа
+SYSTools — C# + WPF Modern 的系统工具箱|SYSTools — a C# + WPF Modern system toolbox|SYSTools — C# + WPF Modern のシステムツールボックス|SYSTools — C# + WPF Modern 시스템 도구 상자|SYSTools — caja de herramientas en C# + WPF Modern|SYSTools — boîte à outils C# + WPF Modern|SYSTools — System-Toolbox in C# + WPF Modern|SYSTools — набор инструментов на C# + WPF Modern|SYSTools — caixa de ferramentas em C# + WPF Modern
+WPF-UI — 本项目的 Fluent 控件库|WPF-UI — the Fluent control library used here|WPF-UI — 本プロジェクトの Fluent コントロールライブラリ|WPF-UI — 이 프로젝트의 Fluent 컨트롤 라이브러리|WPF-UI — la biblioteca de controles Fluent de este proyecto|WPF-UI — la bibliothèque de contrôles Fluent du projet|WPF-UI — die Fluent-Steuerelementbibliothek dieses Projekts|WPF-UI — библиотека элементов Fluent этого проекта|WPF-UI — biblioteca de controles Fluent deste projeto
+应用管理|App management|アプリ管理|앱 관리|Gestión de aplicaciones|Gestion des applications|App-Verwaltung|Управление приложениями|Gerenciamento de apps
+系统组件|System components|システムコンポーネント|시스템 구성 요소|Componentes del sistema|Composants système|Systemkomponenten|Системные компоненты|Componentes do sistema
+用 winget 装常用软件，卸载系统自带应用；动之前建议先建一个还原点|Install apps with winget, remove built-in apps; a restore point is recommended first|winget でアプリを導入し、標準アプリを削除。作業前に復元ポイントの作成を推奨|winget으로 앱 설치 및 기본 앱 제거. 작업 전 복원 지점 생성을 권장|Instala apps con winget y quita los preinstalados; crea antes un punto de restauración|Installez des applications via winget, supprimez celles intégrées ; créez d'abord un point de restauration|Apps per winget installieren, vorinstallierte entfernen; vorher Wiederherstellungspunkt empfohlen|Установка приложений через winget и удаление встроенных; сначала создайте точку восстановления|Instale apps com winget, remova os nativos; crie um ponto de restauração antes
+创建还原点|Create restore point|復元ポイントを作成|복원 지점 만들기|Crear punto de restauración|Créer un point de restauration|Wiederherstellungspunkt erstellen|Создать точку восстановления|Criar ponto de restauração
+刷新|Refresh|更新|새로 고침|Actualizar|Actualiser|Aktualisieren|Обновить|Atualizar
+装机清单|App catalog|アプリ一覧|앱 목록|Catálogo de apps|Catalogue d'applications|App-Katalog|Каталог приложений|Catálogo de apps
+搜索软件|Search apps|アプリを検索|앱 검색|Buscar aplicaciones|Rechercher des applications|Apps suchen|Поиск приложений|Buscar apps
+静默安装|Silent install|サイレントインストール|자동 설치|Instalación silenciosa|Installation silencieuse|Unbeaufsichtigte Installation|Тихая установка|Instalação silenciosa
+安装选中|Install selected|選択した項目をインストール|선택 항목 설치|Instalar seleccionados|Installer la sélection|Ausgewählte installieren|Установить выбранные|Instalar selecionados
+已装应用|Installed apps|インストール済みアプリ|설치된 앱|Aplicaciones instaladas|Applications installées|Installierte Apps|Установленные приложения|Apps instalados
+搜索应用名或包名|Search by app name or package ID|アプリ名またはパッケージ名で検索|앱 이름 또는 패키지 ID 검색|Buscar por nombre o ID de paquete|Rechercher par nom ou ID de paquet|Nach App-Name oder Paket-ID suchen|Поиск по имени или ID пакета|Buscar por nome ou ID do pacote
+卸载选中|Uninstall selected|選択した項目をアンインストール|선택 항목 제거|Desinstalar seleccionados|Désinstaller la sélection|Ausgewählte deinstallieren|Удалить выбранные|Desinstalar selecionados
+正在读取已安装应用…|Reading installed apps…|インストール済みアプリを読み込み中…|설치된 앱을 읽는 중…|Leyendo aplicaciones instaladas…|Lecture des applications installées…|Installierte Apps werden gelesen…|Чтение установленных приложений…|Lendo apps instalados…
+就绪|Ready|準備完了|준비 완료|Listo|Prêt|Bereit|Готово|Pronto
+日志|Log|ログ|로그|Registro|Journal|Protokoll|Журнал|Registro
+轻松设置|Easy settings|かんたん設定|간편 설정|Ajustes rápidos|Réglages rapides|Einfache Einstellungen|Простые настройки|Configurações rápidas
+谨慎|Caution|注意|주의|Precaución|Prudence|Vorsicht|Осторожно|Cuidado
+需管理员|Admin required|管理者権限が必要|관리자 권한 필요|Requiere administrador|Admin requisito|Administrator erforderlich|Нужны права администратора|Requer administrador
+需重启资源管理器|Restart Explorer required|エクスプローラーの再起動が必要|탐색기 다시 시작 필요|Requiere reiniciar el Explorador|Redémarrage de l'Explorateur requis|Explorer-Neustart erforderlich|Требуется перезапуск Проводника|Requer reiniciar o Explorer
+只收录安全、可逆的系统开关：勾选即生效，取消勾选恢复系统默认|Only safe, reversible switches: check to apply, uncheck to restore the Windows default|安全で元に戻せる設定のみ。チェックで適用、解除で Windows 既定に戻ります|안전하고 되돌릴 수 있는 설정만 포함. 선택하면 적용, 해제하면 Windows 기본값으로 복원|Solo cambios seguros y reversibles: marcar aplica, desmarcar restaura el valor de Windows|Uniquement des réglages sûrs et réversibles : cocher applique, décocher restaure Windows|Nur sichere, umkehrbare Optionen: aktivieren gilt sofort, deaktivieren stellt Windows-Standard wieder her|Только безопасные и обратимые параметры: включение применяется, выключение возвращает значение Windows|Apenas opções seguras e reversíveis: marcar aplica, desmarcar restaura o padrão do Windows
+刷新状态|Refresh status|状態を更新|상태 새로 고침|Actualizar estado|Actualiser l'état|Status aktualisieren|Обновить состояние|Atualizar estado
+重启资源管理器|Restart Explorer|エクスプローラーを再起動|탐색기 다시 시작|Reiniciar el Explorador|Redémarrer l'Explorateur|Explorer neu starten|Перезапустить Проводник|Reiniciar o Explorer
+搜索设置项|Search settings|設定を検索|설정 검색|Buscar ajustes|Rechercher un réglage|Einstellungen suchen|Поиск настроек|Buscar configurações
+全部恢复默认|Restore all defaults|すべて既定に戻す|모두 기본값으로 복원|Restaurar todos los valores|Restaurer tout par défaut|Alle Standardwerte wiederherstellen|Вернуть все значения по умолчанию|Restaurar todos os padrões
+电源计划|Power plan|電源プラン|전원 계획|Plan de energía|Mode d'alimentation|Energiesparplan|Схема питания|Plano de energia
+控制面板「电源选项」那一套：高性能、平衡、节能。切换立即生效，重启后仍保留。|The Control Panel power plans: High performance, Balanced, Power saver. Applies immediately and survives a reboot.|コントロールパネルの電源オプション：高パフォーマンス、バランス、省電力。即時適用、再起動後も維持。|제어판 전원 옵션: 고성능, 균형 조정, 절전. 즉시 적용되며 재부팅 후에도 유지.|Los planes del Panel de control: Alto rendimiento, Equilibrado, Ahorro de energía. Se aplica al instante y persiste tras reiniciar.|Les modes du Panneau de configuration : Performances élevées, Équilibré, Économie d'énergie. Appliqué immédiatement et conservé après redémarrage.|Die Systemsteuerungs-Energiepläne: Höchstleistung, Ausbalanciert, Energiesparen. Sofort aktiv und nach Neustart erhalten.|Схемы из панели управления: Высокая производительность, Сбалансированная, Экономия. Действует сразу и сохраняется после перезагрузки.|Os planos do Painel de Controle: Alto desempenho, Equilibrado, Economia. Aplica na hora e permanece após reiniciar.
+应用|Apply|適用|적용|Aplicar|Appliquer|Anwenden|Применить|Aplicar
+当前不是管理员权限|Not running as administrator|管理者権限で実行されていません|관리자 권한으로 실행 중이 아님|Sin permisos de administrador|Pas de droits administrateur|Keine Administratorrechte|Без прав администратора|Sem permissões de administrador
+以管理员身份重启|Restart as administrator|管理者として再起動|관리자로 다시 시작|Reiniciar como administrador|Redémarrer en administrateur|Als Administrator neu starten|Перезапустить от имени администратора|Reiniciar como administrador
+风扇控制|Fan control|ファン制御|팬 제어|Control de ventiladores|Contrôle des ventilateurs|Lüftersteuerung|Управление вентиляторами|Controle de ventoinhas
+实时查看转速与温度，手动调节或交回自动控制|Live RPM and temperature, with manual control or automatic mode|回転数と温度をリアルタイム表示。手動調整または自動制御へ戻せます|회전수와 온도 실시간 표시, 수동 조정 또는 자동 제어 전환|RPM y temperatura en vivo, control manual o modo automático|RPM et température en direct, réglage manuel ou mode auto|Drehzahl und Temperatur live, manuell oder automatisch|Обороты и температура в реальном времени, вручную или автоматически|RPM e temperatura ao vivo, controle manual ou modo automático
+正在读取风扇…|Reading fans…|ファン情報を読み込み中…|팬 정보를 읽는 중…|Leyendo ventiladores…|Lecture des ventilateurs…|Lüfter werden gelesen…|Чтение вентиляторов…|Lendo ventoinhas…
+风扇曲线|Fan curve|ファンカーブ|팬 곡선|Curva de ventilador|Courbe de ventilateur|Lüfterkurve|Кривая вентилятора|Curva de ventoinha
+启用|Enable|有効にする|사용|Activar|Activer|Aktivieren|Включить|Ativar
+展开曲线|Expand curve|カーブを展開|곡선 펼치기|Expandir curva|Développer la courbe|Kurve ausklappen|Развернуть кривую|Expandir curva
+按最高温度自动调节转速：低温静音，高温全速。|Adjust speed from the highest temperature: quiet when cool, full speed when hot.|最高温度に応じて回転数を自動調整。低温時は静音、高温時は全速。|가장 높은 온도에 따라 속도 자동 조절: 저온 시 정숙, 고온 시 최대 속도|Ajusta la velocidad según la temperatura máxima: silencioso en frío, máximo en calor|Ajuste la vitesse selon la température maximale : silencieux à froid, plein régime à chaud|Drehzahl nach höchster Temperatur: leise bei Kälte, volle Leistung bei Hitze|Скорость по максимальной температуре: тихо при низкой, максимум при высокой|Ajusta a velocidade pela maior temperatura: silencioso no frio, máximo no calor
+起转温度 45 °C|Start temperature 45 °C|回転開始温度 45 °C|시작 온도 45 °C|Temperatura inicial 45 °C|Température de démarrage 45 °C|Starttemperatur 45 °C|Температура старта 45 °C|Temperatura inicial 45 °C
+满载温度 80 °C|Full-speed temperature 80 °C|全速温度 80 °C|최대 속도 온도 80 °C|Temperatura máxima 80 °C|Température plein régime 80 °C|Volllast-Temperatur 80 °C|Температура максимума 80 °C|Temperatura máxima 80 °C
+最低转速 30 %|Minimum speed 30 %|最低回転数 30 %|최저 속도 30 %|Velocidad mínima 30 %|Vitesse minimale 30 %|Mindestdrehzahl 30 %|Минимальная скорость 30 %|Velocidade mínima 30 %
+风扇|Fans|ファン|팬|Ventiladores|Ventilateurs|Lüfter|Вентиляторы|Ventoinhas
+快捷预设|Quick presets|クイックプリセット|빠른 프리셋|Preajustes rápidos|Préréglages rapides|Schnellpresets|Быстрые пресеты|Predefinições rápidas
+静音|Silent|静音|정숙|Silencioso|Silencieux|Leise|Тихий|Silencioso
+均衡|Balanced|バランス|균형|Equilibrado|Équilibré|Ausbalanciert|Сбалансированный|Equilibrado
+全速|Full speed|全速|최대 속도|Velocidad máxima|Pleine vitesse|Volle Drehzahl|Максимум|Velocidade máxima
+全部自动|All automatic|すべて自動|모두 자동|Todo automático|Tout automatique|Alle automatisch|Всё автоматически|Tudo automático
+未接风扇的接口|Headers with no fan connected|ファン未接続のコネクタ|팬이 연결되지 않은 헤더|Conectores sin ventilador|Connecteurs sans ventilateur|Anschlüsse ohne Lüfter|Разъёмы без вентилятора|Conectores sem ventoinha
+没有检测到风扇。|No fans detected.|ファンが検出されませんでした。|팬이 감지되지 않았습니다.|No se detectaron ventiladores.|Aucun ventilateur détecté.|Keine Lüfter erkannt.|Вентиляторы не обнаружены.|Nenhuma ventoinha detectada.
+温度|Temperature|温度|온도|Temperatura|Température|Temperatur|Температура|Temperatura
+硬件信息|Hardware info|ハードウェア情報|하드웨어 정보|Información de hardware|Infos matérielles|Hardwareinfos|Сведения об оборудовании|Info de hardware
+处理器、内存、显卡、主板与存储的详细参数|Detailed specs for CPU, memory, GPU, motherboard and storage|CPU、メモリ、GPU、マザーボード、ストレージの詳細仕様|CPU, 메모리, GPU, 메인보드, 저장 장치의 상세 사양|Especificaciones de CPU, memoria, GPU, placa base y almacenamiento|Détails du CPU, de la mémoire, du GPU, de la carte mère et du stockage|Details zu CPU, RAM, GPU, Mainboard und Speicher|Подробности ЦП, памяти, GPU, матплаты и накопителей|Detalhes de CPU, memória, GPU, placa-mãe e armazenamento
+概览|Overview|概要|개요|Resumen|Vue d'ensemble|Übersicht|Обзор|Visão geral
+处理器|Processor|プロセッサ|프로세서|Procesador|Processeur|Prozessor|Процессор|Processador
+内存|Memory|メモリ|메모리|Memoria|Mémoire|Arbeitsspeicher|Память|Memória
+显卡|Graphics|グラフィックス|그래픽|Gráficos|Graphiques|Grafikkarte|Видеокарта|Placa de vídeo
+主板|Motherboard|マザーボード|메인보드|Placa base|Carte mère|Mainboard|Матплата|Placa-mãe
+存储|Storage|ストレージ|저장 장치|Almacenamiento|Stockage|Speicher|Накопители|Armazenamento
+网络|Network|ネットワーク|네트워크|Red|Réseau|Netzwerk|Сеть|Rede
+其他|Other|その他|기타|Otros|Autres|Sonstiges|Прочее|Outros
+主页|Home|ホーム|홈|Inicio|Accueil|Start|Главная|Início
+设备状态、实时性能与常用入口|Device status, live performance and quick shortcuts|デバイス状態、リアルタイム性能、よく使う機能|장치 상태, 실시간 성능, 빠른 바로가기|Estado del equipo, rendimiento en vivo y accesos rápidos|État de l'appareil, performances en direct et raccourcis|Gerätestatus, Live-Leistung und Schnellzugriff|Состояние устройства, производительность и быстрый доступ|Status do dispositivo, desempenho ao vivo e atalhos
+一键体检|Quick check|クイック診断|빠른 검사|Diagnóstico rápido|Diagnostic rapide|Schnellcheck|Быстрая проверка|Verificação rápida
+正在读取设备信息…|Reading device info…|デバイス情報を読み込み中…|장치 정보를 읽는 중…|Leyendo datos del equipo…|Lecture des infos de l'appareil…|Geräteinfos werden gelesen…|Чтение сведений об устройстве…|Lendo info do dispositivo…
+正在检测设备型号|Detecting device model|デバイス型番を検出中|장치 모델 감지 중|Detectando modelo del equipo|Détection du modèle|Gerätemodell wird erkannt|Определение модели устройства|Detectando modelo do dispositivo
+重命名|Rename|名前の変更|이름 바꾸기|Renombrar|Renommer|Umbenennen|Переименовать|Renomear
+系统版本|Windows version|Windows バージョン|Windows 버전|Versión de Windows|Version de Windows|Windows-Version|Версия Windows|Versão do Windows
+Windows · 正在检测|Windows · Detecting|Windows · 検出中|Windows · 감지 중|Windows · Detectando|Windows · Détection|Windows · Erkennung|Windows · Определение|Windows · Detectando
+设备体检|Device check|デバイス診断|장치 진단|Diagnóstico del equipo|Diagnostic de l'appareil|Gerätecheck|Проверка устройства|Diagnóstico do dispositivo
+检查项|Checks|検査項目|검사 항목|Comprobaciones|Vérifications|Prüfpunkte|Проверки|Verificações
+尚未运行|Not run yet|未実行|아직 실행 안 함|Sin ejecutar|Pas encore exécuté|Noch nicht ausgeführt|Ещё не запускалось|Ainda não executado
+常用入口|Quick access|よく使う機能|자주 쓰는 기능|Accesos rápidos|Accès rapides|Schnellzugriff|Быстрый доступ|Acessos rápidos
+系统优化|Optimization|システム最適化|시스템 최적화|Optimización|Optimisation|Optimierung|Оптимизация|Otimização
+清理垃圾文件、执行系统维护命令、管理启动项|Clean junk files, run maintenance commands, manage startup items|不要ファイルの削除、保守コマンドの実行、スタートアップ管理|불필요한 파일 정리, 시스템 유지 관리 명령, 시작 항목 관리|Limpiar archivos temporales, ejecutar mantenimiento y gestionar el inicio|Nettoyer les fichiers, lancer la maintenance et gérer le démarrage|Temporäres löschen, Wartungsbefehle ausführen, Autostart verwalten|Очистка мусора, команды обслуживания, автозагрузка|Limpar arquivos, executar manutenção e gerenciar inicialização
+磁盘清理|Disk cleanup|ディスククリーンアップ|디스크 정리|Limpieza de disco|Nettoyage de disque|Datenträgerbereinigung|Очистка диска|Limpeza de disco
+临时文件与回收站|Temp files and Recycle Bin|一時ファイルとごみ箱|임시 파일 및 휴지통|Archivos temporales y Papelera|Fichiers temporaires et Corbeille|Temporäre Dateien und Papierkorb|Временные файлы и Корзина|Arquivos temporários e Lixeira
+重新扫描|Rescan|再スキャン|다시 검사|Volver a analizar|Réanalyser|Neu scannen|Пересканировать|Reanalisar
+正在扫描…|Scanning…|スキャン中…|검사 중…|Analizando…|Analyse en cours…|Wird gescannt…|Сканирование…|Analisando…
+清理临时文件|Clean temp files|一時ファイルを削除|임시 파일 정리|Limpiar temporales|Nettoyer les fichiers temporaires|Temporäre Dateien löschen|Очистить временные файлы|Limpar arquivos temporários
+清空回收站|Empty Recycle Bin|ごみ箱を空にする|휴지통 비우기|Vaciar Papelera|Vider la Corbeille|Papierkorb leeren|Очистить Корзину|Esvaziar Lixeira
+只会删除临时目录（%TEMP%）中的文件，占用中的文件自动跳过，不会触碰个人文档。|Only files in the temp folder are removed; locked files are skipped and personal documents are never touched.|一時フォルダー（%TEMP%）内のファイルのみ削除。使用中のファイルはスキップし、個人文書には触れません。|임시 폴더(%TEMP%)의 파일만 삭제. 사용 중인 파일은 건너뛰며 개인 문서는 건드리지 않습니다.|Solo elimina archivos de la carpeta temporal; omite los ocupados y nunca toca documentos personales.|Supprime uniquement les fichiers du dossier temporaire ; ignore les fichiers occupés et ne touche pas aux documents.|Nur Dateien im Temp-Ordner; gesperrte Dateien werden übersprungen, persönliche Dokumente bleiben unberührt.|Удаляет только файлы из временной папки; занятые пропускаются, личные документы не затрагиваются.|Remove apenas arquivos da pasta temporária; ignora os em uso e não toca em documentos pessoais.
+系统维护|Maintenance|システム保守|시스템 유지 관리|Mantenimiento|Maintenance|Wartung|Обслуживание|Manutenção
+刷新 DNS 缓存|Flush DNS cache|DNS キャッシュをクリア|DNS 캐시 비우기|Vaciar caché DNS|Vider le cache DNS|DNS-Cache leeren|Очистить кэш DNS|Limpar cache DNS
+重建图标缓存|Rebuild icon cache|アイコンキャッシュを再構築|아이콘 캐시 재구성|Reconstruir caché de iconos|Reconstruire le cache d'icônes|Icon-Cache neu aufbauen|Пересоздать кэш значков|Reconstruir cache de ícones
+系统文件检查（管理员）|System file check (admin)|システムファイルチェック（管理者）|시스템 파일 검사(관리자)|Comprobación de archivos (admin)|Vérification des fichiers (admin)|Systemdateiprüfung (Admin)|Проверка системных файлов (админ)|Verificação de arquivos (admin)
+打开磁盘清理|Open Disk Cleanup|ディスククリーンアップを開く|디스크 정리 열기|Abrir Limpieza de disco|Ouvrir le Nettoyage de disque|Datenträgerbereinigung öffnen|Открыть очистку диска|Abrir Limpeza de disco
+开机启动项|Startup apps|スタートアップアプリ|시작 앱|Aplicaciones de inicio|Applications au démarrage|Autostart-Apps|Автозагрузка|Aplicativos de inicialização
+启动项|Startup|スタートアップ|시작 항목|Inicio|Démarrage|Autostart|Автозагрузка|Inicialização
+任务管理器管理|Manage in Task Manager|タスクマネージャーで管理|작업 관리자에서 관리|Gestionar en el Administrador de tareas|Gérer dans le Gestionnaire des tâches|Im Task-Manager verwalten|Управлять в Диспетчере задач|Gerenciar no Gerenciador de Tarefas
+当前电源模式|Current power mode|現在の電源モード|현재 전원 모드|Modo de energía actual|Mode d'alimentation actuel|Aktueller Energiemodus|Текущая схема питания|Modo de energia atual
+右键菜单|Context menu|右クリックメニュー|상황에 맞는 메뉴|Menú contextual|Menu contextuel|Kontextmenü|Контекстное меню|Menu de contexto
+打开文件所在位置|Open file location|ファイルの場所を開く|파일 위치 열기|Abrir ubicación del archivo|Ouvrir l'emplacement du fichier|Dateipfad öffnen|Открыть расположение файла|Abrir local do arquivo
+打开归属软件的目录|Open the owning app's folder|所属アプリのフォルダーを開く|해당 프로그램 폴더 열기|Abrir la carpeta de la aplicación|Ouvrir le dossier de l'application|Ordner der zugehörigen App öffnen|Открыть папку программы|Abrir pasta do aplicativo
+在注册表编辑器中定位|Locate in Registry Editor|レジストリエディターで開く|레지스트리 편집기에서 찾기|Buscar en el Editor del Registro|Localiser dans l'Éditeur du Registre|Im Registrierungs-Editor anzeigen|Найти в редакторе реестра|Localizar no Editor do Registro
+复制注册表路径|Copy registry path|レジストリパスをコピー|레지스트리 경로 복사|Copiar ruta del Registro|Copier le chemin du Registre|Registrypfad kopieren|Копировать путь реестра|Copiar caminho do registro
+复制菜单名称|Copy menu name|メニュー名をコピー|메뉴 이름 복사|Copiar nombre del menú|Copier le nom du menu|Menüname kopieren|Копировать название меню|Copiar nome do menu
+复制详细信息|Copy details|詳細情報をコピー|상세 정보 복사|Copiar detalles|Copier les détails|Details kopieren|Копировать подробности|Copiar detalhes
+只看这个软件|Only this app|このアプリのみ|이 프로그램만 보기|Solo esta aplicación|Seulement cette application|Nur diese App|Только эта программа|Apenas este app
+全选这个软件的所有项|Select all items of this app|このアプリの全項目を選択|이 프로그램의 모든 항목 선택|Seleccionar todo de esta app|Tout sélectionner pour cette app|Alle Einträge dieser App wählen|Выбрать всё для этой программы|Selecionar todos deste app
+恢复这一项（按备份还原）|Restore this item from backup|この項目を復元（バックアップから）|이 항목 복원(백업에서)|Restaurar este elemento desde copia|Restaurer cet élément depuis la sauvegarde|Diesen Eintrag aus Backup wiederherstellen|Восстановить этот пункт из резервной копии|Restaurar este item do backup
+单独备份这一项为 .reg…|Back up this item as .reg…|この項目を .reg としてバックアップ…|이 항목을 .reg로 백업…|Exportar este elemento como .reg…|Exporter cet élément en .reg…|Diesen Eintrag als .reg sichern…|Экспортировать пункт в .reg…|Exportar este item como .reg…
+查看完整信息…|View full details…|詳細を表示…|전체 정보 보기…|Ver todos los detalles…|Voir tous les détails…|Alle Details anzeigen…|Показать подробности…|Ver detalhes completos…
+右键菜单管理|Context menu manager|右クリックメニュー管理|상황에 맞는 메뉴 관리|Gestor del menú contextual|Gestionnaire du menu contextuel|Kontextmenü-Verwaltung|Управление контекстным меню|Gerenciador de menu de contexto
+备份目录|Backup folder|バックアップフォルダー|백업 폴더|Carpeta de copias|Dossier de sauvegarde|Backup-Ordner|Папка резервных копий|Pasta de backup
+搜索菜单名 / 软件 / 注册表路径|Search menu name / app / registry path|メニュー名 / アプリ / レジストリパスを検索|메뉴 이름 / 프로그램 / 레지스트리 경로 검색|Buscar menú / app / ruta del Registro|Rechercher menu / app / chemin Registre|Menü / App / Registrypfad suchen|Поиск меню / программы / пути реестра|Buscar menu / app / caminho do registro
+只看第三方项|Third-party only|サードパーティ製のみ|타사 항목만 보기|Solo de terceros|Uniquement tiers|Nur Fremdanbieter|Только сторонние|Apenas de terceiros
+显示已屏蔽|Show blocked|ブロック済みを表示|차단된 항목 표시|Mostrar bloqueados|Afficher les bloqués|Blockierte anzeigen|Показать заблокированные|Mostrar bloqueados
+显示已禁用记录|Show disabled records|無効化記録を表示|사용 안 함 기록 표시|Mostrar registros desactivados|Afficher les éléments désactivés|Deaktivierte Einträge anzeigen|Показать отключённые записи|Mostrar registros desativados
+显示图标|Show icons|アイコンを表示|아이콘 표시|Mostrar iconos|Afficher les icônes|Symbole anzeigen|Показать значки|Mostrar ícones
+菜单名称|Menu name|メニュー名|메뉴 이름|Nombre del menú|Nom du menu|Menüname|Название меню|Nome do menu
+出现位置|Appears in|表示される場所|나타나는 위치|Ubicación|Emplacement|Erscheint bei|Где появляется|Onde aparece
+这一列是这个菜单项在哪个位置右键时出现。|This column shows where right-clicking brings up the item.|この列は、どの場所で右クリックすると項目が出るかを示します。|이 열은 어디에서 마우스 오른쪽 클릭 시 항목이 나타나는지 보여 줍니다.|Esta columna indica dónde aparece el elemento al hacer clic derecho.|Cette colonne indique où l'élément apparaît au clic droit.|Diese Spalte zeigt, wo der Eintrag per Rechtsklick erscheint.|Этот столбец показывает, где появляется пункт при правом клике.|Esta coluna mostra onde o item aparece ao clicar com o botão direito.
+文件|Files|ファイル|파일|Archivos|Fichiers|Dateien|Файлы|Arquivos
+　在任何文件上右键|Right-click any file|任意のファイルを右クリック|모든 파일에서 오른쪽 클릭|Al hacer clic derecho en cualquier archivo|Clic droit sur n'importe quel fichier|Rechtsklick auf eine beliebige Datei|Правый клик по любому файлу|Clique direito em qualquer arquivo
+文件夹|Folders|フォルダー|폴더|Carpetas|Dossiers|Ordner|Папки|Pastas
+　在磁盘上的文件夹上右键|Right-click a folder on a disk|ディスク上のフォルダーを右クリック|디스크의 폴더에서 오른쪽 클릭|Clic derecho en una carpeta del disco|Clic droit sur un dossier du disque|Rechtsklick auf einen Ordner auf dem Laufwerk|Правый клик по папке на диске|Clique direito em uma pasta no disco
+文件夹空白处|Folder background|フォルダー内の空白|폴더 빈 곳|Fondo de carpeta|Fond du dossier|Ordnerhintergrund|Фон папки|Fundo da pasta
+　打开文件夹，在里面的空白处右键|Open a folder, then right-click empty space inside|フォルダーを開き、内部の空白を右クリック|폴더를 열고 빈 곳에서 오른쪽 클릭|Abre una carpeta y haz clic derecho en el vacío|Ouvrez un dossier puis clic droit dans le vide|Ordner öffnen und im leeren Bereich rechtsklicken|Откройте папку и нажмите правой кнопкой на пустом месте|Abra uma pasta e clique com o direito na área vazia
+所有文件夹|All folders|すべてのフォルダー|모든 폴더|Todas las carpetas|Tous les dossiers|Alle Ordner|Все папки|Todas as pastas
+　回收站、此电脑、控制面板这类也算文件夹，在这里注册的项会同时出现在它们身上|Recycle Bin, This PC and Control Panel count as folders too; items registered here appear on all of them|ごみ箱、PC、コントロールパネルもフォルダー扱い。ここに登録した項目はそれらすべてに表示されます|휴지통, 내 PC, 제어판도 폴더로 간주되어 여기에 등록한 항목이 모두에 나타납니다|Papelera, Este equipo y Panel de control también cuentan como carpetas; lo registrado aquí aparece en todos|Corbeille, Ce PC et Panneau de configuration comptent aussi comme dossiers ; les éléments y apparaissent partout|Auch Papierkorb, Dieser PC und Systemsteuerung gelten als Ordner; Einträge erscheinen überall|Корзина, Этот компьютер и Панель управления тоже считаются папками; записи появятся везде|Lixeira, Este PC e Painel de Controle também contam como pastas; os itens aparecem em todos
+驱动器|Drives|ドライブ|드라이브|Unidades|Lecteurs|Laufwerke|Диски|Unidades
+　在 C:、D: 盘符上右键|Right-click a C: or D: drive|C: や D: のドライブを右クリック|C:, D: 드라이브에서 오른쪽 클릭|Clic derecho en una unidad C: o D:|Clic droit sur un lecteur C: ou D:|Rechtsklick auf Laufwerk C: oder D:|Правый клик по диску C: или D:|Clique direito em uma unidade C: ou D:
+所有对象|All objects|すべてのオブジェクト|모든 개체|Todos los objetos|Tous les objets|Alle Objekte|Все объекты|Todos os objetos
+　文件和文件夹都算|Both files and folders|ファイルとフォルダーの両方|파일과 폴더 모두|Archivos y carpetas|Fichiers et dossiers|Dateien und Ordner|Файлы и папки|Arquivos e pastas
+桌面空白处|Desktop background|デスクトップの空白|바탕 화면 빈 곳|Fondo del escritorio|Fond du bureau|Desktophintergrund|Фон рабочего стола|Fundo da área de trabalho
+　在桌面空白处右键|Right-click empty desktop space|デスクトップの空白を右クリック|바탕 화면 빈 곳에서 오른쪽 클릭|Clic derecho en el escritorio vacío|Clic droit sur le bureau|Rechtsklick auf freien Desktopbereich|Правый клик по пустому месту рабочего стола|Clique direito na área vazia da área de trabalho
+回收站 / 此电脑|Recycle Bin / This PC|ごみ箱 / PC|휴지통 / 내 PC|Papelera / Este equipo|Corbeille / Ce PC|Papierkorb / Dieser PC|Корзина / Этот компьютер|Lixeira / Este PC
+　只在那一个图标上右键|Only on that one icon|そのアイコン上のみ|해당 아이콘에서만|Solo en ese icono|Uniquement sur cette icône|Nur auf diesem Symbol|Только на этом значке|Apenas nesse ícone
+同一个软件出现好几行，是因为它在好几个位置各注册了一份，互不影响，可以只禁其中一个。|One app may appear several times because it registers in several places; they are independent, so you can disable just one.|同じアプリが複数行になるのは、複数の場所に個別に登録されているためです。互いに影響しないので一つだけ無効化できます.|같은 프로그램이 여러 줄로 나오는 것은 여러 위치에 각각 등록했기 때문이며, 서로 영향 없이 하나만 사용 안 함으로 할 수 있습니다.|Una misma app aparece varias veces porque se registra en varios sitios; son independientes y puedes desactivar solo una.|Une même application apparaît plusieurs fois car elle est enregistrée à plusieurs endroits ; ils sont indépendants, désactivez-en un seul.|Eine App erscheint mehrfach, weil sie an mehreren Orten registriert ist; sie sind unabhängig, deaktivieren Sie nur einen.|Одна программа может быть в нескольких строках: это независимые записи в разных местах, можно отключить одну.|Um mesmo app aparece várias vezes porque se registra em vários locais; são independentes, desative apenas um.
+状态|Status|状態|상태|Estado|État|Status|Состояние|Estado
+归属软件|Owning app|所属アプリ|해당 프로그램|Aplicación propietaria|Application associée|Zugehörige App|Программа-владелец|Aplicativo responsável
+详细信息|Details|詳細情報|상세 정보|Detalles|Détails|Details|Подробности|Detalhes
+没有匹配的项目。换个关键词，或取消「只看第三方项」试试。|No matches. Try another keyword, or turn off "Third-party only".|一致する項目がありません。別のキーワードを試すか「サードパーティ製のみ」を解除してください。|일치하는 항목이 없습니다. 다른 검색어를 쓰거나 '타사 항목만 보기'를 해제하세요.|Sin coincidencias. Prueba otra palabra o desactiva «Solo de terceros».|Aucun résultat. Essayez un autre mot ou désactivez « Uniquement tiers ».|Keine Treffer. Anderes Stichwort oder „Nur Fremdanbieter" deaktivieren.|Совпадений нет. Измените запрос или отключите «Только сторонние».|Nenhum resultado. Tente outra palavra ou desative «Apenas de terceiros».
+备份并禁用选中项|Back up and disable selected|選択項目をバックアップして無効化|선택 항목 백업 후 사용 안 함|Copiar y desactivar seleccionados|Sauvegarder et désactiver la sélection|Ausgewählte sichern und deaktivieren|Сохранить копию и отключить выбранные|Fazer backup e desativar selecionados
+恢复选中项|Restore selected|選択項目を復元|선택 항목 복원|Restaurar seleccionados|Restaurer la sélection|Ausgewählte wiederherstellen|Восстановить выбранные|Restaurar selecionados
+从备份恢复…|Restore from backup…|バックアップから復元…|백업에서 복원…|Restaurar desde copia…|Restaurer depuis une sauvegarde…|Aus Backup wiederherstellen…|Восстановить из копии…|Restaurar do backup…
+全选第三方|Select all third-party|サードパーティ製をすべて選択|타사 항목 모두 선택|Seleccionar todos los de terceros|Sélectionner tous les tiers|Alle Fremdanbieter wählen|Выбрать все сторонние|Selecionar todos de terceiros
+清除勾选|Clear selection|選択を解除|선택 해제|Deseleccionar todo|Tout désélectionner|Auswahl aufheben|Снять выделение|Limpar seleção
+设置|Settings|設定|설정|Configuración|Paramètres|Einstellungen|Настройки|Configurações
+个性化外观与应用信息|Personalize appearance and view app info|外観のカスタマイズとアプリ情報|외형 개인 설정 및 앱 정보|Personaliza la apariencia y consulta los datos de la app|Personnaliser l'apparence et voir les infos|Darstellung anpassen und App-Infos ansehen|Настройка оформления и сведения о программе|Personalizar aparência e ver informações do app
+个性化|Personalization|個人用設定|개인 설정|Personalización|Personnalisation|Personalisierung|Персонализация|Personalização
+深色模式|Dark mode|ダークモード|다크 모드|Modo oscuro|Mode sombre|Dunkelmodus|Тёмная тема|Modo escuro
+切换到 Windows 11 深色主题|Switch to the Windows 11 dark theme|Windows 11 のダークテーマに切り替える|Windows 11 다크 테마로 전환|Cambiar al tema oscuro de Windows 11|Passer au thème sombre de Windows 11|Zum Windows-11-Dunkeldesign wechseln|Переключить на тёмную тему Windows 11|Mudar para o tema escuro do Windows 11
+跟随系统主题|Follow system theme|システムのテーマに従う|시스템 테마 따르기|Seguir el tema del sistema|Suivre le thème système|Systemdesign folgen|Следовать теме системы|Seguir o tema do sistema
+随 Windows 的深浅色设置自动切换|Switch automatically with the Windows light/dark setting|Windows のライト / ダーク設定に合わせて自動切替|Windows 밝기 설정에 따라 자동 전환|Cambia automáticamente con el modo claro/oscuro de Windows|Suit automatiquement le réglage clair/sombre de Windows|Wechselt automatisch mit der Windows-Hell-/Dunkel-Einstellung|Автоматически переключается вместе с темой Windows|Alterna automaticamente com a configuração claro/escuro do Windows
+快捷键|Keyboard shortcuts|ショートカットキー|단축키|Atajos de teclado|Raccourcis clavier|Tastenkürzel|Горячие клавиши|Atalhos de teclado
+重新读取当前页面的数据|Reload the current page's data|現在のページのデータを再読み込み|현재 페이지 데이터 다시 읽기|Recargar los datos de la página actual|Recharger les données de la page actuelle|Daten der aktuellen Seite neu laden|Перечитать данные текущей страницы|Recarregar os dados da página atual
+跳到当前页面的搜索框|Jump to the current page's search box|現在のページの検索欄に移動|현재 페이지 검색 상자로 이동|Ir al cuadro de búsqueda de la página|Aller au champ de recherche de la page|Zum Suchfeld der aktuellen Seite springen|Перейти к полю поиска на странице|Ir para a caixa de busca da página
+按左侧导航顺序快速切页|Switch pages by their order in the left navigation|左のナビゲーション順にページを切替|왼쪽 탐색 순서대로 페이지 전환|Cambiar de página según el orden de la navegación izquierda|Changer de page selon l'ordre de la navigation de gauche|Seiten in der Reihenfolge der linken Navigation wechseln|Переключать страницы по порядку в левой навигации|Alternar páginas pela ordem da navegação à esquerda
+关于本程序|About this app|このアプリについて|이 앱 정보|Acerca de esta aplicación|À propos de cette application|Über diese App|Об этом приложении|Sobre este app
+打开配置目录|Open config folder|設定フォルダーを開く|설정 폴더 열기|Abrir carpeta de configuración|Ouvrir le dossier de configuration|Konfigurationsordner öffnen|Открыть папку настроек|Abrir pasta de configuração
+系统工具|System tools|システムツール|시스템 도구|Herramientas del sistema|Outils système|Systemwerkzeuge|Системные утилиты|Ferramentas do sistema
+集成了 Windows 常用工具|Built-in Windows utilities in one place|Windows の常用ツールをまとめて収録|Windows 기본 도구 모음|Utilidades de Windows reunidas|Les utilitaires Windows réunis|Windows-Bordmittel an einem Ort|Встроенные утилиты Windows в одном месте|Utilitários do Windows reunidos
+搜索工具，例如：设备、磁盘、网络|Search tools, e.g. device, disk, network|ツールを検索（例：デバイス、ディスク、ネットワーク）|도구 검색(예: 장치, 디스크, 네트워크)|Buscar herramientas, p. ej. dispositivo, disco, red|Rechercher un outil, ex. périphérique, disque, réseau|Werkzeug suchen, z. B. Gerät, Datenträger, Netzwerk|Поиск утилиты, напр. устройство, диск, сеть|Buscar ferramentas, ex.: dispositivo, disco, rede
+没有找到匹配的工具|No matching tools|一致するツールがありません|일치하는 도구 없음|No se encontraron herramientas|Aucun outil correspondant|Keine passenden Werkzeuge|Подходящих утилит нет|Nenhuma ferramenta encontrada
+换个关键词试试，例如「磁盘」「网络」「设置」|Try another keyword, e.g. disk, network or settings|別のキーワードを試してください（例：ディスク、ネットワーク、設定）|다른 검색어를 시도하세요(예: 디스크, 네트워크, 설정)|Prueba otra palabra, p. ej. disco, red o ajustes|Essayez un autre mot, ex. disque, réseau ou paramètres|Versuchen Sie ein anderes Stichwort, z. B. Datenträger, Netzwerk, Einstellungen|Попробуйте другое слово, напр. диск, сеть, настройки|Tente outra palavra, ex.: disco, rede, configurações
+托盘图标|Tray icons|トレイアイコン|트레이 아이콘|Iconos de la bandeja|Icônes de la barre d'état|Taskleisten-Symbole|Значки в трее|Ícones da bandeja
+始终显示（固定到任务栏）|Always show (pin to taskbar)|常に表示（タスクバーに固定）|항상 표시(작업 표시줄에 고정)|Mostrar siempre (anclar a la barra)|Toujours afficher (épingler à la barre)|Immer anzeigen (an Taskleiste anheften)|Всегда показывать (закрепить на панели)|Sempre mostrar (fixar na barra)
+收进溢出区（小箭头里）|Move to overflow (the little arrow)|オーバーフローへ（小さな矢印の中）|오버플로로 이동(작은 화살표 안)|Mover al área de desbordamiento|Placer dans la zone de débordement|In den Überlaufbereich verschieben|Убрать в область переполнения|Mover para o overflow (setinha)
+打开程序所在目录|Open the program's folder|プログラムのフォルダーを開く|프로그램 폴더 열기|Abrir la carpeta del programa|Ouvrir le dossier du programme|Programmordner öffnen|Открыть папку программы|Abrir pasta do programa
+托盘图标管理|Tray icon manager|トレイアイコン管理|트레이 아이콘 관리|Gestor de iconos de bandeja|Gestionnaire d'icônes de la barre|Taskleisten-Symbol-Verwaltung|Управление значками в трее|Gerenciador de ícones da bandeja
+管理任务栏右下角小箭头里的图标：固定到任务栏，或收进溢出区|Manage the icons behind the taskbar arrow: pin them or move them to overflow|タスクバー右下の矢印内のアイコンを管理：固定またはオーバーフローへ|작업 표시줄 화살표 안의 아이콘 관리: 고정 또는 오버플로로 이동|Gestiona los iconos tras la flecha de la barra: anclar o mover al desbordamiento|Gérez les icônes derrière la flèche de la barre : épingler ou déplacer|Symbole hinter dem Taskleisten-Pfeil verwalten: anheften oder in den Überlauf|Управляйте значками за стрелкой на панели: закрепить или убрать|Gerencie os ícones atrás da seta da barra: fixar ou mover ao overflow
+只看正在运行的|Running only|実行中のみ|실행 중인 항목만|Solo en ejecución|Uniquement en cours d'exécution|Nur laufende|Только запущенные|Apenas em execução
+读取托盘清单|Read tray list|トレイ一覧を読み込む|트레이 목록 읽기|Leer lista de bandeja|Lire la liste de la barre|Tray-Liste lesen|Прочитать список трея|Ler lista da bandeja
+读的是 Windows 自己那份清单|Reads Windows' own tray list|Windows 自身のトレイ一覧を読み取ります|Windows 자체 트레이 목록을 읽습니다|Lee la propia lista de Windows|Lit la liste propre à Windows|Liest die Windows-eigene Liste|Читает собственный список Windows|Lê a própria lista do Windows
+任务栏显示|Taskbar visibility|タスクバーの表示|작업 표시줄 표시|Visibilidad en barra|Affichage dans la barre|Taskleisten-Anzeige|Отображение на панели|Exibição na barra
+运行状态|Running state|実行状態|실행 상태|Estado de ejecución|État d'exécution|Laufzustand|Состояние запуска|Estado de execução
+程序路径|Program path|プログラムのパス|프로그램 경로|Ruta del programa|Chemin du programme|Programmpfad|Путь к программе|Caminho do programa
+还没有读取托盘清单|Tray list not read yet|トレイ一覧がまだ読み込まれていません|트레이 목록을 아직 읽지 않았습니다|Aún no se leyó la lista|Liste pas encore lue|Tray-Liste noch nicht gelesen|Список трея ещё не прочитан|Lista da bandeja ainda não lida
+点右上角「读取托盘清单」。直接读注册表，瞬间完成，不会打开任何窗口。|Click "Read tray list" at the top right. It reads the registry directly, finishes instantly and opens no windows.|右上の「トレイ一覧を読み込む」をクリック。レジストリを直接読み、瞬時に完了し、ウィンドウは開きません。|오른쪽 위 '트레이 목록 읽기'를 누르세요. 레지스트리를 직접 읽어 즉시 완료되며 창이 열리지 않습니다.|Pulsa «Leer lista de bandeja» arriba a la derecha. Lee el Registro directamente, es instantáneo y no abre ventanas.|Cliquez sur « Lire la liste » en haut à droite : lecture directe du Registre, instantané, sans ouvrir de fenêtre.|Oben rechts „Tray-Liste lesen" klicken: liest direkt die Registrierung, sofort, ohne Fenster zu öffnen.|Нажмите «Прочитать список трея» справа сверху: читает реестр напрямую, мгновенно, без окон.|Clique em «Ler lista da bandeja» no canto superior direito. Lê o registro direto, é instantâneo e não abre janelas.
+勾选项固定到任务栏|Pin selected to taskbar|選択項目をタスクバーに固定|선택 항목 작업 표시줄에 고정|Anclar seleccionados a la barra|Épingler la sélection à la barre|Ausgewählte an Taskleiste anheften|Закрепить выбранные на панели|Fixar selecionados na barra
+勾选项收进溢出区|Move selected to overflow|選択項目をオーバーフローへ|선택 항목 오버플로로 이동|Mover seleccionados al desbordamiento|Déplacer la sélection dans le débordement|Ausgewählte in Überlauf verschieben|Убрать выбранные в переполнение|Mover selecionados ao overflow
+恢复本次修改|Undo this session's changes|今回の変更を元に戻す|이번 변경 되돌리기|Deshacer los cambios de esta sesión|Annuler les modifications de cette session|Änderungen dieser Sitzung rückgängig machen|Отменить изменения за этот сеанс|Desfazer alterações desta sessão
+实用工具|Utilities|ユーティリティ|유틸리티|Utilidades|Utilitaires|Werkzeuge|Утилиты|Utilitários
+校验、编码、密码与网络诊断|Hashing, encoding, passwords and network diagnostics|ハッシュ、エンコード、パスワード、ネットワーク診断|해시, 인코딩, 비밀번호, 네트워크 진단|Hash, codificación, contraseñas y diagnóstico de red|Hachage, encodage, mots de passe et diagnostic réseau|Hash, Kodierung, Passwörter und Netzwerkdiagnose|Хэши, кодирование, пароли и диагностика сети|Hash, codificação, senhas e diagnóstico de rede
+文件哈希|File hash|ファイルハッシュ|파일 해시|Hash de archivo|Hachage de fichier|Datei-Hash|Хэш файла|Hash de arquivo
+文件哈希校验|File hash verification|ファイルハッシュ検証|파일 해시 검증|Verificación de hash|Vérification du hachage|Datei-Hash-Prüfung|Проверка хэша файла|Verificação de hash
+支持 MD5 / SHA-1 / SHA-256 / SHA-512|Supports MD5 / SHA-1 / SHA-256 / SHA-512|MD5 / SHA-1 / SHA-256 / SHA-512 に対応|MD5 / SHA-1 / SHA-256 / SHA-512 지원|Compatible con MD5 / SHA-1 / SHA-256 / SHA-512|Prend en charge MD5 / SHA-1 / SHA-256 / SHA-512|Unterstützt MD5 / SHA-1 / SHA-256 / SHA-512|Поддержка MD5 / SHA-1 / SHA-256 / SHA-512|Suporta MD5 / SHA-1 / SHA-256 / SHA-512
+选择文件…|Choose a file…|ファイルを選択…|파일 선택…|Elegir archivo…|Choisir un fichier…|Datei auswählen…|Выбрать файл…|Escolher arquivo…
+选择|Choose|選択|선택|Elegir|Choisir|Auswählen|Выбрать|Escolher
+计算|Calculate|計算|계산|Calcular|Calculer|Berechnen|Вычислить|Calcular
+编码转换|Encoding|エンコード変換|인코딩 변환|Codificación|Encodage|Kodierung|Кодирование|Codificação
+文本编解码|Text encode / decode|テキストのエンコード / デコード|텍스트 인코딩 / 디코딩|Codificar / decodificar texto|Encoder / décoder du texte|Text kodieren / dekodieren|Кодирование / декодирование текста|Codificar / decodificar texto
+在此输入原始文本…|Enter the raw text here…|ここに元のテキストを入力…|여기에 원본 텍스트 입력…|Escribe aquí el texto original…|Saisissez le texte brut ici…|Rohtext hier eingeben…|Введите исходный текст…|Digite o texto original aqui…
+Base64 编码|Base64 encode|Base64 エンコード|Base64 인코딩|Codificar Base64|Encoder en Base64|Base64 kodieren|Кодировать Base64|Codificar Base64
+Base64 解码|Base64 decode|Base64 デコード|Base64 디코딩|Decodificar Base64|Décoder Base64|Base64 dekodieren|Декодировать Base64|Decodificar Base64
+URL 编码|URL encode|URL エンコード|URL 인코딩|Codificar URL|Encoder URL|URL kodieren|Кодировать URL|Codificar URL
+URL 解码|URL decode|URL デコード|URL 디코딩|Decodificar URL|Décoder URL|URL dekodieren|Декодировать URL|Decodificar URL
+密码生成|Password generator|パスワード生成|비밀번호 생성|Generador de contraseñas|Générateur de mots de passe|Passwortgenerator|Генератор паролей|Gerador de senhas
+随机密码生成|Random password generator|ランダムパスワード生成|무작위 비밀번호 생성|Generador aleatorio de contraseñas|Générateur aléatoire de mots de passe|Zufallspasswort-Generator|Генератор случайных паролей|Gerador de senhas aleatórias
+长度|Length|長さ|길이|Longitud|Longueur|Länge|Длина|Comprimento
+生成密码|Generate password|パスワードを生成|비밀번호 생성|Generar contraseña|Générer un mot de passe|Passwort erzeugen|Создать пароль|Gerar senha
+2FA 验证码|2FA codes|2FA 認証コード|2FA 인증 코드|Códigos 2FA|Codes 2FA|2FA-Codes|Коды 2FA|Códigos 2FA
+添加 2FA 账户|Add 2FA account|2FA アカウントを追加|2FA 계정 추가|Añadir cuenta 2FA|Ajouter un compte 2FA|2FA-Konto hinzufügen|Добавить аккаунт 2FA|Adicionar conta 2FA
+备注（可选）|Label (optional)|メモ（任意）|메모(선택)|Nota (opcional)|Note (facultatif)|Notiz (optional)|Заметка (необязательно)|Nota (opcional)
+粘贴 Base32 密钥，或 otpauth:// 链接|Paste a Base32 secret or an otpauth:// link|Base32 キーまたは otpauth:// リンクを貼り付け|Base32 키 또는 otpauth:// 링크 붙여넣기|Pega una clave Base32 o un enlace otpauth://|Collez une clé Base32 ou un lien otpauth://|Base32-Key oder otpauth://-Link einfügen|Вставьте Base32-ключ или ссылку otpauth://|Cole uma chave Base32 ou um link otpauth://
+添加|Add|追加|추가|Añadir|Ajouter|Hinzufügen|Добавить|Adicionar
+还没有账户。把网站给的密钥粘到上面，点「添加」。|No accounts yet. Paste the site's secret above and click "Add".|アカウントがありません。サイトのキーを上に貼り付けて「追加」を押してください。|계정이 없습니다. 사이트의 키를 위에 붙여넣고 '추가'를 누르세요.|Aún no hay cuentas. Pega la clave del sitio arriba y pulsa «Añadir».|Aucun compte. Collez la clé du site ci-dessus et cliquez sur « Ajouter ».|Noch keine Konten. Schlüssel oben einfügen und „Hinzufügen" klicken.|Аккаунтов пока нет. Вставьте ключ сайта выше и нажмите «Добавить».|Nenhuma conta ainda. Cole a chave do site acima e clique em «Adicionar».
+复制|Copy|コピー|복사|Copiar|Copier|Kopieren|Копировать|Copiar
+删除|Delete|削除|삭제|Eliminar|Supprimer|Löschen|Удалить|Excluir
+清空全部|Clear all|すべて消去|모두 지우기|Borrar todo|Tout effacer|Alle löschen|Очистить всё|Limpar tudo
+网络诊断|Network diagnostics|ネットワーク診断|네트워크 진단|Diagnóstico de red|Diagnostic réseau|Netzwerkdiagnose|Диагностика сети|Diagnóstico de rede
+本机网络|Local network|ローカルネットワーク|로컬 네트워크|Red local|Réseau local|Lokales Netzwerk|Локальная сеть|Rede local
+检测端口|Check port|ポートを確認|포트 확인|Comprobar puerto|Vérifier le port|Port prüfen|Проверить порт|Verificar porta
+Ping 测试|Ping test|Ping テスト|Ping 테스트|Prueba de Ping|Test Ping|Ping-Test|Проверка Ping|Teste de Ping
+开始 Ping|Start Ping|Ping を開始|Ping 시작|Iniciar Ping|Démarrer Ping|Ping starten|Запустить Ping|Iniciar Ping
+确定|OK|OK|확인|Aceptar|OK|OK|ОК|OK
+取消|Cancel|キャンセル|취소|Cancelar|Annuler|Abbrechen|Отмена|Cancelar
+关闭|Close|閉じる|닫기|Cerrar|Fermer|Schließen|Закрыть|Fechar
+是|Yes|はい|예|Sí|Oui|Ja|Да|Sim
+否|No|いいえ|아니요|No|Non|Nein|Нет|Não
+禁用|Disable|無効にする|사용 안 함|Desactivar|Désactiver|Deaktivieren|Отключить|Desativar
+已开启|Enabled|有効|사용함|Activado|Activé|Aktiviert|Включено|Ativado
+已关闭|Disabled|無効|사용 안 함|Desactivado|Désactivé|Deaktiviert|Отключено|Desativado
+操作日志|Activity log|操作ログ|작업 로그|Registro de actividad|Journal des opérations|Aktionsprotokoll|Журнал действий|Log de atividades
+搜索|Search|検索|검색|Buscar|Rechercher|Suchen|Поиск|Buscar
+全选|Select all|すべて選択|모두 선택|Seleccionar todo|Tout sélectionner|Alle auswählen|Выбрать всё|Selecionar tudo
+生成|Generate|生成|생성|Generar|Générer|Erzeugen|Создать|Gerar
+保存|Save|保存|저장|Guardar|Enregistrer|Speichern|Сохранить|Salvar
+成功|Success|成功|성공|Correcto|Réussi|Erfolg|Успешно|Sucesso
+失败|Failed|失敗|실패|Error|Échec|Fehlgeschlagen|Ошибка|Falhou
+异常|Exception|例外|예외|Excepción|Exception|Ausnahme|Исключение|Exceção
+提示|Notice|お知らせ|알림|Aviso|Information|Hinweis|Уведомление|Aviso
+警告|Warning|警告|경고|Advertencia|Avertissement|Warnung|Предупреждение|Aviso
+错误|Error|エラー|오류|Error|Erreur|Fehler|Ошибка|Erro
+正在扫描临时文件…|Scanning temp files…|一時ファイルをスキャン中…|임시 파일 검사 중…|Analizando temporales…|Analyse des fichiers temporaires…|Temporäre Dateien werden gescannt…|Сканирование временных файлов…|Analisando arquivos temporários…
+正在读取设置清单…|Reading settings list…|設定一覧を読み込み中…|설정 목록을 읽는 중…|Leyendo lista de ajustes…|Lecture de la liste des réglages…|Einstellungsliste wird gelesen…|Чтение списка настроек…|Lendo lista de configurações…
+正在重新读取状态…|Refreshing status…|状態を再読み込み中…|상태 다시 읽는 중…|Actualizando estado…|Actualisation de l'état…|Status wird neu geladen…|Обновление состояния…|Atualizando estado…
+正在全部恢复默认…|Restoring all defaults…|すべて既定に戻しています…|모두 기본값으로 복원 중…|Restaurando todos los valores…|Restauration des valeurs par défaut…|Standardwerte werden wiederhergestellt…|Возврат всех значений по умолчанию…|Restaurando todos os padrões…
+正在扫描注册表…|Scanning registry…|レジストリをスキャン中…|레지스트리 검사 중…|Analizando el Registro…|Analyse du Registre…|Registrierung wird durchsucht…|Сканирование реестра…|Analisando o registro…
+正在备份并禁用…|Backing up and disabling…|バックアップして無効化中…|백업 후 사용 안 함 처리 중…|Copiando y desactivando…|Sauvegarde et désactivation…|Sichern und Deaktivieren…|Резервное копирование и отключение…|Fazendo backup e desativando…
+正在读取托盘图标清单…|Reading tray icon list…|トレイアイコン一覧を読み込み中…|트레이 아이콘 목록을 읽는 중…|Leyendo lista de iconos…|Lecture de la liste d'icônes…|Tray-Symbole werden gelesen…|Чтение списка значков трея…|Lendo lista de ícones da bandeja…
+正在创建还原点，可能要几十秒…|Creating a restore point, this may take a while…|復元ポイントを作成中。数十秒かかる場合があります…|복원 지점 생성 중. 수십 초 걸릴 수 있습니다…|Creando punto de restauración, puede tardar…|Création du point de restauration, veuillez patienter…|Wiederherstellungspunkt wird erstellt, kann dauern…|Создание точки восстановления, это может занять время…|Criando ponto de restauração, pode demorar…
+读取已取消|Read cancelled|読み込みを中止しました|읽기 취소됨|Lectura cancelada|Lecture annulée|Lesen abgebrochen|Чтение отменено|Leitura cancelada
+读取失败：|Read failed: |読み込みに失敗：|읽기 실패: |Error de lectura: |Échec de lecture : |Lesen fehlgeschlagen: |Ошибка чтения: |Falha na leitura: 
+没找到 winget，装机清单不可用|winget not found; the app catalog is unavailable|winget が見つからないため、アプリ一覧は利用できません|winget을 찾을 수 없어 앱 목록을 사용할 수 없습니다|No se encontró winget; el catálogo no está disponible|winget introuvable ; catalogue indisponible|winget nicht gefunden; App-Katalog nicht verfügbar|winget не найден, каталог недоступен|winget não encontrado; catálogo indisponível
+正在检查 winget…|Checking winget…|winget を確認中…|winget 확인 중…|Comprobando winget…|Vérification de winget…|winget wird geprüft…|Проверка winget…|Verificando winget…
+没有匹配的应用|No matching apps|一致するアプリがありません|일치하는 앱 없음|No hay aplicaciones coincidentes|Aucune application correspondante|Keine passenden Apps|Нет подходящих приложений|Nenhum app correspondente
+请先选择文件|Please choose a file first|先にファイルを選択してください|먼저 파일을 선택하세요|Selecciona un archivo primero|Choisissez d'abord un fichier|Bitte zuerst eine Datei wählen|Сначала выберите файл|Escolha um arquivo primeiro
+计算中…|Calculating…|計算中…|계산 중…|Calculando…|Calcul en cours…|Wird berechnet…|Вычисление…|Calculando…
+检测中…|Checking…|確認中…|확인 중…|Comprobando…|Vérification…|Wird geprüft…|Проверка…|Verificando…
+已复制|Copied|コピーしました|복사됨|Copiado|Copié|Kopiert|Скопировано|Copiado
+已重建图标缓存，若图标未刷新可重启资源管理器|Icon cache rebuilt. Restart Explorer if icons still look stale|アイコンキャッシュを再構築しました。反映されない場合はエクスプローラーを再起動してください|아이콘 캐시를 재구성했습니다. 아이콘이 갱신되지 않으면 탐색기를 다시 시작하세요|Caché de iconos reconstruida. Reinicia el Explorador si no se actualizan|Cache d'icônes reconstruit. Redémarrez l'Explorateur si besoin|Icon-Cache neu aufgebaut. Bei Bedarf Explorer neu starten|Кэш значков пересоздан. Если не обновилось, перезапустите Проводник|Cache de ícones reconstruído. Reinicie o Explorer se necessário
+已重启资源管理器|Explorer restarted|エクスプローラーを再起動しました|탐색기를 다시 시작했습니다|Explorador reiniciado|Explorateur redémarré|Explorer neu gestartet|Проводник перезапущен|Explorer reiniciado
+已在新的管理员窗口中开始扫描|Scan started in a new elevated window|新しい管理者ウィンドウでスキャンを開始しました|새 관리자 창에서 검사를 시작했습니다|Análisis iniciado en una nueva ventana elevada|Analyse lancée dans une nouvelle fenêtre élevée|Scan in neuem Admin-Fenster gestartet|Сканирование запущено в новом окне с правами администратора|Varredura iniciada em uma nova janela elevada
+需重启|Restart required|再起動が必要|다시 시작 필요|Requiere reinicio|Redémarrage requis|Neustart erforderlich|Требуется перезагрузка|Requer reinicialização
+待重启生效|Takes effect after restart|再起動後に有効|다시 시작 후 적용|Se aplica tras reiniciar|Effectif après redémarrage|Wirkt nach Neustart|Действует после перезагрузки|Vale após reiniciar
+未生效|Not applied|未適用|적용 안 됨|Sin aplicar|Non appliqué|Nicht angewendet|Не применено|Não aplicado
+默认状态|Default|既定の状態|기본 상태|Estado predeterminado|État par défaut|Standardzustand|Состояние по умолчанию|Estado padrão
+已安装|Installed|インストール済み|설치됨|Instalado|Installé|Installiert|Установлено|Instalado
+点「重新检测」查看|Click "Recheck" to view|「再検出」をクリックして表示|'다시 검사'를 눌러 확인|Pulsa «Volver a analizar» para ver|Cliquez sur « Réanalyser » pour voir|„Neu scannen" klicken zum Anzeigen|Нажмите «Перепроверить» для просмотра|Clique em «Reanalisar» para ver
+操作失败：|Operation failed: |操作に失敗：|작업 실패: |La operación falló: |L'opération a échoué : |Vorgang fehlgeschlagen: |Операция не удалась: |A operação falhou: 
+详细信息已记录到：|Details written to: |詳細は次のファイルに記録されました：|상세 정보 기록 위치: |Detalles guardados en: |Détails enregistrés dans : |Details gespeichert unter: |Подробности записаны в: |Detalhes salvos em: 
+高性能|High performance|高パフォーマンス|고성능|Alto rendimiento|Performances élevées|Höchstleistung|Высокая производительность|Alto desempenho
+平衡|Balanced|バランス|균형 조정|Equilibrado|Équilibré|Ausbalanciert|Сбалансированный|Equilibrado
+节能|Power saver|省電力|절전|Ahorro de energía|Économie d'énergie|Energiesparen|Экономия энергии|Economia de energia
+自动|Auto|自動|자동|Automático|Automatique|Automatisch|Авто|Automático
+手动|Manual|手動|수동|Manual|Manuel|Manuell|Вручную|Manual
+曲线|Curve|カーブ|곡선|Curva|Courbe|Kurve|Кривая|Curva
+开发|Development|開発|개발|Desarrollo|Développement|Entwicklung|Разработка|Desenvolvimento
+媒体|Media|メディア|미디어|Multimedia|Médias|Medien|Мультимедиа|Mídia
+通讯|Communication|コミュニケーション|커뮤니케이션|Comunicación|Communication|Kommunikation|Связь|Comunicação
+办公|Office|オフィス|오피스|Oficina|Bureautique|Büro|Офис|Escritório
+浏览器|Browsers|ブラウザー|브라우저|Navegadores|Navigateurs|Browser|Браузеры|Navegadores
+运行库|Runtimes|ランタイム|런타임|Runtime|Runtime|Laufzeitbibliotheken|Среды выполнения|Runtimes
+任务栏|Taskbar|タスクバー|작업 표시줄|Barra de tareas|Barre des tâches|Taskleiste|Панель задач|Barra de tarefas
+隐私|Privacy|プライバシー|개인 정보|Privacidad|Confidentialité|Datenschutz|Конфиденциальность|Privacidade
+系统性能|Performance|システム性能|시스템 성능|Rendimiento|Performances|Leistung|Производительность|Desempenho
+资源管理器|File Explorer|エクスプローラー|파일 탐색기|Explorador de archivos|Explorateur de fichiers|Datei-Explorer|Проводник|Explorador de Arquivos
+桌面|Desktop|デスクトップ|바탕 화면|Escritorio|Bureau|Desktop|Рабочий стол|Área de trabalho
+通知|Notifications|通知|알림|Notificaciones|Notifications|Benachrichtigungen|Уведомления|Notificações
+开始菜单|Start menu|スタートメニュー|시작 메뉴|Menú Inicio|Menu Démarrer|Startmenü|Меню «Пуск»|Menu Iniciar
+回收站|Recycle Bin|ごみ箱|휴지통|Papelera|Corbeille|Papierkorb|Корзина|Lixeira
+此电脑|This PC|PC|내 PC|Este equipo|Ce PC|Dieser PC|Этот компьютер|Este PC
+窗口|Window|ウィンドウ|창|Ventana|Fenêtre|Fenster|Окно|Janela
+界面语言|Interface language|表示言語|인터페이스 언어|Idioma de la interfaz|Langue de l'interface|Oberflächensprache|Язык интерфейса|Idioma da interface
+切换后立即生效，部分系统专有名称保留原语言|Applies immediately; some Windows-specific names stay in their original language|切り替えると即時反映されます。Windows 固有の名称は元の言語のままです|즉시 적용되며 일부 Windows 고유 이름은 원래 언어로 유지됩니다|Se aplica al instante; algunos nombres propios de Windows conservan su idioma|Appliqué immédiatement ; certains noms propres à Windows gardent leur langue|Sofort wirksam; manche Windows-Namen bleiben im Original|Применяется сразу; часть системных названий остаётся на исходном языке|Aplica na hora; alguns nomes do Windows permanecem no idioma original
+语言|Language|言語|언어|Idioma|Langue|Sprache|Язык|Idioma
+自动（跟随系统）|Auto (follow system)|自動（システムに従う）|자동(시스템 따르기)|Automático (según el sistema)|Auto (système)|Automatisch (System)|Авто (как в системе)|Automático (seguir o sistema)
+翻译覆盖率|Translation coverage|翻訳カバー率|번역 적용률|Cobertura de traduction|Couverture de la traduction|Übersetzungsabdeckung|Покрытие перевода|Cobertura de tradução
+当前语言已翻译|Translated in this language|現在の言語で翻訳済み|현재 언어로 번역됨|Traducidos en este idioma|Traduits dans cette langue|In dieser Sprache übersetzt|Переведено на этот язык|Traduzidos neste idioma
+项界面文案|UI strings|件の画面文言|개 UI 문구|cadenas de interfaz|chaînes d'interface|UI-Texte|строк интерфейса|textos de interface
+未翻译的条目保持简体中文|Untranslated items stay in Simplified Chinese|未翻訳の項目は簡体字中国語のまま表示されます|번역되지 않은 항목은 간체 중국어로 표시됩니다|Los elementos sin traducir permanecen en chino simplificado|Les éléments non traduits restent en chinois simplifié|Nicht übersetzte Texte bleiben auf Chinesisch (vereinfacht)|Непереведённые пункты остаются на упрощённом китайском|Itens não traduzidos permanecem em chinês simplificado
+打开语言目录|Open language folder|言語フォルダーを開く|언어 폴더 열기|Abrir carpeta de idiomas|Ouvrir le dossier des langues|Sprachordner öffnen|Открыть папку языков|Abrir pasta de idiomas
+winget 不可用|winget unavailable|winget が利用できません|winget을 사용할 수 없음|winget no disponible|winget indisponible|winget nicht verfügbar|winget недоступен|winget indisponível
+先勾选要安装的软件，再点「安装选中」。|Select the apps first, then click "Install selected".|先にインストールするアプリを選択し、「選択した項目をインストール」を押してください。|먼저 설치할 앱을 선택한 뒤 '선택 항목 설치'를 누르세요.|Marca primero las apps y pulsa «Instalar seleccionados».|Sélectionnez d'abord les applications puis cliquez sur « Installer la sélection ».|Zuerst Apps auswählen, dann „Ausgewählte installieren" klicken.|Сначала отметьте приложения, затем нажмите «Установить выбранные».|Selecione os apps primeiro e clique em «Instalar selecionados».
+创建系统还原点|Create a system restore point|システムの復元ポイントを作成|시스템 복원 지점 만들기|Crear un punto de restauración del sistema|Créer un point de restauration système|Systemwiederherstellungspunkt erstellen|Создать точку восстановления системы|Criar ponto de restauração do sistema
+单独备份这一项为 .reg|Export this item as .reg|この項目を .reg にエクスポート|이 항목을 .reg로 내보내기|Exportar este elemento a .reg|Exporter cet élément en .reg|Diesen Eintrag als .reg exportieren|Экспортировать пункт в .reg|Exportar este item como .reg
+启动失败|Launch failed|起動に失敗|실행 실패|Error al iniciar|Échec du lancement|Start fehlgeschlagen|Не удалось запустить|Falha ao iniciar
+回收站中的文件将被永久删除，是否继续？|Files in the Recycle Bin will be permanently deleted. Continue?|ごみ箱のファイルは完全に削除されます。続けますか？|휴지통의 파일이 영구 삭제됩니다. 계속할까요?|Los archivos de la Papelera se eliminarán permanentemente. ¿Continuar?|Les fichiers de la Corbeille seront supprimés définitivement. Continuer ?|Dateien im Papierkorb werden endgültig gelöscht. Fortfahren?|Файлы в Корзине будут удалены безвозвратно. Продолжить?|Os arquivos da Lixeira serão excluídos permanentemente. Continuar?
+好的|Got it|わかりました|알겠습니다|De acuerdo|D'accord|Verstanden|Понятно|Entendi
+完成|Done|完了|완료|Hecho|Terminé|Fertig|Готово|Concluído
+完整信息 — |Full details — |詳細情報 — |전체 정보 — |Información completa — |Détails complets — |Alle Details — |Полные сведения — |Detalhes completos — 
+将以管理员身份运行 sfc /scannow，扫描可能需要 10 分钟以上，是否继续？|This runs sfc /scannow as administrator and may take over 10 minutes. Continue?|管理者として sfc /scannow を実行します。10 分以上かかる場合があります。続けますか？|관리자로 sfc /scannow를 실행하며 10분 이상 걸릴 수 있습니다. 계속할까요?|Ejecutará sfc /scannow como administrador y puede tardar más de 10 minutos. ¿Continuar?|Lance sfc /scannow en administrateur, peut durer plus de 10 minutes. Continuer ?|Führt sfc /scannow als Administrator aus, kann über 10 Minuten dauern. Fortfahren?|Запустит sfc /scannow от имени администратора, может занять более 10 минут. Продолжить?|Executará sfc /scannow como administrador e pode levar mais de 10 minutos. Continuar?
+已提交改名|Rename submitted|名前の変更を送信しました|이름 변경 요청됨|Cambio de nombre enviado|Renommage soumis|Umbenennung übermittelt|Переименование отправлено|Renomeação enviada
+恢复完成|Restore complete|復元が完了しました|복원 완료|Restauración completada|Restauration terminée|Wiederherstellung abgeschlossen|Восстановление завершено|Restauração concluída
+操作没有完成|Operation incomplete|操作が完了していません|작업이 완료되지 않음|Operación incompleta|Opération incomplète|Vorgang unvollständig|Операция не завершена|Operação incompleta
+有软件没装上|Some apps failed to install|一部のアプリをインストールできませんでした|일부 앱 설치 실패|Algunas aplicaciones no se instalaron|Certaines applications n'ont pas pu être installées|Einige Apps konnten nicht installiert werden|Некоторые приложения не установились|Alguns apps não foram instalados
+本次会话还没有改过任何托盘图标。|No tray icons have been changed in this session.|このセッションではトレイアイコンを変更していません。|이 세션에서 트레이 아이콘을 변경한 적이 없습니다.|Aún no se ha cambiado ningún icono en esta sesión.|Aucune icône modifiée durant cette session.|In dieser Sitzung wurden keine Tray-Symbole geändert.|В этом сеансе значки трея не менялись.|Nenhum ícone da bandeja foi alterado nesta sessão.
+桌面和任务栏会消失两三秒后自动恢复，是否继续？|The desktop and taskbar will disappear for a few seconds, then come back. Continue?|デスクトップとタスクバーが数秒間消えてから自動的に戻ります。続けますか？|바탕 화면과 작업 표시줄이 몇 초 사라진 뒤 자동 복구됩니다. 계속할까요?|El escritorio y la barra desaparecerán unos segundos y volverán. ¿Continuar?|Le bureau et la barre disparaîtront quelques secondes puis reviendront. Continuer ?|Desktop und Taskleiste verschwinden kurz und kehren zurück. Fortfahren?|Рабочий стол и панель исчезнут на пару секунд, затем вернутся. Продолжить?|A área de trabalho e a barra desaparecerão por alguns segundos e voltarão. Continuar?
+桌面和任务栏会短暂闪烁，是否继续？|The desktop and taskbar will flicker briefly. Continue?|デスクトップとタスクバーが一瞬点滅します。続けますか？|바탕 화면과 작업 표시줄이 잠깐 깜빡입니다. 계속할까요?|El escritorio y la barra parpadearán brevemente. ¿Continuar?|Le bureau et la barre clignoteront brièvement. Continuer ?|Desktop und Taskleiste flackern kurz. Fortfahren?|Рабочий стол и панель ненадолго мигнут. Продолжить?|A área de trabalho e a barra piscarão brevemente. Continuar?
+正在读取电源计划…|Reading power plans…|電源プランを読み込み中…|전원 계획을 읽는 중…|Leyendo planes de energía…|Lecture des modes d'alimentation…|Energiepläne werden gelesen…|Чтение схем питания…|Lendo planos de energia…
+没有 winget|winget not found|winget がありません|winget 없음|winget no encontrado|winget introuvable|winget nicht gefunden|winget не найден|winget não encontrado
+没有关联文件|No associated file|関連ファイルがありません|연결된 파일 없음|Sin archivo asociado|Aucun fichier associé|Keine zugehörige Datei|Нет связанного файла|Nenhum arquivo associado
+没有勾选项目|Nothing selected|何も選択されていません|선택한 항목 없음|No hay nada seleccionado|Aucune sélection|Nichts ausgewählt|Ничего не выбрано|Nada selecionado
+没有可恢复的项|Nothing to restore|復元できる項目がありません|복원할 항목 없음|No hay elementos que restaurar|Rien à restaurer|Nichts wiederherzustellen|Нечего восстанавливать|Nada para restaurar
+没有可撤销的改动|Nothing to undo|元に戻す変更がありません|되돌릴 변경 없음|No hay cambios que deshacer|Aucune modification à annuler|Keine Änderungen zum Rückgängigmachen|Нет изменений для отмены|Nada para desfazer
+没有改成|Rename failed|名前を変更できませんでした|이름 변경 실패|No se pudo renombrar|Renommage impossible|Umbenennung fehlgeschlagen|Переименовать не удалось|Falha ao renomear
+知道了|Got it|わかりました|알겠습니다|Entendido|Compris|Verstanden|Понятно|Entendi
+确认卸载|Confirm uninstall|アンインストールの確認|제거 확인|Confirmar desinstalación|Confirmer la désinstallation|Deinstallation bestätigen|Подтвердить удаление|Confirmar desinstalação
+确认安装|Confirm install|インストールの確認|설치 확인|Confirmar instalación|Confirmer l'installation|Installation bestätigen|Подтвердить установку|Confirmar instalação
+确认开启：|Confirm enabling: |有効化の確認：|사용 확인: |Confirmar activación: |Confirmer l'activation : |Aktivierung bestätigen: |Подтвердить включение: |Confirmar ativação: 
+确认恢复|Confirm restore|復元の確認|복원 확인|Confirmar restauración|Confirmer la restauration|Wiederherstellung bestätigen|Подтвердить восстановление|Confirmar restauração
+确认禁用|Confirm disable|無効化の確認|사용 안 함 확인|Confirmar desactivación|Confirmer la désactivation|Deaktivierung bestätigen|Подтвердить отключение|Confirmar desativação
+系统文件检查|System file check|システムファイルチェック|시스템 파일 검사|Comprobación de archivos del sistema|Vérification des fichiers système|Systemdateiprüfung|Проверка системных файлов|Verificação de arquivos do sistema
+装不了，先装「应用安装程序」。|Cannot install. Install "App Installer" first.|インストールできません。先に「アプリ インストーラー」を入れてください。|설치할 수 없습니다. 먼저 '앱 설치 관리자'를 설치하세요.|No se puede instalar. Instala antes «Instalador de aplicaciones».|Installation impossible. Installez d'abord « Programme d'installation d'applications ».|Installation nicht möglich. Zuerst „App-Installer" installieren.|Установка невозможна. Сначала установите «Установщик приложений».|Não é possível instalar. Instale o «Instalador de Aplicativos» primeiro.
+装完了|Installation finished|インストールが完了しました|설치 완료|Instalación finalizada|Installation terminée|Installation abgeschlossen|Установка завершена|Instalação concluída
+请先勾选要操作的系统托盘图标。|Select the tray icons you want to change first.|先に操作するトレイアイコンを選択してください。|먼저 변경할 트레이 아이콘을 선택하세요.|Selecciona primero los iconos de bandeja que quieres cambiar.|Sélectionnez d'abord les icônes à modifier.|Wählen Sie zuerst die Tray-Symbole aus.|Сначала выберите значки трея.|Selecione primeiro os ícones da bandeja.
+请先在列表里勾选要隐藏的右键菜单项。|Select the context menu items you want to hide first.|先に非表示にする右クリックメニュー項目を選択してください。|먼저 숨길 상황에 맞는 메뉴 항목을 선택하세요.|Marca primero los elementos del menú contextual que quieres ocultar.|Sélectionnez d'abord les éléments du menu contextuel à masquer.|Wählen Sie zuerst die Kontextmenü-Einträge aus.|Сначала отметьте пункты контекстного меню.|Selecione primeiro os itens do menu de contexto.
+还没勾选|Nothing selected|まだ選択されていません|아직 선택 안 함|Nada seleccionado|Aucune sélection|Noch nichts ausgewählt|Ничего не выбрано|Nada selecionado
+这一项得去系统设置里改|This one must be changed in Windows Settings|この項目は Windows の設定から変更する必要があります|이 항목은 Windows 설정에서 변경해야 합니다|Este ajuste se cambia en Configuración de Windows|Ce réglage se modifie dans les Paramètres Windows|Diese Einstellung muss in den Windows-Einstellungen geändert werden|Этот параметр меняется в «Параметрах» Windows|Esta opção deve ser alterada nas Configurações do Windows
+选择备份的 .reg 文件|Choose a .reg backup file|バックアップの .reg ファイルを選択|백업 .reg 파일 선택|Elegir archivo .reg de copia|Choisir un fichier .reg de sauvegarde|.reg-Backupdatei auswählen|Выберите .reg-файл резервной копии|Escolher arquivo .reg de backup
+需要管理员权限|Administrator rights required|管理者権限が必要です|관리자 권한이 필요합니다|Se requieren permisos de administrador|Droits administrateur requis|Administratorrechte erforderlich|Требуются права администратора|Requer permissões de administrador
+电源电压|Power rails|電源電圧|전원 전압|Rieles de alimentación|Rails d'alimentation|Spannungsrails|Линии питания|Trilhos de alimentação
+正在读取电压…|Reading voltages…|電圧を読み取り中…|전압 읽는 중…|Leyendo voltajes…|Lecture des tensions…|Spannungen werden gelesen…|Чтение напряжений…|Lendo tensões…
+其他电压|Other voltages|その他の電圧|기타 전압|Otras tensiones|Autres tensions|Weitere Spannungen|Прочие напряжения|Outras tensões
+标称|Nominal|公称|공칭|Nominal|Nominal|Nennwert|Номинал|Nominal
+允许|Allowed|許容|허용|Permitido|Tolérance|Zulässig|Допуск|Permitido
+等待读数…|Waiting for readings…|測定値を待機中…|측정값 대기 중…|Esperando lecturas…|En attente des mesures…|Warte auf Messwerte…|Ожидание показаний…|Aguardando leituras…
+校准|Calibrate|較正|보정|Calibrar|Calibrer|Kalibrieren|Калибровка|Calibrar
+默认|Default|既定|기본값|Predeterminado|Par défaut|Standard|По умолчанию|Padrão
+正常|Normal|正常|정상|Normal|Normal|Normal|Норма|Normal
+超出 ±5%|Outside ±5%|±5% 超過|±5% 초과|Fuera de ±5 %|Hors ±5 %|Außerhalb ±5 %|Вне ±5 %|Fora de ±5%
+最低|Min|最小|최저|Mín|Min|Min|Мин|Mín
+最高|Max|最大|최고|Máx|Max|Max|Макс|Máx
+压降|Drop|低下|강하|Caída|Chute|Abfall|Просадка|Queda
+原始|Raw|生値|원시|Sin procesar|Brut|Roh|Исх.|Bruto
+原始值|Raw value|生の値|원시값|Valor bruto|Valeur brute|Rohwert|Исходное значение|Valor bruto
+传感器|Sensors|センサー|센서|Sensores|Capteurs|Sensoren|Датчики|Sensores
+当前最高|Current max|現在の最高|현재 최고|Máx. actual|Max actuel|Aktuelles Max|Текущий макс.|Máx. atual
+本次运行最高|Session max|今回の起動での最高|이번 실행 최고|Máx. de sesión|Max de session|Max dieser Sitzung|Макс. за сеанс|Máx. da sessão
+板型系数|Board profile|ボード係数|보드 계수|Perfil de placa|Profil de carte|Board-Profil|Профиль платы|Perfil da placa
+用户校准|User calibration|ユーザー較正|사용자 보정|Calibración de usuario|Calibrage utilisateur|Benutzerkalibrierung|Калибровка пользователя|Calibração do usuário
+未检测到该轨道的传感器|No sensor found for this rail|このレールのセンサーが見つかりません|이 레일의 센서를 찾을 수 없음|No se detectó un sensor para este riel|Aucun capteur pour ce rail|Kein Sensor für dieses Rail|Датчик для этой линии не найден|Nenhum sensor para este trilho
+倍率无效，请输入 0.01–100 之间的数字。|Invalid multiplier. Enter a number between 0.01 and 100.|倍率が無効です。0.01～100 の数値を入力してください。|배율이 잘못되었습니다. 0.01~100 사이의 숫자를 입력하세요.|Multiplicador no válido. Introduzca un número entre 0,01 y 100.|Multiplicateur invalide. Saisissez un nombre entre 0,01 et 100.|Ungültiger Faktor. Bitte eine Zahl zwischen 0,01 und 100 eingeben.|Недопустимый множитель. Введите число от 0,01 до 100.|Multiplicador inválido. Digite um número entre 0,01 e 100.
+倍率 = 万用表实测值 ÷ 软件读数|Multiplier = multimeter reading ÷ software reading|倍率 = テスター実測値 ÷ ソフトウェア読値|배율 = 멀티미터 측정값 ÷ 소프트웨어 판독값|Multiplicador = lectura del multímetro ÷ lectura del software|Multiplicateur = mesure du multimètre ÷ valeur logicielle|Faktor = Multimeter-Messwert ÷ Software-Wert|Множитель = показание мультиметра ÷ показание программы|Multiplicador = leitura do multímetro ÷ leitura do software
+没有读到电压传感器，通常需要管理员权限和 PawnIO 驱动。|No voltage sensors found. Administrator rights and the PawnIO driver are usually required.|電圧センサーが見つかりません。通常は管理者権限と PawnIO ドライバーが必要です。|전압 센서를 찾을 수 없습니다. 보통 관리자 권한과 PawnIO 드라이버가 필요합니다.|No se encontraron sensores de voltaje. Normalmente se requieren permisos de administrador y el controlador PawnIO.|Aucun capteur de tension détecté. Droits administrateur et pilote PawnIO généralement requis.|Keine Spannungssensoren gefunden. Meist sind Administratorrechte und der PawnIO-Treiber nötig.|Датчики напряжения не найдены. Обычно нужны права администратора и драйвер PawnIO.|Nenhum sensor de tensão encontrado. Normalmente são necessários permissões de administrador e o driver PawnIO.
+温度传感器不可用（通常需要 PawnIO 驱动）。|Temperature sensors unavailable (usually needs the PawnIO driver).|温度センサーは利用できません（通常 PawnIO ドライバーが必要）。|온도 센서를 사용할 수 없습니다(보통 PawnIO 드라이버 필요).|Sensores de temperatura no disponibles (normalmente requiere el controlador PawnIO).|Capteurs de température indisponibles (nécessite généralement le pilote PawnIO).|Temperatursensoren nicht verfügbar (meist ist der PawnIO-Treiber nötig).|Датчики температуры недоступны (обычно нужен драйвер PawnIO).|Sensores de temperatura indisponíveis (geralmente requer o driver PawnIO).
+读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。|Readings come from the motherboard Super I/O ADC; +12V / +5V are restored with board-specific divider ratios, and the 12V rail has ~0.096 V resolution. Use "Calibrate" to correct the multiplier with a multimeter. Absolute accuracy is limited by ADC quantization; relative voltage drop is more trustworthy.|値はマザーボードの Super I/O ADC 由来です。+12V / +5V はボード固有の分圧比で復元し、12V レールの分解能は約 0.096 V です。「較正」でテスター実測値から倍率を補正できます。絶対精度は ADC の量子化に制限され、相対的な電圧降下の方が信頼できます。|값은 메인보드 Super I/O ADC에서 나옵니다. +12V / +5V는 보드별 분압비로 복원하며 12V 레일 분해능은 약 0.096V입니다. 「보정」에서 멀티미터 실측값으로 배율을 수정할 수 있습니다. 절대 정확도는 ADC 양자화에 제한되므로 상대적인 전압 강하가 더 신뢰할 수 있습니다.|Las lecturas provienen del ADC del Super I/O de la placa; +12V / +5V se restauran con coeficientes de divisor específicos y el riel de 12V tiene una resolución de ~0,096 V. Use «Calibrar» para corregir el multiplicador con un multímetro. La precisión absoluta está limitada por la cuantización del ADC; la caída relativa es más fiable.|Les valeurs proviennent de l'ADC du Super I/O de la carte ; +12V / +5V sont restaurés avec les rapports de pont diviseur, la résolution du rail 12V est d'environ 0,096 V. « Calibrer » permet de corriger le multiplicateur avec un multimètre. La précision absolue est limitée par la quantification de l'ADC ; la chute relative est plus fiable.|Die Werte stammen vom Super-I/O-ADC des Mainboards; +12V / +5V werden mit boardspezifischen Teilerfaktoren umgerechnet, die Auflösung der 12V-Schiene beträgt ca. 0,096 V. Mit „Kalibrieren" lässt sich der Faktor per Multimeter korrigieren. Die absolute Genauigkeit ist durch die ADC-Quantisierung begrenzt; der relative Spannungsabfall ist verlässlicher.|Показания поступают с АЦП Super I/O материнской платы; +12V / +5V восстанавливаются с учётом коэффициентов делителя, разрешение линии 12V — около 0,096 В. «Калибровка» позволяет поправить множитель по мультиметру. Абсолютная точность ограничена квантованием АЦП; надёжнее относительное падение напряжения.|As leituras vêm do ADC do Super I/O da placa; +12V / +5V são restaurados com coeficientes do divisor da placa e a resolução do trilho de 12V é de ~0,096 V. Use «Calibrar» para corrigir o multiplicador com um multímetro. A precisão absoluta é limitada pela quantização do ADC; a queda relativa é mais confiável.
