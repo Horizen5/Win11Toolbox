@@ -117,7 +117,7 @@ internal static class SingleInstance
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(PidFile)!);
-            File.WriteAllText(PidFile, Environment.ProcessId.ToString());
+            File.WriteAllText(PidFile, EnvironmentCompat.ProcessId.ToString());
         }
         catch
         {
@@ -132,7 +132,7 @@ internal static class SingleInstance
         {
             if (!File.Exists(PidFile)) return false;
             if (!int.TryParse(File.ReadAllText(PidFile).Trim(), out int pid)) return false;
-            if (pid == Environment.ProcessId) return false;
+            if (pid == EnvironmentCompat.ProcessId) return false;
 
             using var process = Process.GetProcessById(pid);
             process.Refresh();
@@ -191,7 +191,7 @@ internal static class SingleInstance
         {
             if (!File.Exists(PidFile)) return true;      // 没线索，让上层再试一次锁就行
             if (!int.TryParse(File.ReadAllText(PidFile).Trim(), out int pid)) return true;
-            if (pid == Environment.ProcessId) return true;
+            if (pid == EnvironmentCompat.ProcessId) return true;
 
             using var process = Process.GetProcessById(pid);
             if (FindMainWindow((uint)pid) != IntPtr.Zero) return false;   // 有窗口，不能杀

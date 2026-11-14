@@ -136,10 +136,10 @@ internal sealed class AppConfig
         if (TypeOf(LastPage) == null) LastPage = "home";
 
         // 曲线参数：手改坏文件时别把滑块顶到范围外，也保证 起转 < 满载
-        FanCurveStart = Math.Clamp(FanCurveStart, 30, 70);
-        FanCurveFull = Math.Clamp(FanCurveFull, 55, 95);
+        FanCurveStart = MathCompat.Clamp(FanCurveStart, 30, 70);
+        FanCurveFull = MathCompat.Clamp(FanCurveFull, 55, 95);
         if (FanCurveFull <= FanCurveStart) FanCurveFull = Math.Min(95, FanCurveStart + 10);
-        FanCurveMin = Math.Clamp(FanCurveMin, 0, 70);
+        FanCurveMin = MathCompat.Clamp(FanCurveMin, 0, 70);
     }
 
     public void Save()
@@ -152,7 +152,13 @@ internal sealed class AppConfig
             // 先写临时文件再替换，避免写一半断电留下半个 JSON
             var temp = FilePath + ".tmp";
             File.WriteAllText(temp, json);
+#if NETFRAMEWORK
+            // File.Move 的 overwrite 参数是 .NET Core 3.0 才有的
+            if (File.Exists(FilePath)) File.Delete(FilePath);
+            File.Move(temp, FilePath);
+#else
             File.Move(temp, FilePath, overwrite: true);
+#endif
         }
         catch
         {

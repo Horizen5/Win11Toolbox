@@ -18,7 +18,7 @@ internal static class AppInfo
                 {
                     // InformationalVersion 可能带 "+<commit>" 后缀，界面上不要
                     int plus = info.IndexOf('+');
-                    return plus > 0 ? info[..plus] : info;
+                    return plus > 0 ? info.Substring(0, plus) : info;
                 }
 
                 var v = asm.GetName().Version;

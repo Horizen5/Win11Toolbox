@@ -87,7 +87,7 @@ internal static class ComputerRename
 
             if (!process.WaitForExit(60000))
             {
-                try { process.Kill(true); } catch { }
+                try { process.Kill(); } catch { }
                 return new Result(false, false, "等待超时，改名可能没有完成。");
             }
 

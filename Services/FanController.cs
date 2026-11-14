@@ -444,7 +444,7 @@ public sealed class FanController : IDisposable
         {
             try
             {
-                var value = Math.Clamp(percent, channel.MinPercent, channel.MaxPercent);
+                var value = MathCompat.Clamp(percent, channel.MinPercent, channel.MaxPercent);
                 channel.Control.SetSoftware(value);
                 channel.Percent = value;
                 return true;

@@ -278,7 +278,7 @@ public static class ToolCatalog
             }
             else
             {
-                var exeName = target.Contains(' ') ? target.Split(' ', 2)[0] : target;
+                var exeName = target.Contains(' ') ? target.Split(new[] { ' ' }, 2)[0] : target;
                 var resolved = ResolveExecutable(exeName);
                 if (resolved is not null)
                     status = "OK  " + resolved;
@@ -325,7 +325,7 @@ public static class ToolCatalog
         // 带参数的命令：cmd.exe /k ipconfig /all
         if (target.Contains(' '))
         {
-            var parts = target.Split(' ', 2);
+            var parts = target.Split(new[] { ' ' }, 2);
             var exePath = ResolveExecutable(parts[0]);
             if (exePath is null)
                 return Missing(name, parts[0]);
@@ -380,7 +380,7 @@ public static class ToolCatalog
             return alias;
 
         var path = Environment.GetEnvironmentVariable("PATH") ?? "";
-        foreach (var dir in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        foreach (var dir in path.Split(new[] { Path.PathSeparator }, StringSplitOptions.RemoveEmptyEntries))
         {
             try
             {

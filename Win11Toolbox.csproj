@@ -8,7 +8,7 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>Win11Toolbox</AssemblyName>
     <RootNamespace>Win11Toolbox</RootNamespace>
-    <Version>1.3.2</Version>
+    <Version>1.3.3</Version>
     <AssemblyTitle>Win11 工具箱</AssemblyTitle>
     <Product>Win11 工具箱</Product>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
@@ -58,13 +58,16 @@
     Simple\ 是独立的「简洁版」工程（自己的 csproj），但它在主工程目录里面，
     默认的 **/*.cs、**/*.xaml 通配会把它一起吃进来 —— 尤其 Simple\App.xaml 会跟
     本工程的 App.xaml 抢 ApplicationDefinition。这里整体排除掉。
+
+    obj481\ / bin481\ 是 net481 工程（Win11Toolbox.net481.csproj）的中间目录和输出目录，
+    同样是同目录双工程的产物，也必须排除，否则两边生成的 AssemblyInfo 会重复。
   -->
   <ItemGroup>
-    <Compile Remove="Simple\**" />
-    <Page Remove="Simple\**" />
-    <ApplicationDefinition Remove="Simple\**" />
-    <Resource Remove="Simple\**" />
-    <None Remove="Simple\**" />
+    <Compile Remove="Simple\**;obj481\**;bin481\**" />
+    <Page Remove="Simple\**;obj481\**;bin481\**" />
+    <ApplicationDefinition Remove="Simple\**;obj481\**;bin481\**" />
+    <Resource Remove="Simple\**;obj481\**;bin481\**" />
+    <None Remove="Simple\**;obj481\**;bin481\**" />
   </ItemGroup>
 
 </Project>

@@ -311,8 +311,14 @@ public static class AppManager
 
         try
         {
+#if NETFRAMEWORK
+            // File.WriteAllTextAsync 是 .NET Core 才有的，net481 用线程池跑同步版
+            await Task.Run(() => System.IO.File.WriteAllText(path, preamble + script,
+                new UTF8Encoding(encoderShouldEmitUTF8Identifier: true)), ct).ConfigureAwait(false);
+#else
             await System.IO.File.WriteAllTextAsync(path, preamble + script,
                 new UTF8Encoding(encoderShouldEmitUTF8Identifier: true), ct).ConfigureAwait(false);
+#endif
 
             var args = $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"{path}\"";
             return await RunAsync("powershell.exe", args, log, ct, timeout).ConfigureAwait(false);
@@ -365,12 +371,17 @@ public static class AppManager
 
         try
         {
+#if NETFRAMEWORK
+            // Process.WaitForExitAsync 是 .NET Core 3.0 才有的
+            await Task.Run(() => process.WaitForExit(), cts.Token).ConfigureAwait(false);
+#else
             await process.WaitForExitAsync(cts.Token);
+#endif
         }
         catch (OperationCanceledException)
         {
             // 超时就杀进程，别留一个 winget 在后台继续装
-            try { process.Kill(entireProcessTree: true); } catch { }
+            try { ProcessCompat.KillTree(process); } catch { }
             lock (gate) buffer.AppendLine("（超时，已终止）");
             return (-1, buffer.ToString());
         }

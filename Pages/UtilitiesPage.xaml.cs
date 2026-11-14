@@ -72,7 +72,7 @@ public partial class UtilitiesPage : Page
     // ------------------------------------------------------------------ 密码
     private void Generate_Click(object sender, RoutedEventArgs e)
     {
-        var length = (int)Math.Clamp(PasswordLength.Value ?? 16, 6, 64);
+        var length = (int)MathCompat.Clamp(PasswordLength.Value ?? 16, 6, 64);
         var password = ShellTools.GeneratePassword(length, true, true, true, true);
         PasswordResult.Text = password;
         var (_, label) = ShellTools.PasswordStrength(password);
@@ -271,7 +271,7 @@ public partial class UtilitiesPage : Page
     // ------------------------------------------------------------------ 网络
     private async void CheckPort_Click(object sender, RoutedEventArgs e)
     {
-        var port = (int)Math.Clamp(PortNumber.Value ?? 443, 1, 65535);
+        var port = (int)MathCompat.Clamp(PortNumber.Value ?? 443, 1, 65535);
         PortResult.Text = Localizer.T("检测中…");
         var (ok, message) = await ShellTools.CheckPortAsync(PortHost.Text.Trim(), port);
         PortResult.Text = (ok ? "✓ " : "✗ ") + message;

@@ -196,7 +196,7 @@ internal static class AmdFan
 
             // 保留驱动回填的其它字段，只改「手动模式」和目标转速
             Marshal.WriteInt32(buffer, OffsetFanControlMode, 1);
-            Marshal.WriteInt32(buffer, OffsetTargetFanSpeed, Math.Clamp(percent, 0, 100));
+            Marshal.WriteInt32(buffer, OffsetTargetFanSpeed, MathCompat.Clamp(percent, 0, 100));
 
             rc = ADL2_OverdriveN_FanControl_Set(context, adapterIndex, buffer);
             return rc == AdlOk

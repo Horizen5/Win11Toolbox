@@ -71,7 +71,7 @@ public sealed class CountdownRing : FrameworkElement
         if (size <= 6)
             return;
 
-        double thickness = Math.Clamp(RingThickness, 1, size / 3);
+        double thickness = MathCompat.Clamp(RingThickness, 1, size / 3);
         double radius = (size - thickness) / 2 - 0.5;   // 留半像素，圆头端帽不贴边
         var center = new Point(ActualWidth / 2, ActualHeight / 2);
 
@@ -87,7 +87,7 @@ public sealed class CountdownRing : FrameworkElement
 
         dc.DrawEllipse(null, trackPen, center, radius, radius);
 
-        double progress = Math.Clamp(Progress, 0, 1);
+        double progress = MathCompat.Clamp(Progress, 0, 1);
 
         if (progress > 0.004)
         {
@@ -178,7 +178,7 @@ public sealed class CountdownRing : FrameworkElement
 
     private static Color Lerp(Color from, Color to, double t)
     {
-        t = Math.Clamp(t, 0, 1);
+        t = MathCompat.Clamp(t, 0, 1);
         return Color.FromArgb(
             (byte)(from.A + (to.A - from.A) * t),
             (byte)(from.R + (to.R - from.R) * t),

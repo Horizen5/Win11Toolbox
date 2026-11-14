@@ -115,7 +115,7 @@ public partial class FanPage : Page
                     var hottest = t.Where(x => x.Value > 0).Select(x => x.Value).DefaultIfEmpty(0).Max();
                     if (hottest > 0)
                     {
-                        var percent = (int)MathF.Round(CurvePercent(start, full, min, hottest));
+                        var percent = (int)Math.Round(CurvePercent(start, full, min, hottest));
                         if (percent != last)
                         {
                             foreach (var fan in f.Where(x => x.Controllable))
@@ -451,7 +451,7 @@ public partial class FanPage : Page
                 Maximum = 100,
                 TickFrequency = 5,
                 IsSnapToTickEnabled = true,
-                Value = Math.Clamp(fan.Percent ?? 50, 0, 100),
+                Value = MathCompat.Clamp(fan.Percent ?? 50, 0, 100),
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 10, 0),
             };
@@ -676,7 +676,7 @@ public partial class FanPage : Page
         var points = new PointCollection(count);
         for (var i = 0; i < count; i++)
         {
-            var v = Math.Clamp(values[start + i], min, max);
+            var v = MathCompat.Clamp(values[start + i], min, max);
             var x = width - (count - 1 - i) * (width / (HistoryLength - 1));
             var y = bottom - (v - min) / span * (bottom - top);
             points.Add(new Point(x, y));
@@ -685,7 +685,7 @@ public partial class FanPage : Page
         // 线下方填一层淡色，卡片不至于太空
         var area = new Polygon
         {
-            Points = new PointCollection(points) { new Point(points[^1].X, height), new Point(points[0].X, height) },
+            Points = new PointCollection(points) { new Point(points[points.Count - 1].X, height), new Point(points[0].X, height) },
             Fill = UiTheme.Accent,
             Opacity = 0.10,
         };
@@ -756,14 +756,14 @@ public partial class FanPage : Page
 
             if (tile.BarFill is not null)
             {
-                var pct = Math.Clamp(fan.Percent ?? 0, 0, 100);
+                var pct = MathCompat.Clamp(fan.Percent ?? 0, 0, 100);
                 tile.BarFill.Width = (TileWidth - 28) * pct / 100.0;
             }
 
             if (tile.Slider is null || tile.Dirty || tile.Slider.IsMouseCaptureWithin)
                 continue;
 
-            var value = Math.Clamp(fan.Percent ?? tile.Slider.Value, 0, 100);
+            var value = MathCompat.Clamp(fan.Percent ?? tile.Slider.Value, 0, 100);
             if (Math.Abs(tile.Slider.Value - value) > 0.5)
             {
                 tile.Suppress = true;
@@ -1197,8 +1197,8 @@ public partial class FanPage : Page
         if (plotW <= 10 || plotH <= 10) return;
 
         // X：30–95 ℃；Y：0–100 %
-        double X(double temp) => padLeft + (Math.Clamp(temp, 30, 95) - 30) / 65.0 * plotW;
-        double Y(double percent) => padTop + (1 - Math.Clamp(percent, 0, 100) / 100.0) * plotH;
+        double X(double temp) => padLeft + (MathCompat.Clamp(temp, 30, 95) - 30) / 65.0 * plotW;
+        double Y(double percent) => padTop + (1 - MathCompat.Clamp(percent, 0, 100) / 100.0) * plotH;
 
         var gridBrush = UiTheme.Brush("ControlStrokeColorDefaultBrush", Brushes.Gray);
         var accent = UiTheme.Accent;

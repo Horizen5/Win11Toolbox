@@ -20,8 +20,11 @@ public static class ShellTools
     // 电源计划名 / ipconfig 的中文就会乱码。这里在类型首次使用前注册一次。
     static ShellTools()
     {
+#if !NETFRAMEWORK
+        // .NET Framework 自带系统代码页（GBK 等），不需要注册；.NET Core 起才要手动注册
         try { Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance); }
         catch { /* 注册失败就靠下面的兜底链 */ }
+#endif
     }
 
     /// <summary>控制台程序输出用的编码：OEM 代码页优先，供诊断命令复用。</summary>
@@ -119,20 +122,20 @@ public static class ShellTools
 
         var text = command.Trim();
 
-        if (text.StartsWith('"'))
+        if (text.StartsWith("\""))
         {
             var end = text.IndexOf('"', 1);
-            return end > 1 ? text[1..end] : text.Trim('"');
+            return end > 1 ? text.Substring(1, end - 1) : text.Trim('"');
         }
 
         // 不带引号：截到 .exe 为止（路径里可能有空格，如 C:\Program Files\...）
         var exe = text.IndexOf(".exe", StringComparison.OrdinalIgnoreCase);
         if (exe >= 0)
-            return text[..(exe + 4)];
+            return text.Substring(0, exe + 4);
 
         // 裸命令 / 其它扩展名：取第一个空格前
         var space = text.IndexOf(' ');
-        return space > 0 ? text[..space] : text;
+        return space > 0 ? text.Substring(0, space) : text;
     }
 
     // ------------------------------------------------------------------ 回收站
@@ -446,7 +449,7 @@ public static class ShellTools
             "SHA512" => SHA512.Create(),
             _ => SHA256.Create(),
         };
-        return Convert.ToHexString(hasher.ComputeHash(stream)).ToLowerInvariant();
+        return HexCompat.ToHexString(hasher.ComputeHash(stream)).ToLowerInvariant();
     }
 
     public static string Base64Encode(string text) => Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
@@ -478,13 +481,13 @@ public static class ShellTools
 
         var chars = new List<char>();
         foreach (var pool in pools)
-            chars.Add(pool[RandomNumberGenerator.GetInt32(pool.Length)]);
+            chars.Add(pool[RandomCompat.GetInt32(pool.Length)]);
 
         var all = string.Concat(pools);
         while (chars.Count < length)
-            chars.Add(all[RandomNumberGenerator.GetInt32(all.Length)]);
+            chars.Add(all[RandomCompat.GetInt32(all.Length)]);
 
-        return new string(chars.OrderBy(_ => RandomNumberGenerator.GetInt32(int.MaxValue)).Take(length).ToArray());
+        return new string(chars.OrderBy(_ => RandomCompat.GetInt32(int.MaxValue)).Take(length).ToArray());
     }
 
     public static (int Score, string Label) PasswordStrength(string password)
@@ -540,7 +543,7 @@ public static class ShellTools
 
         if (!process.WaitForExit(15000))
         {
-            try { process.Kill(entireProcessTree: true); } catch { }
+            try { ProcessCompat.KillTree(process); } catch { }
             return (-1, output);
         }
 

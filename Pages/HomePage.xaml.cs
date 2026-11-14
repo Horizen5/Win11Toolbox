@@ -207,7 +207,7 @@ public partial class HomePage : Page
     private static string ExtractBuild(string version)
     {
         var start = version.IndexOf("Build ", StringComparison.Ordinal);
-        return start >= 0 ? version[(start + 6)..].TrimEnd(')') : version;
+        return start >= 0 ? version.Substring(start + 6).TrimEnd(')') : version;
     }
 
     private static string MemorySummary(HardwareReport report)

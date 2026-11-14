@@ -143,7 +143,7 @@ public sealed class SystemMonitor
             NetDown = down,
             NetUp = up,
             ProcessCount = CountProcesses(),
-            Uptime = TimeSpan.FromMilliseconds(Environment.TickCount64),
+            Uptime = TimeSpan.FromMilliseconds(EnvironmentCompat.TickCount64),
         };
     }
 

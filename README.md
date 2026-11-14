@@ -4,7 +4,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-11-0078D4?logo=windows11&logoColor=white" alt="Windows 11">
-  <img src="https://img.shields.io/badge/version-v1.3.2-0078D4" alt="v1.3.2">
+  <img src="https://img.shields.io/badge/version-v1.3.3-0078D4" alt="v1.3.3">
   <img src="https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white" alt=".NET 10">
   <img src="https://img.shields.io/badge/WPF--UI-4.3-7B4FB5" alt="WPF-UI 4.3">
   <img src="https://img.shields.io/badge/license-MIT-3DA639" alt="MIT">
@@ -78,16 +78,37 @@ Windows 11 的设置项散在十几个地方：想显示文件扩展名要翻三
 
 ## 下载
 
-当前版本 **v1.3.2**。到 [Releases](https://github.com/Horizen5/Win11Toolbox/releases) 下载：
+当前版本 **v1.3.3**。到 [Releases](https://github.com/Horizen5/Win11Toolbox/releases) 下载。
+同一份源码编出三个版本，功能完全一致，只是封装方式不同：
 
-| 版本 | 大小 | 需要装 .NET 吗 | 适用 |
-| --- | --- | --- | --- |
-| `Win11Toolbox.exe`（单文件） | ~69 MB | 不需要 | 直接双击，最省事 |
-| `Win11Toolbox-lite.exe` | ~16 MB | 需要 .NET 10 桌面运行时 | 已经装了运行时，想省空间 |
+| 版本 | 大小 | 形态 | 需要装 .NET 吗 | 适合谁 |
+| --- | --- | --- | --- | --- |
+| `Win11工具箱-完整版 v1.3.3.exe` | **66 MB** | 单文件 exe | 不需要 | 最省事，拷到哪都能跑 |
+| `Win11工具箱-4.8.1版 v1.3.3.zip` | **15 MB** | exe + 21 个 dll | **不需要**（Win10 1903+ / Win11 都自带 4.8.1） | 想体积小、启动快，又不装运行时 |
+| `Win11工具箱-文字版 v1.3.3.exe` | **0.8 MB** | 单文件 exe | 需要 .NET 10 桌面运行时 | 已经装了运行时，只想拿核心功能 |
+| `Win11Toolbox-lite.exe` | **16 MB** | 单文件 exe | 需要 .NET 10 桌面运行时 | 同文字版的平替（界面更全） |
 
-绿色程序，不写注册表、不装服务，删掉 exe 就是卸载（配置在 `%APPDATA%\Win11Toolbox\`，可一并删除）。
+三个版本都带同一套硬件读取、风扇曲线、电压监测、47 项系统工具和 10 种界面语言。
+**4.8.1 版是体积最优解**：它用 Windows 自带的 .NET Framework 4.8.1 运行时，
+所以不用像完整版那样把 60 MB 运行时背在 exe 里 —— 用户仍然什么都不用装。
+
+绿色程序，不写注册表、不装服务，删掉文件就是卸载（配置在 `%APPDATA%\Win11Toolbox\`，可一并删除）。
+4.8.1 版是文件夹，**改 exe 名字时 `.exe.config` 必须跟着改成同名**，否则启动失败。
 
 ## 更新记录
+
+### v1.3.3
+
+- **新增 .NET Framework 4.8.1 发行版**：同一个功能集，从 66 MB 降到 15 MB，
+  用户仍然零安装（Win11 22H2+ / Win10 1903+ 系统自带 4.8.1）。
+  实测启动不需要解压运行时，第一次打开也快。
+- **新增文字版**：框架依赖单文件，0.8 MB，保留核心逻辑。
+- 源码层为兼容 net481 加了 `Compat/Compat.cs`：补齐 `System.Index`/`System.Range`、
+  `IsExternalInit`、`RequiredMemberAttribute` 等编译期标记，另有 `MathCompat`、`HexCompat`、
+  `RandomCompat`、`ProcessCompat`、`EnvironmentCompat` 一组等价实现。
+  **架构没有任何改动**，完整版的产物字节数与 v1.3.2 一致。
+- 新增 `--uicheck [输出目录]` 零窗口诊断参数：把 12 个页面逐个离屏排版并渲染成 PNG，
+  用来验证 XAML、Wpf.Ui 主题资源和本地化在当前目标框架下能否真的画出来（不创建任何窗口）。
 
 ### v1.3.2
 
@@ -115,22 +136,53 @@ Windows 11 的设置项散在十几个地方：想显示文件扩展名要翻三
 
 ## 从源码构建
 
-需要 **.NET 10 SDK**：
+仓库里有三个工程，共用同一份源码，按需选一个构建：
+
+| 工程文件 | 版本 | 产物 | 用户需要装什么 |
+|---|---|---|---|
+| `Win11Toolbox.csproj` | 完整版 | 单文件 exe，约 66 MB | 什么都不用装 |
+| `Win11Toolbox.net481.csproj` | 4.8.1 版 | exe + 21 个 dll，约 15 MB | 什么都不用装 |
+| `Simple/Win11ToolboxSimple.csproj` | 文字版 | 单文件 exe，约 0.8 MB | .NET 10 桌面运行时 |
+
+> **同一个目录里有多个 `.csproj`，`dotnet build` 必须显式指定工程文件**，否则会报 MSB1011「找到多个项目文件」。
+
+完整版（自包含单文件，把 .NET 运行时一起压进去，所以 66 MB）：
 
 ```bash
-git clone https://github.com/Horizen5/Win11Toolbox.git
-cd Win11Toolbox
-dotnet build -c Release
-dotnet run -c Release
+dotnet build Win11Toolbox.csproj -c Release
+dotnet publish Win11Toolbox.csproj -c Release -r win-x64 --self-contained true -o publish_vXXX
 ```
 
-打包成单文件：
+4.8.1 版（借用 Windows 自带的 .NET Framework 4.8.1，所以只有 15 MB）。
+本机没装 .NET Framework 开发包也能编，参考程序集由 NuGet 的
+`Microsoft.NETFramework.ReferenceAssemblies` 提供：
 
 ```bash
-dotnet publish -c Release -r win-x64 --self-contained true -o publish
+dotnet build Win11Toolbox.net481.csproj -c Release
 ```
 
-> 构建产物体积会到 69 MB，因为把 .NET 运行时一起压进去了。这是"单文件免安装"的代价。
+产物在 `bin481\Release\`，是 **exe + 21 个 dll 的文件夹**（.NET Framework 没有官方单文件发布，
+那个 `.exe.config` 是程序集绑定重定向，必须跟着 exe 一起分发）。
+
+文字版（纯文字界面、不引用 WPF-UI 和硬件库，所以不到 1 MB，但需要用户装 .NET 10 运行时）：
+
+```bash
+dotnet publish Simple/Win11ToolboxSimple.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=false -o publish_text
+```
+
+### 一份源码怎么同时编译到两个框架
+
+`Compat/Compat.cs` 用 `#if NETFRAMEWORK` 补齐了 net481 缺的东西：
+
+- `System.Index` / `System.Range`——C# 8 的 `arr[^1]`、`s[1..end]` 语法编译时会引用这两个类型
+- `IsExternalInit` / `RequiredMemberAttribute` / `SetsRequiredMembersAttribute`——record、init、required 的编译期标记
+- `Math.Clamp`、`Convert.ToHexString`、`double.IsFinite`、`Environment.ProcessId`、
+  `Environment.TickCount64`、`RandomNumberGenerator.GetInt32`、`Dictionary.GetValueOrDefault`、
+  `Process.Kill(entireProcessTree)`
+
+调用点统一走 `MathCompat` / `HexCompat` / `EnvironmentCompat` / `RandomCompat` / `ProcessCompat`，
+不写两套分支；只有 `File.WriteAllTextAsync`、`Process.WaitForExitAsync`、`File.Move(overwrite)`
+这三处分了 `#if NETFRAMEWORK`，因为它们的同步替代方案签名不一样。
 
 ## 技术栈
 

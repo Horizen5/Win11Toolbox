@@ -50,6 +50,18 @@ public partial class App : Application
             return;
         }
 
+        // --uicheck [输出目录]：把每个页面离屏排版 + 渲染成 PNG，验证 XAML 与主题资源能否正常加载。
+        // 全程不创建、不显示任何窗口（Measure/Arrange + RenderTargetBitmap），跑完直接退出。
+        var uiCheckIndex = Array.IndexOf(Args, "--uicheck");
+        if (uiCheckIndex >= 0)
+        {
+            string dir = uiCheckIndex + 1 < Args.Length && !Args[uiCheckIndex + 1].StartsWith("--", StringComparison.Ordinal)
+                ? Args[uiCheckIndex + 1]
+                : Path.Combine(AppContext.BaseDirectory, "uicheck");
+            RunUiCheck(dir);
+            return;
+        }
+
         // --voltcost [轮数]：零窗口量一轮传感器采集的耗时，用来定刷新间隔
         var voltCostIndex = Array.IndexOf(Args, "--voltcost");
         if (voltCostIndex >= 0)
@@ -402,7 +414,7 @@ public partial class App : Application
 
             for (var i = adlIndex + 1; i < a.Length; i++)
             {
-                if (int.TryParse(a[i], out var value)) percent = Math.Clamp(value, 0, 100);
+                if (int.TryParse(a[i], out var value)) percent = MathCompat.Clamp(value, 0, 100);
                 else if (!a[i].StartsWith("--", StringComparison.Ordinal)) log = a[i];
             }
 
@@ -565,6 +577,108 @@ public partial class App : Application
         foreach (var en in Win11Toolbox.Tray.TraySettings.ReadEntries(null))
             if (en.Key == key) return en.On ? "始终显示（IsPromoted=1）" : "溢出区（IsPromoted=0）";
         return "没读到";
+    }
+
+    /// <summary>
+    /// 零窗口界面自检：把每个页面实例化、离屏 Measure/Arrange，再渲染成 PNG 落盘。
+    /// 不创建 Window、不 Show、不抢焦点，用来验证「XAML + Wpf.Ui 主题资源 + 本地化」在
+    /// 当前目标框架下能否真的画出东西（--probe 只构造对象，不验证渲染）。
+    /// </summary>
+    private static void RunUiCheck(string outDir)
+    {
+        var sb = new StringBuilder();
+        int ok = 0, bad = 0;
+        try { Directory.CreateDirectory(outDir); } catch { }
+
+        var types = new[]
+        {
+            typeof(Win11Toolbox.Pages.HomePage),
+            typeof(Win11Toolbox.Pages.HardwarePage),
+            typeof(Win11Toolbox.Pages.FanPage),
+            typeof(Win11Toolbox.Pages.ToolsPage),
+            typeof(Win11Toolbox.Pages.UtilitiesPage),
+            typeof(Win11Toolbox.Pages.OptimizePage),
+            typeof(Win11Toolbox.Pages.AppPage),
+            typeof(Win11Toolbox.Pages.RightMenuPage),
+            typeof(Win11Toolbox.Pages.TrayIconsPage),
+            typeof(Win11Toolbox.Pages.EasySettingsPage),
+            typeof(Win11Toolbox.Pages.SettingsPage),
+            typeof(Win11Toolbox.Pages.AboutPage),
+        };
+
+        const int W = 1280, H = 820, Stride = W * 4;
+
+        foreach (var t in types)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                var el = (FrameworkElement)Activator.CreateInstance(t)!;
+                el.Width = W;
+                el.Height = H;
+                el.Measure(new Size(W, H));
+                el.Arrange(new Rect(0, 0, W, H));
+                el.UpdateLayout();
+
+                int renderedW = el.ActualWidth > 0 ? (int)Math.Round(el.ActualWidth) : W;
+                int renderedH = el.ActualHeight > 0 ? (int)Math.Round(el.ActualHeight) : H;
+                var bmp = new System.Windows.Media.Imaging.RenderTargetBitmap(
+                    renderedW, renderedH, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+                bmp.Render(el);
+
+                int stride = renderedW * 4;
+                var px = new byte[stride * renderedH];
+                bmp.CopyPixels(px, stride, 0);
+
+                // 统计颜色分布：全白/全透明说明模板没套上，说明资源没解析成功
+                var hist = new System.Collections.Generic.Dictionary<int, int>(1024);
+                int samples = 0;
+                for (int y = 0; y < renderedH; y += 3)
+                {
+                    int row = y * stride;
+                    for (int x = 0; x < renderedW; x += 3)
+                    {
+                        int i = row + x * 4;
+                        int key = px[i] | (px[i + 1] << 8) | (px[i + 2] << 16) | (px[i + 3] << 24);
+                        hist.TryGetValue(key, out int c);
+                        hist[key] = c + 1;
+                        samples++;
+                    }
+                }
+                int top = 0, topKey = 0;
+                foreach (var kv in hist)
+                    if (kv.Value > top) { top = kv.Value; topKey = kv.Key; }
+                double flat = samples > 0 ? (double)top / samples : 1.0;
+
+                string png = Path.Combine(outDir, t.Name + ".png");
+                var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bmp));
+                using (var fs = new FileStream(png, FileMode.Create, FileAccess.Write))
+                    enc.Save(fs);
+                long pngSize = new FileInfo(png).Length;
+
+                int visuals = System.Windows.Media.VisualTreeHelper.GetChildrenCount(el);
+                bool blank = hist.Count <= 3 || flat > 0.995;
+                if (blank) bad++; else ok++;
+                sb.AppendLine($"[{(blank ? "空" : "OK")}] {t.Name,-18} {renderedW}x{renderedH}  "
+                            + $"根视觉数 {visuals}  颜色 {hist.Count}  主色占比 {flat * 100:F1}%  "
+                            + $"PNG {pngSize,7:N0} B  {sw.ElapsedMilliseconds} ms");
+            }
+            catch (Exception ex)
+            {
+                bad++;
+                var chain = new StringBuilder();
+                for (var e = ex; e != null; e = e.InnerException)
+                    chain.Append(e.GetType().Name).Append(": ").AppendLine(e.Message);
+                sb.AppendLine($"[错] {t.Name,-18} {sw.ElapsedMilliseconds} ms");
+                sb.AppendLine("     " + chain.ToString().Replace("\r", "").Replace("\n", "\n     ").TrimEnd());
+            }
+        }
+
+        sb.Insert(0, $"页面自检：{ok} 正常 / {bad} 有问题，共 {types.Length} 页  →  {outDir}{Environment.NewLine}");
+        try { File.WriteAllText(Path.Combine(outDir, "uicheck.log"), sb.ToString()); } catch { }
+        try { System.Console.Error.Write(sb.ToString()); } catch { }
+        Environment.Exit(bad == 0 ? 0 : 2);
     }
 
     /// <summary>不建窗口地跑一遍托盘模块，结果写 probe.log，然后退出。</summary>

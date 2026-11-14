@@ -167,7 +167,7 @@ public sealed class MetricBars : FrameworkElement
             double x1 = SnapX(right);
             double barWidth = Math.Max(1 / scaleX, x1 - x0);
 
-            double ratio = Math.Clamp(_values[index] / _ceiling, 0, 1);
+            double ratio = MathCompat.Clamp(_values[index] / _ceiling, 0, 1);
             // 最小 2px：网络空闲时数值接近 0，1px 的柱子肉眼看不见，
             // 整条图会像"没数据"；留 2px 至少能看出"有采样、只是很小"
             double barHeight = Math.Max(2 / scaleY, ratio * usable);

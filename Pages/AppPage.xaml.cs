@@ -302,7 +302,7 @@ public partial class AppPage : Page, IRefreshablePage
                 {
                     if (line.Length == 0) return;
                     _log.Add($"[{DateTime.Now:HH:mm:ss}] {line}");
-                    StatusLine.Text = line.Length > 70 ? line[..70] : line;
+                    StatusLine.Text = line.Length > 70 ? line.Substring(0, 70) : line;
                 });
 
                 try
@@ -547,7 +547,7 @@ public partial class AppPage : Page, IRefreshablePage
     private static string Tail(string text)
     {
         var line = text.Split('\n').LastOrDefault(l => l.Trim().Length > 0)?.Trim() ?? "";
-        return line.Length > 120 ? line[..120] : line;
+        return line.Length > 120 ? line.Substring(0, 120) : line;
     }
 
     private async void ShowLog_Click(object sender, RoutedEventArgs e)

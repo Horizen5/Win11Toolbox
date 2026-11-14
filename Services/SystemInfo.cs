@@ -86,7 +86,7 @@ public static class SystemInfo
 
         var memoryTotal = modules.Aggregate(0UL, (total, m) => total + (ulong)Num(m, "Capacity"));
 
-        var uptime = TimeSpan.FromMilliseconds(Environment.TickCount64);
+        var uptime = TimeSpan.FromMilliseconds(EnvironmentCompat.TickCount64);
         var uptimeText = $"{(int)uptime.TotalDays} 天 {uptime.Hours} 小时 {uptime.Minutes} 分";
 
         var overview = new List<InfoItem>

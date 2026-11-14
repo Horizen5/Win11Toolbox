@@ -261,7 +261,7 @@ public partial class App
             samples.Sort();
             var avg = samples.Count == 0 ? 0 : samples.Sum() / samples.Count;
             var p50 = samples.Count == 0 ? 0 : samples[samples.Count / 2];
-            var max = samples.Count == 0 ? 0 : samples[^1];
+            var max = samples.Count == 0 ? 0 : samples[samples.Count - 1];
             sb.AppendLine();
             sb.AppendLine($"均值 {avg:0.0} ms   中位 {p50:0.0} ms   最大 {max:0.0} ms   （{samples.Count} 轮）");
             sb.AppendLine($"1 秒刷新占用率 ≈ {avg / 10:0.0}% 单核（按每轮 {avg:0.0} ms 计）");
@@ -487,7 +487,7 @@ public partial class App
                 var spec = Args
                     .FirstOrDefault(x => x.StartsWith("--fanwrite=", StringComparison.OrdinalIgnoreCase));
                 if (spec is not null && int.TryParse(spec.Split('=')[1], out var parsed))
-                    percent = Math.Clamp(parsed, 0, 100);
+                    percent = MathCompat.Clamp(parsed, 0, 100);
 
                 lines.Add("");
                 lines.Add($"==== 写入测试 {percent}% ====");
@@ -1409,7 +1409,7 @@ public partial class App
         var sb = new StringBuilder();
         var names = Enum.GetNames(typeof(Wpf.Ui.Controls.SymbolRegular)).OrderBy(n => n, StringComparer.Ordinal);
         foreach (string name in names)
-            sb.AppendLine($"{name}={(int)Enum.Parse<Wpf.Ui.Controls.SymbolRegular>(name)}");
+            sb.AppendLine($"{name}={(int)(Wpf.Ui.Controls.SymbolRegular)Enum.Parse(typeof(Wpf.Ui.Controls.SymbolRegular), name)}");
         sb.AppendLine($"共 {names.Count()} 个");
         try { File.WriteAllText(outPath, sb.ToString()); } catch { }
         Environment.Exit(0);
@@ -1491,7 +1491,7 @@ public partial class App
                     sb.AppendLine($"[{keyword}]");
                     var hits = Enum.GetNames(typeof(Wpf.Ui.Controls.SymbolRegular))
                         .Where(n => n.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-                        .Select(n => (Name: n, Code: (int)Enum.Parse<Wpf.Ui.Controls.SymbolRegular>(n)))
+                        .Select(n => (Name: n, Code: (int)(Wpf.Ui.Controls.SymbolRegular)Enum.Parse(typeof(Wpf.Ui.Controls.SymbolRegular), n)))
                         .Where(x => x.Code <= 0xFFFF)
                         .OrderBy(x => x.Name, StringComparer.Ordinal)
                         .ToList();
@@ -2401,11 +2401,11 @@ public partial class App
             // RFC 4648 §10 的示例：Base32("foobar") = "MZXW6YTBOI======"
             Check("Base32 \"foobar\"",
                 "666F6F626172",
-                Convert.ToHexString(Services.Totp.DecodeBase32("MZXW6YTBOI======")));
+                HexCompat.ToHexString(Services.Totp.DecodeBase32("MZXW6YTBOI======")));
 
             Check("Base32 容忍空格/小写/连字符",
                 "666F6F626172",
-                Convert.ToHexString(Services.Totp.DecodeBase32("mzxw 6ytb-oi")));
+                HexCompat.ToHexString(Services.Totp.DecodeBase32("mzxw 6ytb-oi")));
 
             sb.AppendLine();
             sb.AppendLine("== RFC 6238 附录 B（8 位） ==");

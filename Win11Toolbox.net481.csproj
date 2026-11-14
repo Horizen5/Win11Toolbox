@@ -1,0 +1,83 @@
+<Project>
+
+  <!--
+    net481 工程：和主工程共用同一份源码，只是把运行时换成 Windows 自带的
+    .NET Framework 4.8.1（Win11 22H2 起系统预装），从而不必把 60 MB 运行时压进 exe。
+
+    中间目录必须和主工程分开，否则两个工程会互相覆盖 project.assets.json。
+    这两行必须在 Sdk.props 导入之前，所以这里不用 Sdk="..." 属性写法。
+  -->
+  <PropertyGroup>
+    <MSBuildProjectExtensionsPath>$(MSBuildThisFileDirectory)obj481\</MSBuildProjectExtensionsPath>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)obj481\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net481</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Win11Toolbox-net481</AssemblyName>
+    <RootNamespace>Win11Toolbox</RootNamespace>
+    <Version>1.3.3</Version>
+    <AssemblyTitle>Win11 工具箱（4.8.1 版）</AssemblyTitle>
+    <Product>Win11 工具箱</Product>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <OutputPath>bin481\$(Configuration)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <SatelliteResourceLanguages>zh-Hans;en</SatelliteResourceLanguages>
+    <!-- 生成的是普通 exe + dll 文件夹，不是单文件；关掉单文件相关开关避免误继承 -->
+    <PublishSingleFile>false</PublishSingleFile>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <!-- 本机没装 4.8.1 开发包时靠这个 NuGet 提供参考程序集，不进最终产物 -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- net481 上 System.Management 由 GAC 提供，不需要 NuGet 包 -->
+  <ItemGroup>
+    <Reference Include="System.Management" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
+    <EmbeddedResource Include="Localization\locales.json" LogicalName="Win11Toolbox.Localization.locales.json" />
+  </ItemGroup>
+
+  <ItemGroup Condition="Exists('tools\PawnIO_setup.exe')">
+    <EmbeddedResource Include="tools\PawnIO_setup.exe" LogicalName="PawnIO_setup.exe" />
+  </ItemGroup>
+
+  <!--
+    默认通配会把 Simple\ 子工程、所有历史 publish_* 目录和中间目录一起吃进来。
+    publish_* 里是 .NET 10 的整套 dll，混进 net481 的引用解析会让 XAML 编译器
+    加载到 System.Private.CoreLib 而报 MC1000，必须彻底剔掉。
+  -->
+  <ItemGroup>
+    <Compile Remove="Simple\**;obj481\**;bin481\**;bin\**;obj\**;publish*\**;net481\**" />
+    <Page Remove="Simple\**;obj481\**;bin481\**;bin\**;obj\**;publish*\**;net481\**" />
+    <ApplicationDefinition Remove="Simple\**;obj481\**;bin481\**;bin\**;obj\**;publish*\**;net481\**" />
+    <Resource Remove="Simple\**;obj481\**;bin481\**;bin\**;obj\**;publish*\**;net481\**" />
+    <None Remove="Simple\**;obj481\**;bin481\**;bin\**;obj\**;publish*\**;net481\**" />
+    <Content Remove="Simple\**;obj481\**;bin481\**;bin\**;obj\**;publish*\**;net481\**" />
+    <EmbeddedResource Remove="Simple\**;obj481\**;bin481\**;bin\**;obj\**;publish*\**;net481\**" />
+  </ItemGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+</Project>

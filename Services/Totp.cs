@@ -81,7 +81,7 @@ public static class Totp
         if (key.Length == 0)
             throw new ArgumentException("密钥为空。", nameof(key));
 
-        digits = Math.Clamp(digits, 6, 10);
+        digits = MathCompat.Clamp(digits, 6, 10);
 
         Span<byte> message = stackalloc byte[8];
         for (int i = 7; i >= 0; i--)
@@ -102,7 +102,7 @@ public static class Totp
         }
 
         // RFC 4226 动态截断：末字节低 4 位当偏移，取 4 字节当大端整数
-        int offset = hash[^1] & 0x0F;
+        int offset = hash[hash.Length - 1] & 0x0F;
         int binary = ((hash[offset] & 0x7F) << 24)
                    | ((hash[offset + 1] & 0xFF) << 16)
                    | ((hash[offset + 2] & 0xFF) << 8)
@@ -170,10 +170,10 @@ public static class Totp
                 issuer = iss;
 
             if (query.TryGetValue("digits", out var d) && int.TryParse(d, out var dv))
-                digits = Math.Clamp(dv, 6, 10);
+                digits = MathCompat.Clamp(dv, 6, 10);
 
             if (query.TryGetValue("period", out var p) && int.TryParse(p, out var pv) && pv > 0)
-                period = Math.Clamp(pv, 5, 300);
+                period = MathCompat.Clamp(pv, 5, 300);
 
             if (query.TryGetValue("algorithm", out var a))
             {
@@ -194,8 +194,8 @@ public static class Totp
                 if (colon > 0)
                 {
                     if (issuer.Length == 0)
-                        issuer = label[..colon].Trim();
-                    label = label[(colon + 1)..].Trim();
+                        issuer = label.Substring(0, colon).Trim();
+                    label = label.Substring(colon + 1).Trim();
                 }
             }
         }
@@ -214,7 +214,7 @@ public static class Totp
         // 80 位是 RFC 4226 规定的最短密钥，短于此的密钥基本是用户少粘了一段
         if (key.Length < 10)
         {
-            Array.Clear(key);
+            Array.Clear(key, 0, key.Length);
             error = $"密钥太短（{key.Length * 8} 位），至少要 80 位（16 个 Base32 字符）。";
             return false;
         }
@@ -226,12 +226,12 @@ public static class Totp
     private static Dictionary<string, string> ParseQuery(string query)
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var pair in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        foreach (var pair in query.TrimStart('?').Split(new[] { '&' }, StringSplitOptions.RemoveEmptyEntries))
         {
             var eq = pair.IndexOf('=');
             if (eq <= 0) continue;
-            var name = Uri.UnescapeDataString(pair[..eq]);
-            var value = Uri.UnescapeDataString(pair[(eq + 1)..]);
+            var name = Uri.UnescapeDataString(pair.Substring(0, eq));
+            var value = Uri.UnescapeDataString(pair.Substring(eq + 1));
             result[name] = value;
         }
 
@@ -337,13 +337,13 @@ public sealed class TotpAccount : INotifyPropertyChanged, IDisposable
         Progress = left;
 
         int remaining = (int)Math.Ceiling(Period - elapsed);
-        Remaining = Math.Clamp(remaining, 0, Period);
+        Remaining = MathCompat.Clamp(remaining, 0, Period);
     }
 
     private static string Group(string raw)
     {
         int half = raw.Length / 2;
-        return raw.Length <= 4 ? raw : raw[..half] + " " + raw[half..];
+        return raw.Length <= 4 ? raw : raw.Substring(0, half) + " " + raw.Substring(half);
     }
 
     private void Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
@@ -358,7 +358,7 @@ public sealed class TotpAccount : INotifyPropertyChanged, IDisposable
     /// <summary>把密钥字节清零。删条目 / 关页面 / 退出程序都会走到这里。</summary>
     public void Dispose()
     {
-        Array.Clear(_key);
+        Array.Clear(_key, 0, _key.Length);
         RawCode = "";
         Code = "";
     }

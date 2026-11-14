@@ -164,7 +164,7 @@ public partial class MainWindow : FluentWindow
                 cfg.Height = bounds.Height;
             }
 
-            if (double.IsFinite(bounds.Left) && double.IsFinite(bounds.Top))
+            if (MathCompat.IsFinite(bounds.Left) && MathCompat.IsFinite(bounds.Top))
             {
                 cfg.Left = bounds.Left;
                 cfg.Top = bounds.Top;
