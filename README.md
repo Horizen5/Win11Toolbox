@@ -4,7 +4,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-11-0078D4?logo=windows11&logoColor=white" alt="Windows 11">
-  <img src="https://img.shields.io/badge/version-v1.4.0-0078D4" alt="v1.4.0">
+  <img src="https://img.shields.io/badge/version-v1.4.1-0078D4" alt="v1.4.1">
   <img src="https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white" alt=".NET 10">
   <img src="https://img.shields.io/badge/WPF--UI-4.3-7B4FB5" alt="WPF-UI 4.3">
   <img src="https://img.shields.io/badge/license-MIT-3DA639" alt="MIT">
@@ -78,12 +78,12 @@ Windows 11 的设置项散在十几个地方：想显示文件扩展名要翻三
 
 ## 下载
 
-当前版本 **v1.4.0**。到 [Releases](https://github.com/Horizen5/Win11Toolbox/releases) 下载。
+当前版本 **v1.4.1**。到 [Releases](https://github.com/Horizen5/Win11Toolbox/releases) 下载。
 同一份源码编出三个版本，功能完全一致，都是**单文件**，只是封装方式不同：
 
 | 版本 | 大小 | 需要装 .NET 吗 | 适合谁 |
 | --- | --- | --- | --- |
-| `Win11Toolbox-4.8.1.exe` | **9.4 MB** | **不需要**（Win10 1903+ / Win11 都自带 4.8.1） | **首选**：最小、启动最快、不装运行时 |
+| `Win11Toolbox-4.8.1.exe` | **8.9 MB** | **不需要**（Win10 1903+ / Win11 都自带 4.8.1） | **首选**：最小、启动最快、不装运行时、内存最省 |
 | `Win11Toolbox.exe`（完整版） | **66 MB** | 不需要 | 兜底：任何 Win10/11 都能跑，不依赖系统框架 |
 | `Win11Toolbox-lite.exe` | **16 MB** | 需要 .NET 10 桌面运行时 | 已经装了运行时，想用最全的界面 |
 | `Win11Toolbox-text.exe`（文字版） | **0.8 MB** | 需要 .NET 10 桌面运行时 | 极简，只要核心功能 |
@@ -122,7 +122,45 @@ Win11Toolbox-4.8.1.exe --api --allow-actions
 
 完整文档见 [docs/API.md](docs/API.md)。
 
+## 内存占用
+
+WPF 程序的「内存」一直被人诟病，先把账算清楚（`--memcheck` 零窗口实测，实际开着窗口
+还要再加 10~20 MB 的窗口绘制缓冲）：
+
+| 版本 | 启动后（12 页都逛过） | 空闲回收后 |
+| --- | --- | --- |
+| 4.8.1 版 | 81 MB | **2~3 MB**（工作集） |
+| lite / 完整版 | 117~120 MB（完整版自包含封装，首次摸到运行时时会到 180 MB） | **14~15 MB** |
+
+关键事实：**托管堆只有 12 MB**，剩下 70~170 MB 全是工作集里的非托管页 ——
+JIT 生成的代码页、BAML 解析出的控件模板、字体文件映射、一次性 WMI 查询的缓冲。
+这些页启动时被摸过一遍就再也不会以同样方式用到，却一直占着物理内存。
+
+所以 v1.4.1 加了 `Services/MemoryTrimmer`：在**用户看不到这个窗口**的时候
+（最小化、切到别的程序、启动后静置 10 秒）先收两轮托管堆，再
+`SetProcessWorkingSetSize(-1, -1)` 把闲置页还给系统。
+
+- 被裁掉的页并没有丢，内容还在页面文件里，下次访问靠缺页中断读回来，**不影响任何功能**；
+- **前台交互期间一律不裁剪** —— 裁剪后第一次重绘要把几十 MB 重新读进来，
+  为省内存卡一下不划算；
+- 任务管理器「进程」页那一列本来就是工作集，所以切过去看数字是降下来的；
+  真正在用的时候会随访问过的页面缓慢回升，再切走又会降。
+
+复测：`Win11Toolbox.exe --memcheck %TEMP%\mem.log`（不建窗口，跑完自动退出，
+日志里有逐页占用和 LHM 的成本）。
+
 ## 更新记录
+
+### v1.4.1
+
+- **内存回收**：最小化、切到别的程序、启动后静置 10 秒时自动收堆并裁剪工作集。
+  实测（`--memcheck`，零窗口）4.8.1 版 81 MB → **2~3 MB**，lite / 完整版 117~120 MB → **14~15 MB**；
+  开着窗口实际约 20~35 MB。
+- 新增 `--memcheck [日志]` 诊断：零窗口逐页量内存，能看清「哪一页 / 传感器 / 图标各吃多少」。
+- 修复 4.8.1 版一个潜在崩溃：`GetTickCount64` 的 P/Invoke 少了 `EntryPoint`，
+  运行时找不到入口点 —— 影响「运行时间 / 开机时长」（硬件页、`/api/v1/system`）。
+  完整版不受影响（走 .NET 自带的 `Environment.TickCount64`）。
+- 修好之后 4.8.1 单文件版 9.36 MB（原来 9.36 MB，体积基本不变）。
 
 ### v1.4.0
 

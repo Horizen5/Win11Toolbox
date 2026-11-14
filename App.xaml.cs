@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -42,6 +43,18 @@ public partial class App : Application
         // 主题要先切，后面的离屏诊断（--navshot / --shot）也才能按 --theme 出图
         ApplyThemeFromArgs();
         Services.StartupTrace.Mark("主题已应用");
+
+        // --memcheck [日志路径]：零窗口量内存拆解 —— 逐页构造/排版看每页吃多少，
+        // 再单独量传感器（LHM）和图标缓存的成本，跑完直接退出。
+        var memIndex = Array.IndexOf(Args, "--memcheck");
+        if (memIndex >= 0)
+        {
+            string memLog = memIndex + 1 < Args.Length && !Args[memIndex + 1].StartsWith("--", StringComparison.Ordinal)
+                ? Args[memIndex + 1]
+                : Path.Combine(Path.GetTempPath(), "w11tb_mem.log");
+            RunMemCheck(memLog);
+            return;
+        }
 
         // --api [端口] [--allow-actions] [--token xxx]：本机 HTTP API，供 Agent / 脚本调用。
         // 全程不创建窗口（不建 MainWindow、不进任务栏），Ctrl+C 或结束进程即停止。
@@ -601,6 +614,131 @@ public partial class App : Application
         foreach (var en in Win11Toolbox.Tray.TraySettings.ReadEntries(null))
             if (en.Key == key) return en.On ? "始终显示（IsPromoted=1）" : "溢出区（IsPromoted=0）";
         return "没读到";
+    }
+
+    /// <summary>
+    /// 零窗口内存拆解：逐页构造 + 离屏排版（不创建 Window、不 Show），记录每页的
+    /// 工作集 / 托管堆增量，再单独量传感器（LHM）与系统图标缓存的成本。
+    /// 用来回答「这软件到底把内存花在哪」。
+    /// </summary>
+    private static void RunMemCheck(string logPath)
+    {
+        var sb = new StringBuilder();
+        var proc = System.Diagnostics.Process.GetCurrentProcess();
+
+        long Ws()
+        {
+            proc.Refresh();
+            return proc.WorkingSet64;
+        }
+
+        void Line(string label, long ws, long managed)
+            => sb.AppendLine($"{label,-30} 工作集 {ws / 1048576.0,7:F1} MB   托管堆 {managed / 1048576.0,7:F1} MB");
+
+        void Sample(string label) => Line(label, Ws(), GC.GetTotalMemory(true));
+
+        sb.AppendLine("=== Win11 工具箱 内存拆解 " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " ===");
+        sb.AppendLine(Environment.Version + " / " + System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription
+                      + " / 64 位 " + (Environment.Is64BitProcess ? "是" : "否"));
+        sb.AppendLine();
+
+        Sample("① 基线（框架 + 主题 + 词典）");
+
+        var types = new[]
+        {
+            typeof(Win11Toolbox.Pages.HomePage),
+            typeof(Win11Toolbox.Pages.HardwarePage),
+            typeof(Win11Toolbox.Pages.FanPage),
+            typeof(Win11Toolbox.Pages.ToolsPage),
+            typeof(Win11Toolbox.Pages.UtilitiesPage),
+            typeof(Win11Toolbox.Pages.OptimizePage),
+            typeof(Win11Toolbox.Pages.AppPage),
+            typeof(Win11Toolbox.Pages.RightMenuPage),
+            typeof(Win11Toolbox.Pages.TrayIconsPage),
+            typeof(Win11Toolbox.Pages.EasySettingsPage),
+            typeof(Win11Toolbox.Pages.SettingsPage),
+            typeof(Win11Toolbox.Pages.AboutPage),
+        };
+
+        // 先全都放掉再逐页量，避免上面主题资源被算进第一页
+        GC.Collect(2, GCCollectionMode.Forced, true);
+        long prevWs = Ws();
+        long prevManaged = GC.GetTotalMemory(true);
+
+        // 保留 = 模拟现在「12 页全部 Required 缓存」的行为；每页单独也记一次增量
+        var keep = new List<FrameworkElement>(types.Length);
+        foreach (var t in types)
+        {
+            long before = Ws();
+            try
+            {
+                var el = (FrameworkElement)Activator.CreateInstance(t)!;
+                el.Width = 1280;
+                el.Height = 820;
+                el.Measure(new Size(1280, 820));
+                el.Arrange(new Rect(0, 0, 1280, 820));
+                el.UpdateLayout();
+                keep.Add(el);
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine($"  [!] {t.Name} 构造失败：{ex.GetType().Name} {ex.Message}");
+                continue;
+            }
+
+            long after = Ws();
+            long managed = GC.GetTotalMemory(false);
+            sb.AppendLine($"  + {t.Name,-18} 工作集 {after / 1048576.0,7:F1} MB  Δ{(after - before) / 1048576.0,7:F1}"
+                          + $"   托管堆 {managed / 1048576.0,7:F1} MB  Δ{(managed - prevManaged) / 1048576.0,7:F1}");
+            prevManaged = managed;
+        }
+
+        long allWs = Ws();
+        Line("② 12 页全部缓存（当前行为）", allWs, GC.GetTotalMemory(true));
+        sb.AppendLine();
+
+        // 传感器：LHM 打开整块主板（WMI + 内核驱动 + 传感器树）
+        long wsBefore = Ws();
+        try
+        {
+            var fan = Services.FanController.Shared;
+            var snapshot = fan.Voltages;
+            sb.AppendLine($"  LHM 主轨数 {snapshot.Count}");
+        }
+        catch (Exception ex)
+        {
+            sb.AppendLine("  [!] LHM 初始化失败：" + ex.GetType().Name + " " + ex.Message);
+        }
+        long wsAfterLhm = Ws();
+        Line("③ 加上传感器（LHM 主板全集）", wsAfterLhm, GC.GetTotalMemory(true));
+        sb.AppendLine($"  → 传感器净增量 {(wsAfterLhm - wsBefore) / 1048576.0:F1} MB");
+        sb.AppendLine();
+
+        // ④ 真实场景：页面全都还在缓存里（NavigationCacheMode=Required，不会释放），
+        //    走一遍启动后会执行的内存回收。这才是用户任务管理器里该看到的数字。
+        Services.MemoryTrimmer.Trim(force: true);
+        sb.AppendLine("  裁剪结果：" + Services.MemoryTrimmer.LastResult);
+        for (int i = 0; i < 3; i++)
+        {
+            System.Threading.Thread.Sleep(400);
+            proc.Refresh();
+            sb.AppendLine($"  ④ 裁剪后 {400 * (i + 1),4} ms  工作集 {proc.WorkingSet64 / 1048576.0,7:F1} MB"
+                          + $"   托管堆 {GC.GetTotalMemory(false) / 1048576.0,6:F1} MB");
+        }
+        sb.AppendLine();
+
+        // ⑤ 对照：把 12 页对象全放掉能回到多少（判断「不缓存页面」还有多少空间）
+        keep.Clear();
+        GC.Collect(2, GCCollectionMode.Forced, true);
+        GC.WaitForPendingFinalizers();
+        GC.Collect(2, GCCollectionMode.Forced, true);
+        Services.MemoryTrimmer.Trim(force: true);
+        System.Threading.Thread.Sleep(600);
+        Line("⑤ 放掉 12 页后（只留传感器）", Ws(), GC.GetTotalMemory(true));
+
+        try { File.WriteAllText(logPath, sb.ToString(), new UTF8Encoding(false)); } catch { }
+        try { Console.Error.Write(sb.ToString()); } catch { }
+        Environment.Exit(0);
     }
 
     /// <summary>

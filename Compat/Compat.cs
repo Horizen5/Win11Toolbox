@@ -63,7 +63,9 @@ namespace Win11Toolbox.Compat
         }
 
 #if NETFRAMEWORK
-        [DllImport("kernel32.dll")]
+        // 入口点必须显式写：kernel32 里叫 GetTickCount64，不写 EntryPoint 的话
+        // P/Invoke 会按方法名去找 GetTickCount64Native，运行时直接 EntryPointNotFoundException。
+        [DllImport("kernel32.dll", EntryPoint = "GetTickCount64")]
         static extern ulong GetTickCount64Native();
 #endif
     }

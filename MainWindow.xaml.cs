@@ -58,6 +58,28 @@ public partial class MainWindow : FluentWindow
         Closing += (_, _) => SaveWindowPlacement();
         StartupTrace.Mark("MainWindow ctor 结束");
 
+        // 内存回收时机：只在用户看不到这个窗口的时候做（最小化 / 切到别的程序 /
+        // 启动后静置 8 秒）。前台操作期间绝不裁剪，否则下次重绘要重新缺页、会卡一下。
+        StateChanged += (_, _) =>
+        {
+            if (WindowState == WindowState.Minimized)
+                MemoryTrimmer.Trim(force: true);
+        };
+        Deactivated += (_, _) =>
+        {
+            // 切走 0.8 秒后才动手：用户可能只是点一下别的窗口再回来，
+            // 真正切去干别的事（包括去看任务管理器）时才会走到这里。
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(800) };
+            timer.Tick += (_, _) =>
+            {
+                timer.Stop();
+                if (!IsActive)
+                    MemoryTrimmer.Trim();
+            };
+            timer.Start();
+        };
+        MemoryTrimmer.TrimWhenIdle(TimeSpan.FromSeconds(10), () => IsActive);
+
         // 首帧：WPF 画完第一帧时记一笔，用来区分"窗口出来了"和"内容画出来了"
         EventHandler? onFrame = null;
         onFrame = (_, _) =>

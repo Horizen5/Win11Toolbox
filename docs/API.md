@@ -1,6 +1,6 @@
 # Win11 工具箱 · 本机 API 手册
 
-> 适用版本：**v1.4.0 及以上**（`Win11Toolbox.exe` 完整版、`Win11Toolbox-4.8.1.exe`）
+> 适用版本：**v1.4.1 及以上**（`Win11Toolbox.exe` 完整版、`Win11Toolbox-4.8.1.exe`）
 > 接口版本：`v1`　默认地址：`http://127.0.0.1:5180`
 > 文字版（`Win11Toolbox-text.exe`）不含 Services 层，**没有** API。
 
@@ -55,7 +55,7 @@ curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:5180/api/v1/health
 {
   "ok": true,
   "name": "Win11 工具箱",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "apiVersion": "1",
   "port": 5180,
   "url": "http://127.0.0.1:5180/",
