@@ -4,7 +4,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-11-0078D4?logo=windows11&logoColor=white" alt="Windows 11">
-  <img src="https://img.shields.io/badge/version-v1.3.3-0078D4" alt="v1.3.3">
+  <img src="https://img.shields.io/badge/version-v1.3.4-0078D4" alt="v1.3.4">
   <img src="https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white" alt=".NET 10">
   <img src="https://img.shields.io/badge/WPF--UI-4.3-7B4FB5" alt="WPF-UI 4.3">
   <img src="https://img.shields.io/badge/license-MIT-3DA639" alt="MIT">
@@ -78,24 +78,34 @@ Windows 11 的设置项散在十几个地方：想显示文件扩展名要翻三
 
 ## 下载
 
-当前版本 **v1.3.3**。到 [Releases](https://github.com/Horizen5/Win11Toolbox/releases) 下载。
-同一份源码编出三个版本，功能完全一致，只是封装方式不同：
+当前版本 **v1.3.4**。到 [Releases](https://github.com/Horizen5/Win11Toolbox/releases) 下载。
+同一份源码编出三个版本，功能完全一致，都是**单文件**，只是封装方式不同：
 
-| 版本 | 大小 | 形态 | 需要装 .NET 吗 | 适合谁 |
-| --- | --- | --- | --- | --- |
-| `Win11工具箱-完整版 v1.3.3.exe` | **66 MB** | 单文件 exe | 不需要 | 最省事，拷到哪都能跑 |
-| `Win11工具箱-4.8.1版 v1.3.3.zip` | **15 MB** | exe + 21 个 dll | **不需要**（Win10 1903+ / Win11 都自带 4.8.1） | 想体积小、启动快，又不装运行时 |
-| `Win11工具箱-文字版 v1.3.3.exe` | **0.8 MB** | 单文件 exe | 需要 .NET 10 桌面运行时 | 已经装了运行时，只想拿核心功能 |
-| `Win11Toolbox-lite.exe` | **16 MB** | 单文件 exe | 需要 .NET 10 桌面运行时 | 同文字版的平替（界面更全） |
+| 版本 | 大小 | 需要装 .NET 吗 | 适合谁 |
+| --- | --- | --- | --- |
+| `Win11Toolbox-4.8.1.exe` | **9.2 MB** | **不需要**（Win10 1903+ / Win11 都自带 4.8.1） | **首选**：最小、启动最快、不装运行时 |
+| `Win11Toolbox.exe`（完整版） | **66 MB** | 不需要 | 兜底：任何 Win10/11 都能跑，不依赖系统框架 |
+| `Win11Toolbox-lite.exe` | **16 MB** | 需要 .NET 10 桌面运行时 | 已经装了运行时，想用最全的界面 |
+| `Win11Toolbox-text.exe`（文字版） | **0.8 MB** | 需要 .NET 10 桌面运行时 | 极简，只要核心功能 |
 
 三个版本都带同一套硬件读取、风扇曲线、电压监测、47 项系统工具和 10 种界面语言。
-**4.8.1 版是体积最优解**：它用 Windows 自带的 .NET Framework 4.8.1 运行时，
-所以不用像完整版那样把 60 MB 运行时背在 exe 里 —— 用户仍然什么都不用装。
+
+**为什么 4.8.1 版只有 9.2 MB**：它调用 Windows 系统自带的 .NET Framework 4.8.1，
+不把运行时打进 exe；再把 Wpf.Ui、LibreHardwareMonitor 等 dll 用 deflate 压进 exe
+（运行时从内存解出，**不落盘、不留 `%TEMP%` 残留**）。体积是完整版的 1/7。
 
 绿色程序，不写注册表、不装服务，删掉文件就是卸载（配置在 `%APPDATA%\Win11Toolbox\`，可一并删除）。
-4.8.1 版是文件夹，**改 exe 名字时 `.exe.config` 必须跟着改成同名**，否则启动失败。
 
 ## 更新记录
+
+### v1.3.4
+
+- **4.8.1 版从「exe + 21 个 dll」改成单文件**：14.7 MB → **9.2 MB**，双击即用。
+  .NET Framework 本身没有官方的单文件封装（`PublishSingleFile` 只存在于 .NET Core 3.0+），
+  这里用 Costura.Fody 把依赖 dll 以 deflate 压缩后嵌进 exe，运行时通过 `AssemblyResolve`
+  从内存解出 —— 不写临时目录，也不像自包含单文件那样每次启动解压一遍。
+- 构建命令：`dotnet build Win11Toolbox.net481.csproj -c Release -p:OneFile=true`
+  （不加这个参数仍然输出文件夹形态，两种形态共用同一份源码）。
 
 ### v1.3.3
 
@@ -141,7 +151,7 @@ Windows 11 的设置项散在十几个地方：想显示文件扩展名要翻三
 | 工程文件 | 版本 | 产物 | 用户需要装什么 |
 |---|---|---|---|
 | `Win11Toolbox.csproj` | 完整版 | 单文件 exe，约 66 MB | 什么都不用装 |
-| `Win11Toolbox.net481.csproj` | 4.8.1 版 | exe + 21 个 dll，约 15 MB | 什么都不用装 |
+| `Win11Toolbox.net481.csproj` | 4.8.1 版 | 单文件 exe，约 9 MB（`-p:OneFile=true`） | 什么都不用装 |
 | `Simple/Win11ToolboxSimple.csproj` | 文字版 | 单文件 exe，约 0.8 MB | .NET 10 桌面运行时 |
 
 > **同一个目录里有多个 `.csproj`，`dotnet build` 必须显式指定工程文件**，否则会报 MSB1011「找到多个项目文件」。

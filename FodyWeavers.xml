@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Weavers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="FodyWeavers.xsd">
+  <!--
+    只在 -p:OneFile=true 时生效（Costura 包本身是有条件引用的）。
+    压缩以节省体积；不清理 bin 目录里的 dll，方便和文件夹形态并存。
+  -->
+  <Costura IncludeDebugSymbols="false" DisableCompression="false" DisableCleanup="true" />
+</Weavers>

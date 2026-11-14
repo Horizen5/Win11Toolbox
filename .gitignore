@@ -2,6 +2,7 @@
 bin/
 obj/
 bin481/
+bin481one/
 obj481/
 publish*/
 *.user

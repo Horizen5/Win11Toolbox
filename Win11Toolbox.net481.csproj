@@ -22,7 +22,7 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>Win11Toolbox-net481</AssemblyName>
     <RootNamespace>Win11Toolbox</RootNamespace>
-    <Version>1.3.3</Version>
+    <Version>1.3.4</Version>
     <AssemblyTitle>Win11 工具箱（4.8.1 版）</AssemblyTitle>
     <Product>Win11 工具箱</Product>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
@@ -38,6 +38,21 @@
     <PublishSingleFile>false</PublishSingleFile>
     <SelfContained>false</SelfContained>
   </PropertyGroup>
+
+  <!--
+    -p:OneFile=true 时改用 Costura.Fody 把所有 dll 压成内嵌资源塞进 exe，
+    运行时由 AssemblyResolve 从内存解出 —— .NET Framework 没有官方单文件封装，
+    这是社区标准做法。输出到 bin481one\，两种形态可以并存。
+  -->
+  <PropertyGroup Condition="'$(OneFile)'=='true'">
+    <OutputPath>bin481one\$(Configuration)\</OutputPath>
+    <AssemblyName>Win11工具箱-4.8.1版</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(OneFile)'=='true'">
+    <PackageReference Include="Fody" Version="6.8.2" PrivateAssets="all" />
+    <PackageReference Include="Costura.Fody" Version="5.7.0" PrivateAssets="all" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
