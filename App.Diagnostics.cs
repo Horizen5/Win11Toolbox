@@ -190,6 +190,47 @@ public partial class App
     }
 
     /// <summary>
+    /// <c>--voltsample &lt;秒数&gt; [csv]</c>：零窗口连续采样，把三路电压的原始 ADC 值和换算值
+    /// 按秒写成 CSV。用途是和别的监控软件（读取同一颗 Super I/O）在同一时间窗里对读数，
+    /// 属于实测对照，不是自说自话。
+    /// </summary>
+    private static void RunVoltSample(int seconds, string outPath)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("time,rail,raw,gain,value");
+
+        try
+        {
+            using var fan = new Services.FanController();
+            var monitor = new Services.VoltageMonitor();
+            var deadline = DateTime.UtcNow.AddSeconds(seconds);
+
+            while (DateTime.UtcNow < deadline)
+            {
+                var tick = DateTime.Now;
+                fan.Snapshot();
+                monitor.Update(fan.Voltages);
+
+                var stamp = tick.ToString("HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture);
+                foreach (var r in monitor.Rails)
+                    sb.AppendLine($"{stamp},{r.Label},{r.Raw:F4},{r.Gain:0.##},{r.Value:F4}");
+
+                var wait = 1000 - (int)(DateTime.Now - tick).TotalMilliseconds;
+                if (wait > 0) System.Threading.Thread.Sleep(wait);
+            }
+        }
+        catch (Exception ex)
+        {
+            sb.AppendLine("# 采样异常: " + ex.Message);
+        }
+
+        try { File.WriteAllText(outPath, sb.ToString()); }
+        catch { }
+
+        Environment.Exit(0);
+    }
+
+    /// <summary>
     /// <c>--monitorcost</c>：量主页那套每秒采样里每一步的耗时。
     /// 目的：确认 <c>Process.GetProcesses()</c> 到底值不值得搬到后台线程。
     /// </summary>

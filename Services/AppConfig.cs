@@ -64,17 +64,6 @@ internal sealed class AppConfig
     /// </summary>
     public Dictionary<string, string> FanNames { get; set; } = new();
 
-    // ------------------------------------------------------------------ 电压校准
-    /// <summary>
-    /// 电压传感器的用户校准倍率（乘性系数）。键是 LHM 的传感器 Identifier，
-    /// 值覆盖内置的板型系数 —— 等价硬件监控软件的 Customize values → Multiply。
-    /// 例如用万用表量到 12.20 V、软件显示 12.096 V，就把倍率改成 12.20 / 12.096。
-    /// </summary>
-    public Dictionary<string, double> VoltageGains { get; set; } = new();
-
-    /// <summary>电压传感器的用户校准偏移（加性，单位 V）。万用表两点校准时用得到。</summary>
-    public Dictionary<string, double> VoltageOffsets { get; set; } = new();
-
     // ------------------------------------------------------------------ 页面键
     public static string KeyOf(Type pageType)
     {
@@ -151,22 +140,6 @@ internal sealed class AppConfig
         FanCurveFull = Math.Clamp(FanCurveFull, 55, 95);
         if (FanCurveFull <= FanCurveStart) FanCurveFull = Math.Min(95, FanCurveStart + 10);
         FanCurveMin = Math.Clamp(FanCurveMin, 0, 70);
-
-        // 手改坏配置时别把电压显示成天文数字；坏条目直接丢掉，回到板型系数
-        VoltageGains ??= new();
-        VoltageOffsets ??= new();
-        foreach (var key in new List<string>(VoltageGains.Keys))
-        {
-            var gain = VoltageGains[key];
-            if (double.IsNaN(gain) || double.IsInfinity(gain) || gain < 0.01 || gain > 100)
-                VoltageGains.Remove(key);
-        }
-        foreach (var key in new List<string>(VoltageOffsets.Keys))
-        {
-            var offset = VoltageOffsets[key];
-            if (double.IsNaN(offset) || double.IsInfinity(offset) || Math.Abs(offset) > 10)
-                VoltageOffsets.Remove(key);
-        }
     }
 
     public void Save()

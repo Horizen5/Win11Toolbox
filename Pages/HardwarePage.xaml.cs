@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Wpf.Ui.Controls;
 using Win11Toolbox.Controls;
 using Win11Toolbox.Services;
@@ -17,10 +18,59 @@ public partial class HardwarePage : Page
     private bool _loading;
     private bool _rendered;
 
+    // ---- 电源电压（实时读 Super I/O，与风扇页共用同一份 LHM 实例）----
+    private readonly VoltageMonitor _voltage = new();
+    private DispatcherTimer? _sensorTimer;
+    private bool _sensorBusy;
+
     public HardwarePage()
     {
         InitializeComponent();
         Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        _sensorTimer?.Stop();
+        _sensorTimer = null;
+    }
+
+    /// <summary>
+    /// 电压采样定时器。3 秒一轮，够看压降趋势，又不至于把 CPU 叫醒太频繁。
+    /// 页面不可见时 <see cref="OnUnloaded"/> 会把它停掉。
+    /// </summary>
+    private void StartSensors()
+    {
+        if (_sensorTimer is not null) return;
+
+        _sensorTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        _sensorTimer.Tick += async (_, _) => await RefreshSensorsAsync();
+        _sensorTimer.Start();
+        _ = RefreshSensorsAsync();
+    }
+
+    private async Task RefreshSensorsAsync()
+    {
+        if (_sensorBusy) return;
+        _sensorBusy = true;
+        try
+        {
+            // LHM 采集放后台线程：SuperIO 一轮几十毫秒，压在 UI 线程上会拖住切页和滚动
+            var controller = FanController.Shared;
+            await Task.Run(() => controller.Snapshot());
+
+            _voltage.Update(controller.Voltages);
+            VoltageBoard.Update(_voltage);
+        }
+        catch
+        {
+            // 读不到（驱动没装 / 权限不够）不弹窗，卡片里会自己说明原因
+        }
+        finally
+        {
+            _sensorBusy = false;
+        }
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -31,6 +81,9 @@ public partial class HardwarePage : Page
         _loading = true;
         try
         {
+            // 电压是实时值，不依赖硬件快照，先让它跑起来
+            StartSensors();
+
             // 先用缓存（内存/磁盘）立刻画出来，再去后台刷新
             var cached = AppCache.Hardware;
             if (cached is not null)
@@ -51,8 +104,7 @@ public partial class HardwarePage : Page
     }
 
     private void Show(HardwareReport report)
-    {
-        if (_rendered && ReferenceEquals(report, _report))
+    {        if (_rendered && ReferenceEquals(report, _report))
             return;
 
         _report = report;

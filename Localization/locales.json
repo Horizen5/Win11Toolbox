@@ -59,15 +59,15 @@
  ],
  "counts": {
   "zh-CN": 0,
-  "en-US": 360,
-  "ja-JP": 360,
-  "ko-KR": 360,
-  "es-ES": 360,
-  "fr-FR": 360,
-  "de-DE": 360,
-  "ru-RU": 360,
-  "pt-BR": 360,
-  "zh-TW": 1625
+  "en-US": 363,
+  "ja-JP": 363,
+  "ko-KR": 363,
+  "es-ES": 363,
+  "fr-FR": 363,
+  "de-DE": 363,
+  "ru-RU": 363,
+  "pt-BR": 363,
+  "zh-TW": 1629
  },
  "translations": {
   "zh-CN": {},
@@ -431,7 +431,10 @@
    "倍率 = 万用表实测值 ÷ 软件读数": "Multiplier = multimeter reading ÷ software reading",
    "没有读到电压传感器，通常需要管理员权限和 PawnIO 驱动。": "No voltage sensors found. Administrator rights and the PawnIO driver are usually required.",
    "温度传感器不可用（通常需要 PawnIO 驱动）。": "Temperature sensors unavailable (usually needs the PawnIO driver).",
-   "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "Readings come from the motherboard Super I/O ADC; +12V / +5V are restored with board-specific divider ratios, and the 12V rail has ~0.096 V resolution. Use \"Calibrate\" to correct the multiplier with a multimeter. Absolute accuracy is limited by ADC quantization; relative voltage drop is more trustworthy."
+   "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "Readings come from the motherboard Super I/O ADC; +12V / +5V are restored with board-specific divider ratios, and the 12V rail has ~0.096 V resolution. Use \"Calibrate\" to correct the multiplier with a multimeter. Absolute accuracy is limited by ADC quantization; relative voltage drop is more trustworthy.",
+   "处理器、内存、显卡、主板、电源电压与存储的详细参数": "Processor, memory, graphics, motherboard, supply voltages and storage",
+   "读数取自主板 Super I/O 的 ADC（与 BIOS 同源）；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。绝对精度受 ADC 量化限制，压降变化比绝对值更可信。": "Readings come from the motherboard Super I/O ADC (the same source the BIOS uses). +12V / +5V are restored with board divider coefficients; the 12 V rail resolves about 0.096 V. Absolute accuracy is limited by ADC quantization, so the drop trend is more trustworthy than the absolute value.",
+   "Vcore / VID / AVCC / 待机电压等非 ATX 输出轨": "Vcore / VID / AVCC / standby rails — not ATX outputs"
   },
   "ja-JP": {
    "关于": "バージョン情報",
@@ -793,7 +796,10 @@
    "倍率 = 万用表实测值 ÷ 软件读数": "倍率 = テスター実測値 ÷ ソフトウェア読値",
    "没有读到电压传感器，通常需要管理员权限和 PawnIO 驱动。": "電圧センサーが見つかりません。通常は管理者権限と PawnIO ドライバーが必要です。",
    "温度传感器不可用（通常需要 PawnIO 驱动）。": "温度センサーは利用できません（通常 PawnIO ドライバーが必要）。",
-   "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "値はマザーボードの Super I/O ADC 由来です。+12V / +5V はボード固有の分圧比で復元し、12V レールの分解能は約 0.096 V です。「較正」でテスター実測値から倍率を補正できます。絶対精度は ADC の量子化に制限され、相対的な電圧降下の方が信頼できます。"
+   "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "値はマザーボードの Super I/O ADC 由来です。+12V / +5V はボード固有の分圧比で復元し、12V レールの分解能は約 0.096 V です。「較正」でテスター実測値から倍率を補正できます。絶対精度は ADC の量子化に制限され、相対的な電圧降下の方が信頼できます。",
+   "处理器、内存、显卡、主板、电源电压与存储的详细参数": "プロセッサ、メモリ、グラフィックス、マザーボード、電源電圧、ストレージの詳細",
+   "读数取自主板 Super I/O 的 ADC（与 BIOS 同源）；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。绝对精度受 ADC 量化限制，压降变化比绝对值更可信。": "読み値はマザーボードの Super I/O ADC（BIOS と同一ソース）から取得しています。+12V / +5V は基板の分圧係数で復元し、12V レールの分解能は約 0.096 V です。絶対精度は ADC の量子化に制限されるため、電圧降下の傾向のほうが信頼できます。",
+   "Vcore / VID / AVCC / 待机电压等非 ATX 输出轨": "Vcore / VID / AVCC / 待機電圧など ATX 出力以外のレール"
   },
   "ko-KR": {
    "关于": "정보",
@@ -1155,7 +1161,10 @@
    "倍率 = 万用表实测值 ÷ 软件读数": "배율 = 멀티미터 측정값 ÷ 소프트웨어 판독값",
    "没有读到电压传感器，通常需要管理员权限和 PawnIO 驱动。": "전압 센서를 찾을 수 없습니다. 보통 관리자 권한과 PawnIO 드라이버가 필요합니다.",
    "温度传感器不可用（通常需要 PawnIO 驱动）。": "온도 센서를 사용할 수 없습니다(보통 PawnIO 드라이버 필요).",
-   "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "값은 메인보드 Super I/O ADC에서 나옵니다. +12V / +5V는 보드별 분압비로 복원하며 12V 레일 분해능은 약 0.096V입니다. 「보정」에서 멀티미터 실측값으로 배율을 수정할 수 있습니다. 절대 정확도는 ADC 양자화에 제한되므로 상대적인 전압 강하가 더 신뢰할 수 있습니다."
+   "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "값은 메인보드 Super I/O ADC에서 나옵니다. +12V / +5V는 보드별 분압비로 복원하며 12V 레일 분해능은 약 0.096V입니다. 「보정」에서 멀티미터 실측값으로 배율을 수정할 수 있습니다. 절대 정확도는 ADC 양자화에 제한되므로 상대적인 전압 강하가 더 신뢰할 수 있습니다.",
+   "处理器、内存、显卡、主板、电源电压与存储的详细参数": "프로세서, 메모리, 그래픽, 메인보드, 전원 전압 및 저장소 상세 정보",
+   "读数取自主板 Super I/O 的 ADC（与 BIOS 同源）；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。绝对精度受 ADC 量化限制，压降变化比绝对值更可信。": "측정값은 메인보드 Super I/O ADC(BIOS와 동일 소스)에서 읽습니다. +12V / +5V는 보드 분압 계수로 복원하며 12V 레일 분해능은 약 0.096 V입니다. 절대 정밀도는 ADC 양자화 한계가 있으므로 전압 강하 추세가 더 신뢰할 만합니다.",
+   "Vcore / VID / AVCC / 待机电压等非 ATX 输出轨": "Vcore / VID / AVCC / 대기 전압 등 ATX 출력이 아닌 레일"
   },
   "es-ES": {
    "关于": "Acerca de",
@@ -1517,7 +1526,10 @@
    "倍率 = 万用表实测值 ÷ 软件读数": "Multiplicador = lectura del multímetro ÷ lectura del software",
    "没有读到电压传感器，通常需要管理员权限和 PawnIO 驱动。": "No se encontraron sensores de voltaje. Normalmente se requieren permisos de administrador y el controlador PawnIO.",
    "温度传感器不可用（通常需要 PawnIO 驱动）。": "Sensores de temperatura no disponibles (normalmente requiere el controlador PawnIO).",
-   "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "Las lecturas provienen del ADC del Super I/O de la placa; +12V / +5V se restauran con coeficientes de divisor específicos y el riel de 12V tiene una resolución de ~0,096 V. Use «Calibrar» para corregir el multiplicador con un multímetro. La precisión absoluta está limitada por la cuantización del ADC; la caída relativa es más fiable."
+   "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "Las lecturas provienen del ADC del Super I/O de la placa; +12V / +5V se restauran con coeficientes de divisor específicos y el riel de 12V tiene una resolución de ~0,096 V. Use «Calibrar» para corregir el multiplicador con un multímetro. La precisión absoluta está limitada por la cuantización del ADC; la caída relativa es más fiable.",
+   "处理器、内存、显卡、主板、电源电压与存储的详细参数": "Procesador, memoria, gráficos, placa base, voltajes de alimentación y almacenamiento",
+   "读数取自主板 Super I/O 的 ADC（与 BIOS 同源）；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。绝对精度受 ADC 量化限制，压降变化比绝对值更可信。": "Las lecturas provienen del ADC del Super I/O de la placa base (la misma fuente que usa la BIOS). +12V / +5V se reconstruyen con los coeficientes del divisor de la placa; el raíl de 12 V resuelve unos 0,096 V. La precisión absoluta está limitada por la cuantización del ADC, así que la tendencia de caída es más fiable que el valor absoluto.",
+   "Vcore / VID / AVCC / 待机电压等非 ATX 输出轨": "Raíles Vcore / VID / AVCC / de espera, no salidas ATX"
   },
   "fr-FR": {
    "关于": "À propos",
@@ -1879,7 +1891,10 @@
    "倍率 = 万用表实测值 ÷ 软件读数": "Multiplicateur = mesure du multimètre ÷ valeur logicielle",
    "没有读到电压传感器，通常需要管理员权限和 PawnIO 驱动。": "Aucun capteur de tension détecté. Droits administrateur et pilote PawnIO généralement requis.",
    "温度传感器不可用（通常需要 PawnIO 驱动）。": "Capteurs de température indisponibles (nécessite généralement le pilote PawnIO).",
-   "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "Les valeurs proviennent de l'ADC du Super I/O de la carte ; +12V / +5V sont restaurés avec les rapports de pont diviseur, la résolution du rail 12V est d'environ 0,096 V. « Calibrer » permet de corriger le multiplicateur avec un multimètre. La précision absolue est limitée par la quantification de l'ADC ; la chute relative est plus fiable."
+   "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "Les valeurs proviennent de l'ADC du Super I/O de la carte ; +12V / +5V sont restaurés avec les rapports de pont diviseur, la résolution du rail 12V est d'environ 0,096 V. « Calibrer » permet de corriger le multiplicateur avec un multimètre. La précision absolue est limitée par la quantification de l'ADC ; la chute relative est plus fiable.",
+   "处理器、内存、显卡、主板、电源电压与存储的详细参数": "Processeur, mémoire, graphismes, carte mère, tensions d'alimentation et stockage",
+   "读数取自主板 Super I/O 的 ADC（与 BIOS 同源）；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。绝对精度受 ADC 量化限制，压降变化比绝对值更可信。": "Les valeurs proviennent de l'ADC du Super I/O de la carte mère (même source que le BIOS). +12V / +5V sont reconstruits avec les coefficients du diviseur de la carte ; le rail 12 V a une résolution d'environ 0,096 V. La précision absolue est limitée par la quantification de l'ADC : la tendance de chute est plus fiable que la valeur absolue.",
+   "Vcore / VID / AVCC / 待机电压等非 ATX 输出轨": "Rails Vcore / VID / AVCC / de veille, pas des sorties ATX"
   },
   "de-DE": {
    "关于": "Info",
@@ -2241,7 +2256,10 @@
    "倍率 = 万用表实测值 ÷ 软件读数": "Faktor = Multimeter-Messwert ÷ Software-Wert",
    "没有读到电压传感器，通常需要管理员权限和 PawnIO 驱动。": "Keine Spannungssensoren gefunden. Meist sind Administratorrechte und der PawnIO-Treiber nötig.",
    "温度传感器不可用（通常需要 PawnIO 驱动）。": "Temperatursensoren nicht verfügbar (meist ist der PawnIO-Treiber nötig).",
-   "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "Die Werte stammen vom Super-I/O-ADC des Mainboards; +12V / +5V werden mit boardspezifischen Teilerfaktoren umgerechnet, die Auflösung der 12V-Schiene beträgt ca. 0,096 V. Mit „Kalibrieren\" lässt sich der Faktor per Multimeter korrigieren. Die absolute Genauigkeit ist durch die ADC-Quantisierung begrenzt; der relative Spannungsabfall ist verlässlicher."
+   "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "Die Werte stammen vom Super-I/O-ADC des Mainboards; +12V / +5V werden mit boardspezifischen Teilerfaktoren umgerechnet, die Auflösung der 12V-Schiene beträgt ca. 0,096 V. Mit „Kalibrieren\" lässt sich der Faktor per Multimeter korrigieren. Die absolute Genauigkeit ist durch die ADC-Quantisierung begrenzt; der relative Spannungsabfall ist verlässlicher.",
+   "处理器、内存、显卡、主板、电源电压与存储的详细参数": "Prozessor, Arbeitsspeicher, Grafik, Mainboard, Versorgungsspannungen und Datenträger",
+   "读数取自主板 Super I/O 的 ADC（与 BIOS 同源）；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。绝对精度受 ADC 量化限制，压降变化比绝对值更可信。": "Die Werte stammen vom Super-I/O-ADC des Mainboards (gleiche Quelle wie das BIOS). +12V / +5V werden mit den Teilerkoeffizienten des Boards rekonstruiert; die 12-V-Schiene löst etwa 0,096 V auf. Die Absolutgenauigkeit ist durch die ADC-Quantisierung begrenzt, daher ist der Spannungsabfall aussagekräftiger als der Absolutwert.",
+   "Vcore / VID / AVCC / 待机电压等非 ATX 输出轨": "Vcore / VID / AVCC / Standby-Schienen – keine ATX-Ausgänge"
   },
   "ru-RU": {
    "关于": "О программе",
@@ -2603,7 +2621,10 @@
    "倍率 = 万用表实测值 ÷ 软件读数": "Множитель = показание мультиметра ÷ показание программы",
    "没有读到电压传感器，通常需要管理员权限和 PawnIO 驱动。": "Датчики напряжения не найдены. Обычно нужны права администратора и драйвер PawnIO.",
    "温度传感器不可用（通常需要 PawnIO 驱动）。": "Датчики температуры недоступны (обычно нужен драйвер PawnIO).",
-   "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "Показания поступают с АЦП Super I/O материнской платы; +12V / +5V восстанавливаются с учётом коэффициентов делителя, разрешение линии 12V — около 0,096 В. «Калибровка» позволяет поправить множитель по мультиметру. Абсолютная точность ограничена квантованием АЦП; надёжнее относительное падение напряжения."
+   "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "Показания поступают с АЦП Super I/O материнской платы; +12V / +5V восстанавливаются с учётом коэффициентов делителя, разрешение линии 12V — около 0,096 В. «Калибровка» позволяет поправить множитель по мультиметру. Абсолютная точность ограничена квантованием АЦП; надёжнее относительное падение напряжения.",
+   "处理器、内存、显卡、主板、电源电压与存储的详细参数": "Процессор, память, графика, материнская плата, напряжения питания и накопители",
+   "读数取自主板 Super I/O 的 ADC（与 BIOS 同源）；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。绝对精度受 ADC 量化限制，压降变化比绝对值更可信。": "Значения считываются с АЦП Super I/O материнской платы (тот же источник, что и BIOS). +12V / +5V восстанавливаются по коэффициентам делителя платы; разрешение шины 12 В — около 0,096 В. Абсолютная точность ограничена квантованием АЦП, поэтому просадка надёжнее абсолютного значения.",
+   "Vcore / VID / AVCC / 待机电压等非 ATX 输出轨": "Шины Vcore / VID / AVCC / дежурного питания — не выходы ATX"
   },
   "pt-BR": {
    "关于": "Sobre",
@@ -2965,7 +2986,10 @@
    "倍率 = 万用表实测值 ÷ 软件读数": "Multiplicador = leitura do multímetro ÷ leitura do software",
    "没有读到电压传感器，通常需要管理员权限和 PawnIO 驱动。": "Nenhum sensor de tensão encontrado. Normalmente são necessários permissões de administrador e o driver PawnIO.",
    "温度传感器不可用（通常需要 PawnIO 驱动）。": "Sensores de temperatura indisponíveis (geralmente requer o driver PawnIO).",
-   "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "As leituras vêm do ADC do Super I/O da placa; +12V / +5V são restaurados com coeficientes do divisor da placa e a resolução do trilho de 12V é de ~0,096 V. Use «Calibrar» para corrigir o multiplicador com um multímetro. A precisão absoluta é limitada pela quantização do ADC; a queda relativa é mais confiável."
+   "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "As leituras vêm do ADC do Super I/O da placa; +12V / +5V são restaurados com coeficientes do divisor da placa e a resolução do trilho de 12V é de ~0,096 V. Use «Calibrar» para corrigir o multiplicador com um multímetro. A precisão absoluta é limitada pela quantização do ADC; a queda relativa é mais confiável.",
+   "处理器、内存、显卡、主板、电源电压与存储的详细参数": "Processador, memória, gráficos, placa-mãe, tensões de alimentação e armazenamento",
+   "读数取自主板 Super I/O 的 ADC（与 BIOS 同源）；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。绝对精度受 ADC 量化限制，压降变化比绝对值更可信。": "As leituras vêm do ADC do Super I/O da placa-mãe (a mesma fonte usada pela BIOS). +12V / +5V são reconstruídos com os coeficientes do divisor da placa; o rail de 12 V resolve cerca de 0,096 V. A precisão absoluta é limitada pela quantização do ADC, então a tendência de queda é mais confiável que o valor absoluto.",
+   "Vcore / VID / AVCC / 待机电压等非 ATX 输出轨": "Rails Vcore / VID / AVCC / de standby — não são saídas ATX"
   },
   "zh-TW": {
    "        引导：{it.GuideUrl}（系统不让程序改，勾选时跳这里）": "        引導：{it.GuideUrl}（系統不讓程式改，勾選時跳這裡）",
@@ -3035,6 +3059,7 @@
    "# 右键菜单管家 · 禁用记录\\r\\n": "# 右鍵菜單管家 · 禁用記錄\\r\\n",
    "# 时间\\t类别\\t菜单名称\\t根\\t路径\\t类型\\tCLSID\\t图标\\t软件名\\t关联文件\\t单项备份\\r\\n": "# 時間\\t類別\\t菜單名稱\\t根\\t路徑\\t類型\\tCLSID\\t圖示\\t軟體名\\t關聯檔案\\t單項備份\\r\\n",
    "# 由程序自动维护：每次禁用都会记一笔，重新打开软件时这些项会以「已禁用」出现在列表里。\\r\\n": "# 由程式自動維護：每次禁用都會記一筆，重新打開軟體時這些項會以「已禁用」出現在列表裡。\\r\\n",
+   "# 采样异常: ": "# 採樣異常: ",
    "'{Trim(tb.Text, 20)}' {c} 亮度={lum:F2} 来源={ValueSourceOf(tb, System.Windows.Controls.TextBlock.ForegroundProperty)}": "'{Trim(tb.Text, 20)}' {c} 亮度={lum:F2} 來源={ValueSourceOf(tb, System.Windows.Controls.TextBlock.ForegroundProperty)}",
    "(Get-NetFirewallRule -DisplayName '阻止Windows搜索联网' -ErrorAction SilentlyContinue).DisplayName": "(Get-NetFirewallRule -DisplayName '阻止Windows搜索聯網' -ErrorAction SilentlyContinue).DisplayName",
    "(无)": "(無)",
@@ -3163,6 +3188,7 @@
    "UI 线程卡顿（>40ms）：{gaps.Count}": "UI 線程卡頓（>40ms）：{gaps.Count}",
    "URL 编码": "URL 編碼",
    "URL 解码": "URL 解碼",
+   "Vcore / VID / AVCC / 待机电压等非 ATX 输出轨": "Vcore / VID / AVCC / 待機電壓等非 ATX 輸出軌",
    "Visual C++ 运行库 x64": "Visual C++ 執行階段程式庫 x64",
    "Visual C++ 运行库 x86": "Visual C++ 執行階段程式庫 x86",
    "WMI 全量采集：{watch.ElapsedMilliseconds} ms": "WMI 全量採集：{watch.ElapsedMilliseconds} ms",
@@ -3617,6 +3643,7 @@
    "声音设置": "聲音設定",
    "处理器": "處理器",
    "处理器 ID": "處理器 ID",
+   "处理器、内存、显卡、主板、电源电压与存储的详细参数": "處理器、記憶體、顯示卡、主機板、電源電壓與存儲的詳細參數",
    "处理器、内存、显卡、主板与存储的详细参数": "處理器、記憶體、顯示卡、主機板與存儲的詳細參數",
    "处理器与内存参数": "處理器與記憶體參數",
    "处理器信息": "處理器資訊",
@@ -4391,6 +4418,7 @@
    "读取禁用记录出错：": "讀取禁用記錄出錯：",
    "读回： ": "讀回： ",
    "读托盘注册表失败：": "讀託盤登錄失敗：",
+   "读数取自主板 Super I/O 的 ADC（与 BIOS 同源）；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。绝对精度受 ADC 量化限制，压降变化比绝对值更可信。": "讀數取自主機板 Super I/O 的 ADC（與 BIOS 同源）；+12V / +5V 按板型分壓係數還原，12V 軌解析度約 0.096 V。絕對精度受 ADC 量化限制，壓降變化比絕對值更可信。",
    "读数来自主板 Super I/O 的 ADC；+12V / +5V 按板型分压系数还原，12V 轨分辨率约 0.096 V。点「校准」可用万用表实测值修正倍率；绝对误差受 ADC 量化限制，压降变化更可信。": "讀數來自主機板 Super I/O 的 ADC；+12V / +5V 按板型分壓係數還原，12V 軌解析度約 0.096 V。點「校準」可用萬用表實測值修正倍率；絕對誤差受 ADC 量化限制，壓降變化更可信。",
    "读注册表": "讀登錄",
    "读的是 Windows 自己那份清单": "讀的是 Windows 自己那份清單",

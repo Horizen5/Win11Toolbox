@@ -77,6 +77,25 @@ public sealed class FanController : IDisposable
         };
     }
 
+    // ------------------------------------------------------------------ 共享实例
+
+    private static readonly object SharedGate = new();
+    private static FanController? _shared;
+
+    /// <summary>
+    /// 全局共用的一份 LHM 实例。风扇页要读转速/温度，硬件信息页要读电压，
+    /// 各开一份等于让 LHM 把驱动加载和芯片枚举跑两遍，还会出现两处读数差一帧。
+    /// 采集本身在 <see cref="Snapshot"/> 里加锁，两个页面同时调用也只是排队。
+    /// </summary>
+    public static FanController Shared
+    {
+        get
+        {
+            lock (SharedGate)
+                return _shared ??= new FanController();
+        }
+    }
+
     /// <summary>当前进程是否管理员（调速的前提）。</summary>
     public static bool IsElevated
     {

@@ -22,7 +22,7 @@ public enum VoltageRail
 public readonly record struct VoltageSample(string Hardware, string Name, string Identifier, float Raw);
 
 /// <summary>
-/// 一条电压读数：原始值 + 板型系数 + 用户校准 + 本次运行的统计。
+/// 一条电压读数：原始值 + 板型系数 + 本次运行的统计。
 ///
 /// <para>
 /// 传感器的 <c>Identifier</c>（形如 <c>/lpc/nct6799d/0/voltage/4</c>）才是稳定主键 ——
@@ -46,11 +46,9 @@ public sealed class VoltageReading
 
     public float Raw { get; private set; }
     public float Gain { get; private set; } = 1f;
-    public float Offset { get; private set; }
-    public bool UserCalibrated { get; private set; }
 
-    /// <summary>最终显示值。乘性系数在前、加性偏移在后，和两点线性校准一致。</summary>
-    public float Value => Raw * Gain + Offset;
+    /// <summary>最终显示值 = 原始 ADC 读数 × 板型分压系数。</summary>
+    public float Value => Raw * Gain;
 
     public float Min { get; private set; }
     public float Max { get; private set; }
@@ -70,12 +68,10 @@ public sealed class VoltageReading
     public bool InTolerance => IsRail && HasBaseline
                                && Value >= ToleranceLow && Value <= ToleranceHigh;
 
-    internal void Push(float raw, float gain, float offset, bool userCalibrated)
+    internal void Push(float raw, float gain)
     {
         Raw = raw;
         Gain = gain;
-        Offset = offset;
-        UserCalibrated = userCalibrated;
 
         var value = Value;
         if (!HasBaseline)
@@ -115,15 +111,22 @@ public sealed class VoltageMonitor
     /// <summary>
     /// 板型系数表：只登记「LHM 没命名、但通道索引已实测确认」的情况。
     ///
-    /// 依据：同为 NCT6799D + 华硕 B650 的 PRIME_B650_PLUS 在 LHM 的
-    /// SuperIOHardware.cs 里写明 +5V(1, 4, 1) / +12V(4, 11, 1)，通道索引与本机一致；
-    /// 原始值全是 0.008 V 的整数倍（这颗 ADC 是 8 mV/LSB），乘回后落在 ATX ±5% 内。
-    /// 12 V 轨的量化步进是 0.008 × 12 = 0.096 V，这是软件测不破的物理上限。
+    /// <para>
+    /// 通道归属依据：同为 NCT6799D + 华硕 B650 的 PRIME_B650_PLUS 在 LHM 的
+    /// SuperIOHardware.cs 里写明 +5V(1, 4, 1) / +12V(4, 11, 1)，通道索引与本机一致。
+    /// </para>
+    /// <para>
+    /// 系数依据：理论分压比是 12 和 5（上面的 (4,11,1)/(1,4,1) 就是 R1/R2），但板上分压电阻
+    /// 有 ±1% 容差，实测值会偏离理论值。这里的 11.98 / 5.02 是用同源 ADC 对照校准出来的：
+    /// 同一时刻同一通道，本机原始读数 1.008 V → 12.0758 V、1.000 V → 5.0200 V，
+    /// 与专业监控软件对这块主板的换算完全一致。原始值是 8 mV/LSB 的整数倍，
+    /// 乘回后 12V 轨步进 0.0958 V，这仍是软件测不破的物理上限。
+    /// </para>
     /// </summary>
     private static readonly BoardRule[] BoardRules =
     {
-        new("nct6799d", 4, VoltageRail.V12, 12f, 12f, "+12V"),
-        new("nct6799d", 1, VoltageRail.V5, 5f, 5f, "+5V"),
+        new("nct6799d", 4, VoltageRail.V12, 11.98f, 12f, "+12V"),
+        new("nct6799d", 1, VoltageRail.V5, 5.02f, 5f, "+5V"),
         new("nct6799d", 3, VoltageRail.V33, 1f, 3.3f, "+3.3V"),
     };
 
@@ -166,8 +169,7 @@ public sealed class VoltageMonitor
                 _byId[sample.Identifier] = reading;
             }
 
-            var (gain, offset, user) = Effective(reading);
-            reading.Push(sample.Raw, gain, offset, user);
+            reading.Push(sample.Raw, reading.DefaultGain);
         }
 
         // 传感器在这一轮消失（驱动重载 / 换过主板）就丢掉旧对象，别一直显示陈旧值
@@ -260,60 +262,13 @@ public sealed class VoltageMonitor
             : -1;
     }
 
-    /// <summary>用户校准优先级高于板型系数；没校准就用板型系数（或 1）。</summary>
-    private static (float Gain, float Offset, bool User) Effective(VoltageReading reading)
-    {
-        var cfg = AppConfig.Current;
-        if (cfg.VoltageGains.TryGetValue(reading.Identifier, out var gain))
-        {
-            var offset = cfg.VoltageOffsets.TryGetValue(reading.Identifier, out var o) ? (float)o : 0f;
-            return ((float)gain, offset, true);
-        }
-        return (reading.DefaultGain, 0f, false);
-    }
-
-    // ------------------------------------------------------------------ 用户校准
-
-    /// <summary>
-    /// 写入乘性倍率（等价硬件监控软件里的 Customize values → Multiply），立刻落盘。
-    /// Offset 保留给万用表两点校准：真值 = 软件值 × gain + offset。
-    /// </summary>
-    public static void SetCalibration(string identifier, double gain, double offset = 0)
-    {
-        if (string.IsNullOrWhiteSpace(identifier)) return;
-        if (double.IsNaN(gain) || double.IsInfinity(gain)) return;
-
-        AppConfig.Remember(cfg =>
-        {
-            cfg.VoltageGains[identifier] = Math.Clamp(gain, 0.01, 100);
-            if (Math.Abs(offset) > 1e-9)
-                cfg.VoltageOffsets[identifier] = Math.Clamp(offset, -10, 10);
-            else
-                cfg.VoltageOffsets.Remove(identifier);
-        });
-    }
-
-    /// <summary>清除用户校准，回到内置板型系数 / 原样值。</summary>
-    public static void ClearCalibration(string identifier)
-    {
-        if (string.IsNullOrWhiteSpace(identifier)) return;
-        AppConfig.Remember(cfg =>
-        {
-            cfg.VoltageGains.Remove(identifier);
-            cfg.VoltageOffsets.Remove(identifier);
-        });
-    }
-
-    public static bool HasUserCalibration(string identifier)
-        => AppConfig.Current.VoltageGains.ContainsKey(identifier);
-
     /// <summary>诊断用：把当前所有电压传感器按「原始 → 换算」列一遍（--probe 会写进日志）。</summary>
     public string Dump()
     {
         var lines = new List<string>();
         foreach (var r in _byId.Values.OrderBy(r => r.Identifier, StringComparer.Ordinal))
         {
-            var source = r.UserCalibrated ? "用户校准" : r.BoardCalibrated ? "板型系数" : "原样";
+            var source = r.BoardCalibrated ? "板型系数" : "原样";
             lines.Add($"{r.Identifier,-42} {r.Name,-24} 原始={r.Raw,7:F3} V "
                     + $"×{r.Gain,-5:0.##} = {r.Value,7:F3} V  [{r.Label}] {source}");
         }

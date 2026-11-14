@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:controls="clr-namespace:Win11Toolbox.Controls"
     Title="硬件信息">
 
     <Grid Margin="24,18,24,12">
@@ -16,7 +17,7 @@
             <ui:TextBlock FontTypography="Title" Text="硬件信息" />
             <ui:TextBlock FontTypography="Body" Margin="0,4,0,0"
                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                          Text="处理器、内存、显卡、主板与存储的详细参数" />
+                          Text="处理器、内存、显卡、主板、电源电压与存储的详细参数" />
         </StackPanel>
 
         <TabControl Grid.Row="1" x:Name="Tabs" Style="{StaticResource Win11TabControl}">
@@ -43,6 +44,13 @@
             <TabItem Header="主板">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel x:Name="BoardPanel" Margin="0,10,0,16" />
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="电源电压">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,10,0,16">
+                        <controls:VoltageBoard x:Name="VoltageBoard" />
+                    </StackPanel>
                 </ScrollViewer>
             </TabItem>
             <TabItem Header="存储">

@@ -50,6 +50,19 @@ public partial class App : Application
             return;
         }
 
+        // --voltsample <秒数> [csv]：零窗口连续采样三路电压，用于和别的监控软件对照
+        var voltIndex = Array.IndexOf(Args, "--voltsample");
+        if (voltIndex >= 0)
+        {
+            var a = Args;
+            int secs = voltIndex + 1 < a.Length && int.TryParse(a[voltIndex + 1], out var s) ? s : 20;
+            string csv = voltIndex + 2 < a.Length && !a[voltIndex + 2].StartsWith("--", StringComparison.Ordinal)
+                ? a[voltIndex + 2]
+                : Path.Combine(AppContext.BaseDirectory, "voltsample.csv");
+            RunVoltSample(secs, csv);
+            return;
+        }
+
         // --scrolltest <页面> [log]：离屏滚一遍并计时，结果写 scrolltest.log
         var scrollIndex = Array.IndexOf(Args, "--scrolltest");
         if (scrollIndex >= 0 && scrollIndex + 1 < Args.Length)
@@ -432,7 +445,15 @@ public partial class App : Application
     private static void RunShot(string pageName, string outPath)
     {
         // 和 --scrolltest 用同一个宿主，保证截出来的排版就是真实导航里的排版
-        var (host, outer, _) = BuildHost(pageName);
+        var (host, outer, page) = BuildHost(pageName);
+
+        // --tab N：把页面里的选项卡切到第 N 个再截图（硬件信息页的「电源电压」在第 6 个）
+        var argv0 = Args;
+        int tabArg = Array.IndexOf(argv0, "--tab");
+        int tabIndex = -1;
+        if (tabArg >= 0 && tabArg + 1 < argv0.Length
+            && int.TryParse(argv0[tabArg + 1], out int parsed))
+            tabIndex = parsed;
 
         // 默认等页面把数据读完（右键菜单要扫注册表，给足时间）。
         // --pump N 改成只等 N 毫秒 —— 专门用来量"首屏到底空不空"：
@@ -445,6 +466,18 @@ public partial class App : Application
             pumpMs = pumpArg;
 
         Pump(pumpMs);
+
+        // 切选项卡要等控件进了可视树才找得到
+        if (tabIndex >= 0 && page is FrameworkElement root)
+        {
+            var tabs = FindChild<System.Windows.Controls.TabControl>(root);
+            if (tabs is not null && tabIndex < tabs.Items.Count)
+            {
+                tabs.SelectedIndex = tabIndex;
+                Pump(1500);
+            }
+        }
+
         host.UpdateLayout();
 
         try
