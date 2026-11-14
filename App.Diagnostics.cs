@@ -231,6 +231,55 @@ public partial class App
     }
 
     /// <summary>
+    /// <c>--voltcost [轮数]</c>：量一轮 <see cref="Services.FanController.Snapshot"/> 的真实耗时。
+    /// 用途是决定电压面板的刷新间隔能压到多短 —— 一轮几十毫秒才敢开 1 秒刷新，
+    /// 要是每轮上百毫秒，1 秒刷新就是在空转烧 CPU。零窗口，结果写 voltcost.log。
+    /// </summary>
+    private static void RunVoltCost(int rounds, string outPath)
+    {
+        var sb = new StringBuilder();
+        try
+        {
+            using var fan = new Services.FanController();
+
+            var cold = System.Diagnostics.Stopwatch.StartNew();
+            fan.Snapshot();
+            cold.Stop();
+            sb.AppendLine($"首次（含驱动加载与芯片枚举）  {cold.Elapsed.TotalMilliseconds,7:0.0} ms");
+
+            var samples = new List<double>();
+            for (int i = 1; i <= rounds; i++)
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var (fans, temps) = fan.Snapshot();
+                sw.Stop();
+                samples.Add(sw.Elapsed.TotalMilliseconds);
+                sb.AppendLine($"第 {i,2} 轮  {sw.Elapsed.TotalMilliseconds,7:0.0} ms   风扇 {fans.Count}  温度 {temps.Count}");
+                System.Threading.Thread.Sleep(200);
+            }
+
+            samples.Sort();
+            var avg = samples.Count == 0 ? 0 : samples.Sum() / samples.Count;
+            var p50 = samples.Count == 0 ? 0 : samples[samples.Count / 2];
+            var max = samples.Count == 0 ? 0 : samples[^1];
+            sb.AppendLine();
+            sb.AppendLine($"均值 {avg:0.0} ms   中位 {p50:0.0} ms   最大 {max:0.0} ms   （{samples.Count} 轮）");
+            sb.AppendLine($"1 秒刷新占用率 ≈ {avg / 10:0.0}% 单核（按每轮 {avg:0.0} ms 计）");
+            sb.AppendLine($"2 秒刷新占用率 ≈ {avg / 20:0.0}% 单核");
+            sb.AppendLine($"3 秒刷新占用率 ≈ {avg / 30:0.0}% 单核");
+        }
+        catch (Exception ex)
+        {
+            sb.AppendLine("异常：" + ex);
+        }
+
+        try { File.WriteAllText(outPath, sb.ToString()); }
+        catch { }
+
+        Environment.Exit(0);
+    }
+
+    /// <summary>
     /// <c>--monitorcost</c>：量主页那套每秒采样里每一步的耗时。
     /// 目的：确认 <c>Process.GetProcesses()</c> 到底值不值得搬到后台线程。
     /// </summary>

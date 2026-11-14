@@ -50,6 +50,19 @@ public partial class App : Application
             return;
         }
 
+        // --voltcost [轮数]：零窗口量一轮传感器采集的耗时，用来定刷新间隔
+        var voltCostIndex = Array.IndexOf(Args, "--voltcost");
+        if (voltCostIndex >= 0)
+        {
+            var a = Args;
+            int rounds = voltCostIndex + 1 < a.Length && int.TryParse(a[voltCostIndex + 1], out var n) ? n : 10;
+            string log = voltCostIndex + 2 < a.Length && !a[voltCostIndex + 2].StartsWith("--", StringComparison.Ordinal)
+                ? a[voltCostIndex + 2]
+                : Path.Combine(AppContext.BaseDirectory, "voltcost.log");
+            RunVoltCost(rounds, log);
+            return;
+        }
+
         // --voltsample <秒数> [csv]：零窗口连续采样三路电压，用于和别的监控软件对照
         var voltIndex = Array.IndexOf(Args, "--voltsample");
         if (voltIndex >= 0)

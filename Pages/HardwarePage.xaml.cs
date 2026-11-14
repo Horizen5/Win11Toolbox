@@ -37,14 +37,16 @@ public partial class HardwarePage : Page
     }
 
     /// <summary>
-    /// 电压采样定时器。3 秒一轮，够看压降趋势，又不至于把 CPU 叫醒太频繁。
+    /// 电压采样定时器。1 秒一轮，和常见硬件监控软件的默认节奏对齐（HWiNFO 默认 2 秒）。
+    /// 一轮采集实测中位 19 ms、均值 22 ms（见 <c>--voltcost</c>），1 秒刷新约 2% 单核，
+    /// 代价可以忽略；采样本身在后台线程跑，不会卡住滚动和切页。
     /// 页面不可见时 <see cref="OnUnloaded"/> 会把它停掉。
     /// </summary>
     private void StartSensors()
     {
         if (_sensorTimer is not null) return;
 
-        _sensorTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        _sensorTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _sensorTimer.Tick += async (_, _) => await RefreshSensorsAsync();
         _sensorTimer.Start();
         _ = RefreshSensorsAsync();

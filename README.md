@@ -4,7 +4,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-11-0078D4?logo=windows11&logoColor=white" alt="Windows 11">
-  <img src="https://img.shields.io/badge/version-v1.3.1-0078D4" alt="v1.3.1">
+  <img src="https://img.shields.io/badge/version-v1.3.2-0078D4" alt="v1.3.2">
   <img src="https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white" alt=".NET 10">
   <img src="https://img.shields.io/badge/WPF--UI-4.3-7B4FB5" alt="WPF-UI 4.3">
   <img src="https://img.shields.io/badge/license-MIT-3DA639" alt="MIT">
@@ -78,7 +78,7 @@ Windows 11 的设置项散在十几个地方：想显示文件扩展名要翻三
 
 ## 下载
 
-当前版本 **v1.3.1**。到 [Releases](https://github.com/Horizen5/Win11Toolbox/releases) 下载：
+当前版本 **v1.3.2**。到 [Releases](https://github.com/Horizen5/Win11Toolbox/releases) 下载：
 
 | 版本 | 大小 | 需要装 .NET 吗 | 适用 |
 | --- | --- | --- | --- |
@@ -89,10 +89,16 @@ Windows 11 的设置项散在十几个地方：想显示文件扩展名要翻三
 
 ## 更新记录
 
+### v1.3.2
+
+- **电压刷新从 3 秒提到 1 秒**（HWiNFO 默认 2 秒）。一轮采集实测中位 19 ms、均值 22 ms，
+  1 秒刷新约占 2% 单核；采样在后台线程，界面只改文本不重建控件，不会闪。
+- 新增 `--voltcost [轮数]` 零窗口诊断参数，量一轮传感器采集的真实耗时。
+
 ### v1.3.1
 
 - **电源电压挪到「硬件信息 → 电源电压」选项卡**：三张主轨卡片 + 可折叠的其他电压，
-  页签可见时每 3 秒刷新，离开页面自动停表；风扇页回归只管风扇与温度。
+  页签可见时每秒刷新（与硬件监控软件的常规节奏一致），离开页面自动停表；风扇页回归只管风扇与温度。
 - **去掉手动倍率校准**：不再让人填数字，系数改成实测校准值（+12V ×11.98、+5V ×5.02、
   +3.3V ×1）。和 HWiNFO 共享内存接口做同源对照，三路差异 **−0.003‰ / 0.000‰ / 0.000‰**。
 - 新增 `--voltsample`（零窗口连续采样）与 `--shot --tab N`（指定选项卡离屏截图）两个诊断参数。
