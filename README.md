@@ -4,7 +4,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-11-0078D4?logo=windows11&logoColor=white" alt="Windows 11">
-  <img src="https://img.shields.io/badge/version-v1.3.4-0078D4" alt="v1.3.4">
+  <img src="https://img.shields.io/badge/version-v1.4.0-0078D4" alt="v1.4.0">
   <img src="https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white" alt=".NET 10">
   <img src="https://img.shields.io/badge/WPF--UI-4.3-7B4FB5" alt="WPF-UI 4.3">
   <img src="https://img.shields.io/badge/license-MIT-3DA639" alt="MIT">
@@ -78,12 +78,12 @@ Windows 11 的设置项散在十几个地方：想显示文件扩展名要翻三
 
 ## 下载
 
-当前版本 **v1.3.4**。到 [Releases](https://github.com/Horizen5/Win11Toolbox/releases) 下载。
+当前版本 **v1.4.0**。到 [Releases](https://github.com/Horizen5/Win11Toolbox/releases) 下载。
 同一份源码编出三个版本，功能完全一致，都是**单文件**，只是封装方式不同：
 
 | 版本 | 大小 | 需要装 .NET 吗 | 适合谁 |
 | --- | --- | --- | --- |
-| `Win11Toolbox-4.8.1.exe` | **9.2 MB** | **不需要**（Win10 1903+ / Win11 都自带 4.8.1） | **首选**：最小、启动最快、不装运行时 |
+| `Win11Toolbox-4.8.1.exe` | **9.4 MB** | **不需要**（Win10 1903+ / Win11 都自带 4.8.1） | **首选**：最小、启动最快、不装运行时 |
 | `Win11Toolbox.exe`（完整版） | **66 MB** | 不需要 | 兜底：任何 Win10/11 都能跑，不依赖系统框架 |
 | `Win11Toolbox-lite.exe` | **16 MB** | 需要 .NET 10 桌面运行时 | 已经装了运行时，想用最全的界面 |
 | `Win11Toolbox-text.exe`（文字版） | **0.8 MB** | 需要 .NET 10 桌面运行时 | 极简，只要核心功能 |
@@ -96,7 +96,45 @@ Windows 11 的设置项散在十几个地方：想显示文件扩展名要翻三
 
 绿色程序，不写注册表、不装服务，删掉文件就是卸载（配置在 `%APPDATA%\Win11Toolbox\`，可一并删除）。
 
+## 给 Agent / 脚本用的本机 API
+
+完整版和 4.8.1 版内置一套只绑回环地址的 HTTP 接口，Agent 可以直接读工具箱已经读到的
+硬件、传感器、电压、设置状态，并在明确授权后执行少量操作。
+
+```bat
+:: 只读模式
+Win11Toolbox-4.8.1.exe --api
+
+:: 允许执行操作（启动工具 / 调速 / 改设置）
+Win11Toolbox-4.8.1.exe --api --allow-actions
+```
+
+- 地址 `http://127.0.0.1:5180`，**不监听公网**
+- Token 首次自动生成于 `%APPDATA%\Win11Toolbox\api-token.txt`，请求头带 `Authorization: Bearer <token>`
+- 全程不创建窗口；`GET /` 看端点索引，`GET /openapi.json` 取机器可读描述
+- 端口、PID 会写到 `%APPDATA%\Win11Toolbox\api-runtime.json`，Agent 不用猜
+
+端点：`health` / `system` / `hardware` / `sensors` / `voltages` / `snapshot` / `tools` /
+`settings` / `tray` / `apps`，以及四个写端点 `tools/launch`、`fan/set`、`fan/auto`、`settings/set`。
+
+**没有引入任何新依赖**（`HttpListener` + `System.Text.Json` 都已在包内），
+所以 4.8.1 版加上这个功能只涨了约 100 KB。
+
+完整文档见 [docs/API.md](docs/API.md)。
+
 ## 更新记录
+
+### v1.4.0
+
+- **新增本机 API**：`--api [端口] [--allow-actions]` 启动一个只绑 `127.0.0.1` 的 HTTP 服务，
+  默认端口 5180。16 个端点覆盖系统状态、硬件、传感器、电压、工具清单、设置、托盘、已装应用，
+  另有 4 个写端点（启动工具、调速、恢复 BIOS 控制、改设置）需要在启动时显式开启。
+- **安全默认**：Token 必填（首次自动生成，32 位随机十六进制），写操作默认关闭，
+  不监听公网、不上传任何数据、不提供提权接口。
+- 新增 `--token <字符串>` 便于自动化测试；服务状态写入 `api-runtime.json`、请求日志写入 `api.log`。
+- 修复：`POST` 请求体在未声明 charset 时被 `HttpListener` 按系统 ANSI 代码页解析，
+  导致中文参数乱码；现在默认按 UTF-8 解析。
+- 文档：[docs/API.md](docs/API.md)，包含端点、字段、错误码与 curl / 脚本示例。
 
 ### v1.3.4
 

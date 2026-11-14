@@ -43,6 +43,30 @@ public partial class App : Application
         ApplyThemeFromArgs();
         Services.StartupTrace.Mark("主题已应用");
 
+        // --api [端口] [--allow-actions] [--token xxx]：本机 HTTP API，供 Agent / 脚本调用。
+        // 全程不创建窗口（不建 MainWindow、不进任务栏），Ctrl+C 或结束进程即停止。
+        var apiIndex = Array.IndexOf(Args, "--api");
+        if (apiIndex >= 0)
+        {
+            var a = Args;
+            int port = Services.AgentApi.DefaultPort;
+            if (apiIndex + 1 < a.Length && int.TryParse(a[apiIndex + 1], out int apiPort) &&
+                apiPort > 0 && apiPort < 65536)
+                port = apiPort;
+
+            bool allowActions = Array.IndexOf(a, "--allow-actions") >= 0;
+
+            string? token = null;
+            int tokenIndex = Array.IndexOf(a, "--token");
+            if (tokenIndex >= 0 && tokenIndex + 1 < a.Length &&
+                !a[tokenIndex + 1].StartsWith("--", StringComparison.Ordinal))
+                token = a[tokenIndex + 1];
+
+            int code = Services.AgentApi.Run(port, allowActions, token);
+            Environment.Exit(code);
+            return;
+        }
+
         // --probe：纯后台探测，不建任何窗口，跑完直接退出（写 probe.log）
         if (Array.IndexOf(Args, "--probe") >= 0)
         {
